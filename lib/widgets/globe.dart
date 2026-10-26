@@ -241,7 +241,17 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
   double _vLat = 0, _vLng = 0;
 
   void _glideTour(Duration elapsed, double dt) {
-    if (elapsed >= _tourNextAt) {
+    if (_tourIndex < 0) {
+      // Start with the city already facing the viewer (Dubai on Home).
+      var best = 0;
+      for (var i = 1; i < _tour.length; i++) {
+        if (((_tour[i].lng - _lng).abs()) < ((_tour[best].lng - _lng).abs())) {
+          best = i;
+        }
+      }
+      _tourIndex = best;
+      _tourNextAt = elapsed + const Duration(milliseconds: 5000);
+    } else if (elapsed >= _tourNextAt) {
       _tourIndex = (_tourIndex + 1) % _tour.length;
       _tourNextAt = elapsed + const Duration(milliseconds: 4200);
     }

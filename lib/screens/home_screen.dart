@@ -485,8 +485,8 @@ abstract final class HomeHeroLayout {
 
   /// How far the content sheet rides up over the hero.
   static const sheetOverlap = 28.0;
-  static const globeLat = 20.0;
-  static const globeLng = 52.0;
+  static const globeLat = 26.0;
+  static const globeLng = 55.3; // facing Dubai
 
   /// The globe nearly fills the width and sits low, its bottom tucked
   /// under the sheet; zooming in opens the whole globe.
@@ -501,7 +501,7 @@ abstract final class HomeHeroLayout {
   static Rect globeRect(Size screen, double topInset) {
     final r = globeRadius(screen);
     return Rect.fromCenter(
-      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.72),
+      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.9),
       width: r / 0.4,
       height: r / 0.4,
     );
@@ -550,6 +550,7 @@ class _GlobeHeroState extends State<_GlobeHero> {
         Positioned.fromRect(
           rect: HomeHeroLayout.globeRect(MediaQuery.sizeOf(context), top),
           child: Globe(
+            initialLat: HomeHeroLayout.globeLat,
             initialLng: HomeHeroLayout.globeLng,
             insideScrollView: true,
             showZoomControls: false,
