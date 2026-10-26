@@ -168,6 +168,36 @@ class Hotspot {
   final double y;
 }
 
+/// A neighbourhood a Guide can show: its drag-to-look image, pins and an
+/// optional real walk video.
+class Area {
+  const Area({
+    required this.id,
+    required this.name,
+    required this.image,
+    this.panoramaSpan = 110,
+    this.initialX = 0.5,
+    this.hotspots = const [],
+    this.walkVideoId,
+    this.walkVideoCredit,
+  });
+
+  final String id;
+  final String name;
+
+  /// File name in assets/images without the extension.
+  final String image;
+
+  /// Horizontal angle (degrees) the image covers.
+  final double panoramaSpan;
+
+  /// Where the view starts, as a fraction of the image width.
+  final double initialX;
+  final List<Hotspot> hotspots;
+  final String? walkVideoId;
+  final String? walkVideoCredit;
+}
+
 class City {
   const City({
     required this.id,
@@ -182,6 +212,7 @@ class City {
     this.panoramaSpan = 110,
     this.walkVideoId,
     this.walkVideoCredit,
+    this.extraAreas = const [],
     this.hotspots = const [
       Hotspot('Metro', Icons.train_outlined, 0.2, 0.55),
       Hotspot('Main street', Icons.directions_walk, 0.5, 0.6),
@@ -207,6 +238,26 @@ class City {
   /// Embeddable YouTube video of a real walk through the area.
   final String? walkVideoId;
   final String? walkVideoCredit;
+
+  /// More neighbourhoods besides [area].
+  final List<Area> extraAreas;
+
+  List<Area> get areas => [
+    Area(
+      id: 'main',
+      name: area,
+      image: panorama ?? image,
+      panoramaSpan: panoramaSpan,
+      initialX: panorama == null ? 0.5 : 0.36,
+      hotspots: hotspots,
+      walkVideoId: walkVideoId,
+      walkVideoCredit: walkVideoCredit,
+    ),
+    ...extraAreas,
+  ];
+
+  Area areaById(String? id) =>
+      areas.firstWhere((a) => a.id == id, orElse: () => areas.first);
   final List<Hotspot> hotspots;
 }
 
@@ -230,6 +281,47 @@ const cities = [
       Hotspot('Supermarket', Icons.shopping_basket_outlined, 0.24, 0.5),
       Hotspot('Marina Walk', Icons.directions_walk, 0.44, 0.47),
       Hotspot('Beach access', Icons.beach_access_outlined, 0.7, 0.66),
+    ],
+    extraAreas: [
+      Area(
+        id: 'downtown',
+        name: 'Downtown Dubai',
+        image: 'area_downtown',
+        panoramaSpan: 100,
+        hotspots: [
+          Hotspot('Burj Khalifa', Icons.location_city_outlined, 0.36, 0.5),
+          Hotspot('Dubai Mall 4 min', Icons.shopping_bag_outlined, 0.5, 0.62),
+          Hotspot('Metro 6 min', Icons.train_outlined, 0.82, 0.62),
+        ],
+        walkVideoId: 'AjwcqYZ6cIw',
+        walkVideoCredit: 'Downtown tour by Dubai Wanderscape on YouTube',
+      ),
+      Area(
+        id: 'palm',
+        name: 'Palm Jumeirah',
+        image: 'area_palm',
+        panoramaSpan: 100,
+        hotspots: [
+          Hotspot('Monorail', Icons.tram_outlined, 0.42, 0.36),
+          Hotspot('Beach access', Icons.beach_access_outlined, 0.28, 0.6),
+          Hotspot('Frond villas', Icons.villa_outlined, 0.72, 0.45),
+        ],
+        walkVideoId: 'Qee1k-jDjWM',
+        walkVideoCredit: 'Palm Jumeirah tour by Explore Virtually on YouTube',
+      ),
+      Area(
+        id: 'businessbay',
+        name: 'Business Bay',
+        image: 'area_businessbay',
+        panoramaSpan: 100,
+        hotspots: [
+          Hotspot('Metro 8 min', Icons.train_outlined, 0.12, 0.32),
+          Hotspot('Canal walk', Icons.directions_walk, 0.5, 0.72),
+          Hotspot('Supermarket', Icons.shopping_basket_outlined, 0.86, 0.5),
+        ],
+        walkVideoId: 'tudnmvTMh6c',
+        walkVideoCredit: 'Business Bay tour by CitiesTouch on YouTube',
+      ),
     ],
   ),
   City(

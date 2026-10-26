@@ -60,6 +60,7 @@ final appRouter = GoRouter(
               InspectKind.fromName(state.uri.queryParameters['intent']) ??
               InspectKind.property,
           showIntro: true,
+          areaId: state.uri.queryParameters['area'],
         ),
       ),
     ),

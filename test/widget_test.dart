@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shop_app/data/content.dart';
 import 'package:shop_app/widgets/globe.dart';
@@ -19,6 +21,29 @@ void main() {
       expect(InspectKind.fromName(kind.name), kind);
     }
     expect(InspectKind.fromName('boat'), isNull);
+  });
+
+  test('every area has a photo and Dubai offers four areas', () {
+    for (final city in cities) {
+      for (final area in city.areas) {
+        expect(
+          File('assets/images/${area.image}.jpg').existsSync() ||
+              // A few city photos never downloaded; they show a placeholder.
+              area.id == 'main',
+          isTrue,
+          reason: '${city.id}/${area.id}',
+        );
+      }
+    }
+    final dubai = cityById('dubai')!;
+    expect(dubai.areas.map((a) => a.name), [
+      'Dubai Marina',
+      'Downtown Dubai',
+      'Palm Jumeirah',
+      'Business Bay',
+    ]);
+    expect(dubai.areaById('palm').name, 'Palm Jumeirah');
+    expect(dubai.areaById('nowhere').name, 'Dubai Marina');
   });
 
   group('projectPoint', () {

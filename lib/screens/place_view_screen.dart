@@ -14,6 +14,7 @@ class PlaceViewScreen extends StatefulWidget {
     required this.city,
     required this.kind,
     this.showIntro = false,
+    this.areaId,
   });
 
   final City city;
@@ -21,6 +22,9 @@ class PlaceViewScreen extends StatefulWidget {
 
   /// Plays the globe-to-city fly-in on top while the view loads.
   final bool showIntro;
+
+  /// Neighbourhood to open; defaults to the city's main area.
+  final String? areaId;
 
   @override
   State<PlaceViewScreen> createState() => _PlaceViewScreenState();
@@ -31,6 +35,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
   // Three checks start selected so the price summary has content.
   late Set<InspectCheck> _selected = _kind.checks.take(3).toSet();
   late bool _intro = widget.showIntro;
+  late Area _area = widget.city.areaById(widget.areaId);
 
   void _toggle(InspectCheck check) => setState(() {
     if (!_selected.remove(check)) _selected.add(check);
@@ -38,18 +43,22 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
 
   /// Lets the user switch city without going back, keeping the intent.
   Future<void> _pickDestination(BuildContext context) async {
-    final picked = await showModalBottomSheet<City>(
+    final picked = await showModalBottomSheet<_Destination>(
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       showDragHandle: true,
-      builder: (context) => _DestinationSheet(current: widget.city),
+      builder: (context) =>
+          _DestinationSheet(city: widget.city, currentArea: _area),
     );
-    if (picked == null || picked.id == widget.city.id || !context.mounted) {
-      return;
+    if (picked == null || !context.mounted) return;
+    if (picked.city.id == widget.city.id) {
+      // Same city: swap the neighbourhood in place.
+      setState(() => _area = picked.area);
+    } else {
+      context.pushReplacement('/city/${picked.city.id}?intent=${_kind.name}');
     }
-    context.pushReplacement('/city/${picked.id}?intent=${_kind.name}');
   }
 
   void _setKind(InspectKind kind) => setState(() {
@@ -67,7 +76,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _LiveViewer(city: city),
+                _LiveViewer(key: ValueKey(_area.id), area: _area),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                   child: Column(
@@ -75,10 +84,11 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
                     children: [
                       _DestinationPill(
                         city: city,
+                        area: _area,
                         onTap: () => _pickDestination(context),
                       ),
                       const SizedBox(height: 10),
-                      Text(kind.placeTitle(city.area), style: AppText.display),
+                      Text(kind.placeTitle(_area.name), style: AppText.display),
                       const SizedBox(height: 6),
                       Text(kind.placeSubtitle, style: AppText.body),
                     ],
@@ -93,7 +103,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
                     children: [
                       const SectionHeader('Watch a sample'),
                       const SizedBox(height: 10),
-                      _SampleVideo(image: city.image),
+                      _SampleVideo(image: _area.image),
                       const SizedBox(height: 28),
                       const SectionHeader(
                         'What should your Guide check?',
@@ -188,7 +198,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
             children: [
               Text('Review your request', style: AppText.title),
               const SizedBox(height: 4),
-              Text(_kind.placeTitle(widget.city.area), style: AppText.body),
+              Text(_kind.placeTitle(_area.name), style: AppText.body),
               const SizedBox(height: 16),
               for (final c in checks)
                 Padding(
@@ -232,9 +242,9 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
 /// Top of the place view: the drag-to-look panorama, plus a real recorded
 /// walk video where one is available.
 class _LiveViewer extends StatefulWidget {
-  const _LiveViewer({required this.city});
+  const _LiveViewer({super.key, required this.area});
 
-  final City city;
+  final Area area;
 
   @override
   State<_LiveViewer> createState() => _LiveViewerState();
@@ -244,13 +254,13 @@ class _LiveViewerState extends State<_LiveViewer> {
   bool _video = false;
 
   void _openFullScreen(BuildContext context) {
-    final city = widget.city;
+    final area = widget.area;
     Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 220),
         pageBuilder: (context, _, _) => _FullScreenView(
-          city: city,
-          video: _video && city.walkVideoId != null,
+          area: area,
+          video: _video && area.walkVideoId != null,
         ),
         transitionsBuilder: (context, animation, _, child) =>
             FadeTransition(opacity: animation, child: child),
@@ -260,8 +270,8 @@ class _LiveViewerState extends State<_LiveViewer> {
 
   @override
   Widget build(BuildContext context) {
-    final city = widget.city;
-    final videoId = city.walkVideoId;
+    final area = widget.area;
+    final videoId = area.walkVideoId;
     final top = MediaQuery.paddingOf(context).top;
 
     return Column(
@@ -281,10 +291,10 @@ class _LiveViewerState extends State<_LiveViewer> {
                         ),
                       )
                     : PanoramaViewer(
-                        image: city.panorama ?? city.image,
-                        spanDegrees: city.panoramaSpan,
-                        hotspots: city.hotspots,
-                        initialX: city.panorama == null ? 0.5 : 0.36,
+                        image: area.image,
+                        spanDegrees: area.panoramaSpan,
+                        hotspots: area.hotspots,
+                        initialX: area.initialX,
                         onExpand: () => _openFullScreen(context),
                       ),
               ),
@@ -326,7 +336,7 @@ class _LiveViewerState extends State<_LiveViewer> {
             ],
           ),
         ),
-        if (_video && city.walkVideoCredit != null)
+        if (_video && area.walkVideoCredit != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
             child: Row(
@@ -339,7 +349,7 @@ class _LiveViewerState extends State<_LiveViewer> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Real recorded walk · ${city.walkVideoCredit}',
+                    'Real recorded walk · ${area.walkVideoCredit}',
                     style: AppText.small,
                   ),
                 ),
@@ -357,9 +367,9 @@ String _walkUrl(String videoId) =>
 
 /// Full-screen 360° view or walk video, with free one-finger looking.
 class _FullScreenView extends StatelessWidget {
-  const _FullScreenView({required this.city, required this.video});
+  const _FullScreenView({required this.area, required this.video});
 
-  final City city;
+  final Area area;
   final bool video;
 
   @override
@@ -374,15 +384,15 @@ class _FullScreenView extends StatelessWidget {
             top: video ? top + 56 : 0,
             child: video
                 ? ZoomableVideo(
-                    url: _walkUrl(city.walkVideoId!),
+                    url: _walkUrl(area.walkVideoId!),
                     onExpand: close,
                     expanded: true,
                   )
                 : PanoramaViewer(
-                    image: city.panorama ?? city.image,
-                    spanDegrees: city.panoramaSpan,
-                    hotspots: city.hotspots,
-                    initialX: city.panorama == null ? 0.5 : 0.36,
+                    image: area.image,
+                    spanDegrees: area.panoramaSpan,
+                    hotspots: area.hotspots,
+                    initialX: area.initialX,
                     insideScrollView: false,
                     onExpand: close,
                     expanded: true,
@@ -799,16 +809,21 @@ class _RequestBar extends StatelessWidget {
 }
 
 class _DestinationPill extends StatelessWidget {
-  const _DestinationPill({required this.city, required this.onTap});
+  const _DestinationPill({
+    required this.city,
+    required this.area,
+    required this.onTap,
+  });
 
   final City city;
+  final Area area;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: 'Destination ${city.name}, change',
+      label: 'Destination ${area.name}, ${city.name}, change',
       child: Material(
         color: AppColors.tealTint,
         shape: const StadiumBorder(),
@@ -823,7 +838,7 @@ class _DestinationPill extends StatelessWidget {
                 const Icon(Icons.place, size: 16, color: AppColors.teal),
                 const SizedBox(width: 4),
                 Text(
-                  '${city.name}, ${city.country}',
+                  '${area.name}, ${city.name}',
                   style: AppText.label.copyWith(fontSize: 13),
                 ),
                 const SizedBox(width: 8),
@@ -848,11 +863,14 @@ class _DestinationPill extends StatelessWidget {
   }
 }
 
-/// Searchable list of destinations; pops with the chosen city.
-class _DestinationSheet extends StatefulWidget {
-  const _DestinationSheet({required this.current});
+typedef _Destination = ({City city, Area area});
 
-  final City current;
+/// Areas of the current city first, then other cities; searchable.
+class _DestinationSheet extends StatefulWidget {
+  const _DestinationSheet({required this.city, required this.currentArea});
+
+  final City city;
+  final Area currentArea;
 
   @override
   State<_DestinationSheet> createState() => _DestinationSheetState();
@@ -861,33 +879,76 @@ class _DestinationSheet extends StatefulWidget {
 class _DestinationSheetState extends State<_DestinationSheet> {
   String _query = '';
 
+  bool _matches(String text) =>
+      _query.trim().isEmpty ||
+      text.toLowerCase().contains(_query.trim().toLowerCase());
+
+  Widget _header(String text) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+    child: Text(
+      text.toUpperCase(),
+      style: AppText.small.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+      ),
+    ),
+  );
+
+  Widget _tile({
+    required String image,
+    required String title,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 52,
+          height: 52,
+          child: Photo(image, icon: Icons.location_city_outlined),
+        ),
+      ),
+      title: Text(title, style: AppText.label),
+      subtitle: Text(subtitle, style: AppText.small),
+      trailing: Icon(
+        selected ? Icons.check_circle : Icons.chevron_right,
+        color: selected ? AppColors.teal : AppColors.muted,
+      ),
+      onTap: onTap,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final q = _query.trim().toLowerCase();
-    final matches = [
+    final city = widget.city;
+    final areas = [
+      for (final a in city.areas)
+        if (_matches('${a.name} ${city.name}')) a,
+    ];
+    final others = [
       for (final c in cities)
-        if (q.isEmpty ||
-            '${c.name} ${c.country} ${c.area}'.toLowerCase().contains(q))
-          c,
+        if (c.id != city.id && _matches('${c.name} ${c.country} ${c.area}')) c,
     ];
 
     return SizedBox(
-      height: MediaQuery.sizeOf(context).height * 0.75,
+      height: MediaQuery.sizeOf(context).height * 0.8,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Change destination', style: AppText.title),
                 const SizedBox(height: 12),
                 TextField(
-                  autofocus: false,
                   onChanged: (v) => setState(() => _query = v),
                   decoration: InputDecoration(
-                    hintText: 'Search a city or country',
+                    hintText: 'Search an area, city or country',
                     hintStyle: AppText.body,
                     prefixIcon: const Icon(
                       Icons.search,
@@ -905,67 +966,49 @@ class _DestinationSheetState extends State<_DestinationSheet> {
             ),
           ),
           Expanded(
-            child: matches.isEmpty
+            child: areas.isEmpty && others.isEmpty
                 ? Center(
                     child: Text('No Guides there yet.', style: AppText.body),
                   )
-                : ListView.builder(
+                : ListView(
                     padding: EdgeInsets.only(
                       bottom: MediaQuery.paddingOf(context).bottom + 12,
                     ),
-                    itemCount: matches.length,
-                    itemBuilder: (context, i) {
-                      final c = matches[i];
-                      final current = c.id == widget.current.id;
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 4,
-                        ),
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: SizedBox(
-                            width: 52,
-                            height: 52,
-                            child: Photo(
-                              c.image,
-                              icon: Icons.location_city_outlined,
-                            ),
+                    children: [
+                      if (areas.isNotEmpty) ...[
+                        _header('Areas in ${city.name}'),
+                        for (final a in areas)
+                          _tile(
+                            image: a.image,
+                            title: a.name,
+                            subtitle: a.walkVideoId != null
+                                ? '360° view · walk video'
+                                : '360° view',
+                            selected: a.id == widget.currentArea.id,
+                            onTap: () => Navigator.pop<_Destination>(context, (
+                              city: city,
+                              area: a,
+                            )),
                           ),
-                        ),
-                        title: Text(
-                          '${c.name}, ${c.country}',
-                          style: AppText.label,
-                        ),
-                        subtitle: Row(
-                          children: [
-                            Container(
-                              width: 7,
-                              height: 7,
-                              decoration: const BoxDecoration(
-                                color: AppColors.online,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              '${c.guidesOnline} Guides online · ${c.area}',
-                              style: AppText.small,
-                            ),
-                          ],
-                        ),
-                        trailing: current
-                            ? const Icon(
-                                Icons.check_circle,
-                                color: AppColors.teal,
-                              )
-                            : const Icon(
-                                Icons.chevron_right,
-                                color: AppColors.muted,
-                              ),
-                        onTap: () => Navigator.pop(context, c),
-                      );
-                    },
+                      ],
+                      if (others.isNotEmpty) ...[
+                        _header('Other cities'),
+                        for (final c in others)
+                          _tile(
+                            image: c.image,
+                            title: '${c.name}, ${c.country}',
+                            subtitle:
+                                '${c.guidesOnline} Guides online · '
+                                '${c.areas.length} '
+                                '${c.areas.length == 1 ? 'area' : 'areas'}',
+                            selected: false,
+                            onTap: () => Navigator.pop<_Destination>(context, (
+                              city: c,
+                              area: c.areas.first,
+                            )),
+                          ),
+                      ],
+                    ],
                   ),
           ),
         ],

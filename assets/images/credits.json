@@ -1,4 +1,22 @@
 {
+  "area_businessbay": {
+    "creator": "Iwona Rege",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Dubai_Water_Canal_Business_Bay.jpg",
+    "title": "Dubai Water Canal Business Bay"
+  },
+  "area_downtown": {
+    "creator": "Jimmy Baikovicius from Montevideo, Uruguay",
+    "license": "CC BY-SA 2.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Skyline_Downtown_Dubai_140514-2096-jikatu_(14167168656).jpg",
+    "title": "Skyline Downtown Dubai 140514-2096-jikatu (14167168656)"
+  },
+  "area_palm": {
+    "creator": "Diego Delso",
+    "license": "CC BY-SA 4.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Jumeirah_Palm-Dubai4067.JPG",
+    "title": "Jumeirah Palm-Dubai4067"
+  },
   "car_damaged": {
     "creator": "Maxwell Davis",
     "license": "CC CC0 1.0",
