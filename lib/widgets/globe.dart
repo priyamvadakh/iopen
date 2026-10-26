@@ -683,7 +683,7 @@ class GlobePainter extends CustomPainter {
             ..color = _pinColor.withValues(alpha: 0.5 * (1 - pulse) * fade),
         );
       }
-      // Soft halo, white ring, dark centre.
+      // Soft halo, then a white dot with a dark ring.
       canvas.drawCircle(
         o,
         11,
@@ -694,13 +694,16 @@ class GlobePainter extends CustomPainter {
       );
       canvas.drawCircle(
         o,
-        6.5,
+        6,
         Paint()..color = Colors.white.withValues(alpha: fade),
       );
       canvas.drawCircle(
         o,
-        3,
-        Paint()..color = const Color(0xFF0A2A31).withValues(alpha: fade),
+        6,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.6
+          ..color = const Color(0xFF10202A).withValues(alpha: fade),
       );
     }
 
@@ -712,26 +715,54 @@ class GlobePainter extends CustomPainter {
         alpha: l.fade,
         light: light > 0.5,
       );
-      final rrect = RRect.fromRectAndRadius(l.box, const Radius.circular(12));
+      // Fully rounded pills: frosted white, or glossy green-teal when
+      // focused, with a crisp edge so they read clearly over the pattern.
+      final rrect = RRect.fromRectAndRadius(
+        l.box,
+        Radius.circular(l.box.height / 2),
+      );
+      final lightStyle = light > 0.5;
+      final fill = Paint();
+      if (isFocused) {
+        fill.shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: lightStyle
+              ? const [Color(0xFF64A396), _mint, Color(0xFF326C61)]
+              : const [Color(0xFF1C4048), Color(0xFF0A2A31), Color(0xFF061C22)],
+        ).createShader(l.box);
+      } else {
+        fill.color = Colors.white.withValues(alpha: 0.9);
+      }
+      canvas.saveLayer(
+        l.box.inflate(2),
+        Paint()..color = Color.fromRGBO(0, 0, 0, l.fade),
+      );
+      canvas.drawRRect(rrect, fill);
+      // Gloss: a faint highlight along the top half.
       canvas.drawRRect(
-        rrect,
-        Paint()
-          ..color =
-              (isFocused
-                      ? (light > 0.5 ? _mint : const Color(0xFF0A2A31))
-                      : (light > 0.5 ? const Color(0xFFEAF6F3) : Colors.white))
-                  .withValues(alpha: (isFocused ? 0.95 : 0.88) * l.fade),
+        RRect.fromRectAndRadius(
+          Rect.fromLTRB(
+            l.box.left + 4,
+            l.box.top + 2,
+            l.box.right - 4,
+            l.box.center.dy,
+          ),
+          Radius.circular(l.box.height / 2),
+        ),
+        Paint()..color = Colors.white.withValues(alpha: isFocused ? 0.16 : 0.5),
       );
       canvas.drawRRect(
         rrect,
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1
-          ..color = (isFocused ? _pinColor : Colors.white).withValues(
-            alpha: 0.6 * l.fade,
-          ),
+          ..strokeWidth = 1.2
+          ..color = isFocused
+              ? Colors.white.withValues(alpha: 0.35)
+              : (lightStyle ? const Color(0xFFD3E8E2) : Colors.white),
       );
-      tp.paint(canvas, l.box.topLeft + const Offset(12, 7));
+      canvas.restore();
+      tp.paint(canvas, l.box.topLeft + const Offset(15, 8));
     }
   }
 
@@ -743,7 +774,7 @@ class GlobePainter extends CustomPainter {
     bool light = false,
   }) {
     final base = AppText.small.copyWith(
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: FontWeight.w700,
       color: (focused ? Colors.white : AppColors.ink).withValues(alpha: alpha),
     );
@@ -795,9 +826,9 @@ class GlobePainter extends CustomPainter {
     for (final (city, dot, depth) in visible) {
       final tp = _labelText(city);
       final box = Rect.fromCenter(
-        center: Offset(dot.dx, dot.dy - 14 - (tp.height + 14) / 2),
-        width: tp.width + 24,
-        height: tp.height + 14,
+        center: Offset(dot.dx, dot.dy - 16 - (tp.height + 16) / 2),
+        width: tp.width + 30,
+        height: tp.height + 16,
       );
       if (placed.any((l) => l.box.inflate(3).overlaps(box))) continue;
       placed.add(
