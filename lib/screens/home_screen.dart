@@ -170,7 +170,9 @@ class _HomeScreenState extends State<HomeScreen>
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBFDFD),
+                  color: AppColors.dark
+                      ? AppColors.background
+                      : const Color(0xFFFBFDFD),
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(28),
                   ),
@@ -249,7 +251,7 @@ class _WalletChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.92),
+      color: AppColors.surface.withValues(alpha: 0.92),
       shape: const StadiumBorder(),
       child: InkWell(
         customBorder: const StadiumBorder(),
@@ -282,10 +284,10 @@ class _SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(30),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(30),
@@ -294,7 +296,7 @@ class _SearchField extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           child: Row(
             children: [
-              const Icon(Icons.search, color: AppColors.muted, size: 22),
+              Icon(Icons.search, color: AppColors.muted, size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -392,10 +394,10 @@ class _DecideCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
       child: Material(
-        color: Colors.white,
+        color: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.border),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -721,10 +723,10 @@ class _ContinueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.card),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -770,7 +772,7 @@ class _ContinueCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: AppColors.muted),
+              Icon(Icons.chevron_right, color: AppColors.muted),
             ],
           ),
         ),
@@ -793,7 +795,7 @@ class _HowItWorks extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.border),
       ),
@@ -822,7 +824,7 @@ class _HowItWorks extends StatelessWidget {
                       Container(
                         width: 40,
                         height: 40,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: AppColors.tealTint,
                           shape: BoxShape.circle,
                         ),
@@ -1039,9 +1041,9 @@ class _TourChip extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.88),
+              color: AppColors.surface.withValues(alpha: 0.88),
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.white),
+              border: Border.all(color: AppColors.surface),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1102,7 +1104,7 @@ class _StyleSwitch extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
+        color: AppColors.surface.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(20),
         border: light ? Border.all(color: AppColors.border) : null,
       ),
@@ -1126,9 +1128,9 @@ class _GuidesChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.88),
+        color: AppColors.surface.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white),
+        border: Border.all(color: AppColors.surface),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

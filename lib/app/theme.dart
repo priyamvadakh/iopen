@@ -2,15 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppColors {
+  /// Dark theme across the app; follows the globe's 🌙 / ☀️ switch.
+  static bool dark = false;
+
   static const teal = Color(0xFF2E7F87);
   static const tealDark = Color(0xFF1F6670);
-  static const tealTint = Color(0xFFE3F4F5);
-  static const ink = Color(0xFF10202A);
-  // 5.6:1 on white, passes WCAG AA for body text.
-  static const muted = Color(0xFF5B6B73);
-  static const background = Color(0xFFF4FAFA);
-  static const aqua = Color(0xFFD9F1F2);
-  static const border = Color(0xFFDDE7E7);
+  static Color get tealTint =>
+      dark ? const Color(0xFF173A3F) : const Color(0xFFE3F4F5);
+  static Color get ink =>
+      dark ? const Color(0xFFE8F2F1) : const Color(0xFF10202A);
+  // 5.6:1 on white (light) and on the dark surface, passes WCAG AA.
+  static Color get muted =>
+      dark ? const Color(0xFF9DB2B3) : const Color(0xFF5B6B73);
+  static Color get background =>
+      dark ? const Color(0xFF0B1A1F) : const Color(0xFFF4FAFA);
+  static Color get surface => dark ? const Color(0xFF15282E) : Colors.white;
+  static Color get aqua =>
+      dark ? const Color(0xFF12363B) : const Color(0xFFD9F1F2);
+  static Color get border =>
+      dark ? const Color(0xFF26404A) : const Color(0xFFDDE7E7);
   static const online = Color(0xFF1E8F55);
   static const star = Color(0xFFD99A00);
 }
@@ -25,8 +35,10 @@ ThemeData buildTheme() {
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.teal,
+      brightness: AppColors.dark ? Brightness.dark : Brightness.light,
       primary: AppColors.teal,
-      surface: Colors.white,
+      surface: AppColors.surface,
+      onSurface: AppColors.ink,
     ),
     scaffoldBackgroundColor: AppColors.background,
     splashFactory: InkSparkle.splashFactory,

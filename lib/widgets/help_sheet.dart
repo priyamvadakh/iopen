@@ -32,7 +32,7 @@ Future<void> showHelpSheet(BuildContext context) {
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
-    backgroundColor: Colors.white,
+    backgroundColor: AppColors.surface,
     showDragHandle: true,
     builder: (context) => SafeArea(
       child: ConstrainedBox(

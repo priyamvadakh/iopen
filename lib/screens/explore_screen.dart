@@ -68,16 +68,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
               decoration: InputDecoration(
                 hintText: 'Search a city or country',
                 hintStyle: AppText.body,
-                prefixIcon: const Icon(Icons.search, color: AppColors.muted),
+                prefixIcon: Icon(Icons.search, color: AppColors.muted),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppColors.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.button),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: BorderSide(color: AppColors.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.button),
-                  borderSide: const BorderSide(color: AppColors.border),
+                  borderSide: BorderSide(color: AppColors.border),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.button),
@@ -145,10 +145,10 @@ class _CountryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -184,7 +184,7 @@ class _CountryCard extends StatelessWidget {
                   Container(
                     width: 24,
                     height: 24,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: AppColors.tealTint,
                       shape: BoxShape.circle,
                     ),

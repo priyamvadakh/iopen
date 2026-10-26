@@ -58,7 +58,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       showDragHandle: true,
       builder: (context) =>
           _DestinationSheet(city: widget.city, currentArea: _area),
@@ -253,7 +253,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
     final checks = _kind.checks.where(_selected.contains).toList();
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
@@ -331,7 +331,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
     showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
         child: Padding(
@@ -342,7 +342,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
               Container(
                 width: 64,
                 height: 64,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: AppColors.tealTint,
                   shape: BoxShape.circle,
                 ),
@@ -487,7 +487,7 @@ class _LiveViewerState extends State<_LiveViewer> {
                   left: 0,
                   right: 0,
                   height: top + 56,
-                  child: const ColoredBox(color: AppColors.ink),
+                  child: ColoredBox(color: AppColors.ink),
                 )
               else
                 const Positioned(
@@ -791,9 +791,9 @@ class _ViewToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.88),
+        color: AppColors.surface.withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(23),
-        border: Border.all(color: Colors.white),
+        border: Border.all(color: AppColors.surface),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1005,7 +1005,7 @@ class _GuideCard extends StatelessWidget {
       width: 200,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.border),
       ),
@@ -1049,7 +1049,7 @@ class _GuideCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              const Icon(Icons.translate, size: 14, color: AppColors.muted),
+              Icon(Icons.translate, size: 14, color: AppColors.muted),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -1132,8 +1132,8 @@ class _RequestBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       padding: EdgeInsets.fromLTRB(
@@ -1296,10 +1296,7 @@ class _DestinationSheetState extends State<_DestinationSheet> {
                   decoration: InputDecoration(
                     hintText: 'Search an area, city or country',
                     hintStyle: AppText.body,
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: AppColors.muted,
-                    ),
+                    prefixIcon: Icon(Icons.search, color: AppColors.muted),
                     filled: true,
                     fillColor: AppColors.background,
                     border: OutlineInputBorder(

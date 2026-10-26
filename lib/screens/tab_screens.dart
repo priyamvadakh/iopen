@@ -107,7 +107,7 @@ class SessionsScreen extends StatelessWidget {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: AppColors.border),
                           ),
@@ -204,7 +204,7 @@ class _SessionTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.border),
       ),
@@ -338,7 +338,7 @@ class WalletScreen extends StatelessWidget {
                       label: const Text('Top up'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.teal,
-                        backgroundColor: Colors.white,
+                        backgroundColor: AppColors.surface,
                         side: BorderSide.none,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppRadius.button),
@@ -351,7 +351,7 @@ class WalletScreen extends StatelessWidget {
               const SizedBox(height: 28),
               Text('Recent activity', style: AppText.section),
               const SizedBox(height: 24),
-              const Icon(
+              Icon(
                 Icons.receipt_long_outlined,
                 size: 36,
                 color: AppColors.muted,
@@ -378,7 +378,7 @@ class ProfileScreen extends StatelessWidget {
     Widget tile(IconData icon, String label) => ListTile(
       leading: Icon(icon, color: AppColors.teal),
       title: Text(label, style: AppText.label),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.muted),
+      trailing: Icon(Icons.chevron_right, color: AppColors.muted),
       onTap: () => showComingSoon(context, label),
     );
 
@@ -419,10 +419,7 @@ class ProfileScreen extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.help_outline, color: AppColors.teal),
                 title: Text('Help & support', style: AppText.label),
-                trailing: const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.muted,
-                ),
+                trailing: Icon(Icons.chevron_right, color: AppColors.muted),
                 onTap: () => showHelpSheet(context),
               ),
               ListTile(
@@ -431,10 +428,7 @@ class ProfileScreen extends StatelessWidget {
                   color: AppColors.teal,
                 ),
                 title: Text('Replay intro', style: AppText.label),
-                trailing: const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.muted,
-                ),
+                trailing: Icon(Icons.chevron_right, color: AppColors.muted),
                 onTap: () => replayOnboarding.value++,
               ),
             ],

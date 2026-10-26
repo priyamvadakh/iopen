@@ -49,14 +49,22 @@ class GlassNavBar extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.7),
-                    const Color(0xFFE6F5F3).withValues(alpha: 0.62),
-                    const Color(0xFFD3EFF1).withValues(alpha: 0.7),
-                  ],
+                  colors: AppColors.dark
+                      ? [
+                          const Color(0xFF1C3439).withValues(alpha: 0.72),
+                          const Color(0xFF15282E).withValues(alpha: 0.66),
+                          const Color(0xFF0F2126).withValues(alpha: 0.74),
+                        ]
+                      : [
+                          Colors.white.withValues(alpha: 0.7),
+                          const Color(0xFFE6F5F3).withValues(alpha: 0.62),
+                          const Color(0xFFD3EFF1).withValues(alpha: 0.7),
+                        ],
                 ),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.95),
+                  color: AppColors.dark
+                      ? Colors.white.withValues(alpha: 0.14)
+                      : Colors.white.withValues(alpha: 0.95),
                   width: 1.4,
                 ),
                 boxShadow: [

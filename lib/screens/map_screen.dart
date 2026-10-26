@@ -8,6 +8,14 @@ import '../data/content.dart';
 import '../widgets/common.dart';
 
 /// Desaturates the map and pulls it towards teal.
+// Dark theme: the same streets, inverted to deep teal.
+const _brandTintDark = ColorFilter.matrix([
+  -0.075, -0.1375, -0.0375, 0, 79, //
+  -0.075, -0.1375, -0.0375, 0, 100, //
+  -0.075, -0.1375, -0.0375, 0, 105, //
+  0, 0, 0, 1, 0,
+]);
+
 const _brandTint = ColorFilter.matrix([
   0.28, 0.5, 0.12, 0, 22, //
   0.3, 0.55, 0.12, 0, 42, //
@@ -20,8 +28,10 @@ TileLayer brandTileLayer() => TileLayer(
   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   userAgentPackageName: 'com.example.iopen',
   maxNativeZoom: 19,
-  tileBuilder: (context, tile, _) =>
-      ColorFiltered(colorFilter: _brandTint, child: tile),
+  tileBuilder: (context, tile, _) => ColorFiltered(
+    colorFilter: AppColors.dark ? _brandTintDark : _brandTint,
+    child: tile,
+  ),
 );
 
 /// Street map of where Guides are, with search on top.
@@ -265,7 +275,7 @@ class _MapScreenState extends State<MapScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: AppColors.surface.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -290,8 +300,8 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.95),
-      shape: const StadiumBorder(side: BorderSide(color: AppColors.border)),
+      color: AppColors.surface.withValues(alpha: 0.95),
+      shape: StadiumBorder(side: BorderSide(color: AppColors.border)),
       child: TextField(
         controller: controller,
         focusNode: focus,
@@ -300,12 +310,12 @@ class _SearchBar extends StatelessWidget {
         decoration: InputDecoration(
           hintText: 'Search a city or area',
           hintStyle: AppText.body,
-          prefixIcon: const Icon(Icons.search, color: AppColors.muted),
+          prefixIcon: Icon(Icons.search, color: AppColors.muted),
           suffixIcon: controller.text.isEmpty
               ? null
               : IconButton(
                   tooltip: 'Clear',
-                  icon: const Icon(Icons.close, color: AppColors.muted),
+                  icon: Icon(Icons.close, color: AppColors.muted),
                   onPressed: controller.clear,
                 ),
           border: InputBorder.none,
@@ -330,10 +340,10 @@ class _Results extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.card),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: results.isEmpty
@@ -403,7 +413,7 @@ class _AreaPin extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.fromLTRB(5, 5, 12, 5),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.teal, width: 1.5),
             ),
@@ -504,10 +514,10 @@ class _CityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final areas = city.areas;
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: AppColors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -561,7 +571,7 @@ class _CityCard extends StatelessWidget {
                 IconButton(
                   tooltip: 'Close',
                   onPressed: onClose,
-                  icon: const Icon(Icons.close, color: AppColors.muted),
+                  icon: Icon(Icons.close, color: AppColors.muted),
                 ),
               ],
             ),

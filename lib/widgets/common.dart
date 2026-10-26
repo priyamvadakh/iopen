@@ -78,14 +78,14 @@ class AppBackButton extends StatelessWidget {
       button: true,
       label: 'Back',
       child: Material(
-        color: Colors.white,
-        shape: const CircleBorder(side: BorderSide(color: AppColors.border)),
+        color: AppColors.surface,
+        shape: CircleBorder(side: BorderSide(color: AppColors.border)),
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap:
               onPressed ??
               () => context.canPop() ? context.pop() : context.go('/home'),
-          child: const SizedBox(
+          child: SizedBox(
             width: 40,
             height: 40,
             child: Icon(Icons.arrow_back, size: 20, color: AppColors.ink),
@@ -208,7 +208,7 @@ class ChoicePill extends StatelessWidget {
       child: Material(
         color: selected
             ? (showCheck ? AppColors.tealTint : AppColors.teal)
-            : Colors.white,
+            : AppColors.surface,
         shape: StadiumBorder(
           side: BorderSide(
             color: selected ? AppColors.teal : AppColors.border,
@@ -333,11 +333,11 @@ class AquaBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.white, AppColors.background, AppColors.aqua],
+          colors: [AppColors.surface, AppColors.background, AppColors.aqua],
           stops: [0, 0.55, 1],
         ),
       ),
@@ -503,9 +503,9 @@ class ZoomControls extends StatelessWidget {
         );
 
     return Material(
-      color: Colors.white.withValues(alpha: 0.9),
+      color: AppColors.surface.withValues(alpha: 0.9),
       shape: StadiumBorder(
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.9)),
+        side: BorderSide(color: AppColors.surface.withValues(alpha: 0.9)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),

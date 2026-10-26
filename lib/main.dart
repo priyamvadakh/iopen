@@ -7,6 +7,7 @@ import 'app/router.dart';
 import 'app/onboarding_state.dart';
 import 'data/user_store.dart';
 import 'screens/onboarding.dart';
+import 'widgets/globe.dart';
 import 'app/theme.dart';
 import 'core/firebase_providers.dart';
 import 'firebase_options.dart';
@@ -65,23 +66,32 @@ class _GuideAppState extends State<GuideApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'iOpen',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
-      routerConfig: appRouter,
-      builder: (context, child) => PhoneFrame(
-        child: Stack(
-          children: [
-            child!,
-            // Skipped for people who ask their device to reduce motion.
-            if (_onboarding && !MediaQuery.disableAnimationsOf(context))
-              Positioned.fill(
-                child: OnboardingOverlay(onDone: _finishOnboarding),
-              ),
-          ],
-        ),
-      ),
+    // The 🌙 / ☀️ switch on Home sets the whole app's theme.
+    return ValueListenableBuilder(
+      valueListenable: globeLight,
+      builder: (context, light, _) {
+        AppColors.dark = !light;
+        return MaterialApp.router(
+          // A new key rebuilds every page in the new colours.
+          key: ValueKey(AppColors.dark),
+          title: 'iOpen',
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(),
+          routerConfig: appRouter,
+          builder: (context, child) => PhoneFrame(
+            child: Stack(
+              children: [
+                child!,
+                // Skipped for people who ask their device to reduce motion.
+                if (_onboarding && !MediaQuery.disableAnimationsOf(context))
+                  Positioned.fill(
+                    child: OnboardingOverlay(onDone: _finishOnboarding),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
