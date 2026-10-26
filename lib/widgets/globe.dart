@@ -220,10 +220,43 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
     setState(() {
       _time = elapsed.inMicroseconds / 1e6;
       _zoom += (_targetZoom - _zoom) * math.min(1, dt * 10);
-      if (!_dragging && elapsed > _resumeAt && !onboardingActive.value) {
-        _lng += dt * 7 / _zoom;
+      final touring =
+          !_dragging &&
+          elapsed > _resumeAt &&
+          !onboardingActive.value &&
+          (widget.spin?.value ?? true);
+      if (touring) {
+        _glideTour(elapsed, math.min(dt, 0.05));
+      } else {
+        _vLat = _vLng = 0;
       }
     });
+  }
+
+  // The tour glides from one live city to the next, west to east, easing
+  // in and out with a soft spring and resting a moment on each.
+  static final _tour = [...cities]..sort((a, b) => a.lng.compareTo(b.lng));
+  int _tourIndex = -1;
+  Duration _tourNextAt = Duration.zero;
+  double _vLat = 0, _vLng = 0;
+
+  void _glideTour(Duration elapsed, double dt) {
+    if (elapsed >= _tourNextAt) {
+      _tourIndex = (_tourIndex + 1) % _tour.length;
+      _tourNextAt = elapsed + const Duration(milliseconds: 4200);
+    }
+    final city = _tour[_tourIndex];
+    // Look a little from the north, so the city sits just below centre.
+    final targetLat = (city.lat * 0.75 + 8).clamp(-60.0, 70.0);
+    final dLng = ((city.lng - _lng + 540) % 360) - 180;
+    final dLat = targetLat - _lat;
+    // Critically damped spring: smooth start, gentle settle, no overshoot.
+    const k = 2.2;
+    final damping = 2 * math.sqrt(k);
+    _vLng += (k * dLng - damping * _vLng) * dt;
+    _vLat += (k * dLat - damping * _vLat) * dt;
+    _lng += _vLng * dt;
+    _lat += _vLat * dt;
   }
 
   @override
