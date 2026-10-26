@@ -441,6 +441,8 @@ class GlobePainter extends CustomPainter {
       r,
       viewLat * math.pi / 180,
       viewLng * math.pi / 180,
+      // Blend towards satellite colours as the user zooms in.
+      ((zoom - 1.4) / 1.8).clamp(0.0, 1.0),
     ]) {
       shader.setFloat(i++, v);
     }

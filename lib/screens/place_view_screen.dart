@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../app/theme.dart';
 import '../data/content.dart';
@@ -35,6 +36,22 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
     if (!_selected.remove(check)) _selected.add(check);
   });
 
+  /// Lets the user switch city without going back, keeping the intent.
+  Future<void> _pickDestination(BuildContext context) async {
+    final picked = await showModalBottomSheet<City>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      builder: (context) => _DestinationSheet(current: widget.city),
+    );
+    if (picked == null || picked.id == widget.city.id || !context.mounted) {
+      return;
+    }
+    context.pushReplacement('/city/${picked.id}?intent=${_kind.name}');
+  }
+
   void _setKind(InspectKind kind) => setState(() {
     _kind = kind;
     _selected = kind.checks.take(3).toSet();
@@ -56,6 +73,11 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _DestinationPill(
+                        city: city,
+                        onTap: () => _pickDestination(context),
+                      ),
+                      const SizedBox(height: 10),
                       Text(kind.placeTitle(city.area), style: AppText.display),
                       const SizedBox(height: 6),
                       Text(kind.placeSubtitle, style: AppText.body),
@@ -771,6 +793,182 @@ class _RequestBar extends StatelessWidget {
               ? 'Pick at least one check'
               : 'Request Guide · $checks ${checks == 1 ? 'check' : 'checks'} · AED ${Pricing.base}',
         ),
+      ),
+    );
+  }
+}
+
+class _DestinationPill extends StatelessWidget {
+  const _DestinationPill({required this.city, required this.onTap});
+
+  final City city;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Destination ${city.name}, change',
+      child: Material(
+        color: AppColors.tealTint,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 7, 12, 7),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.place, size: 16, color: AppColors.teal),
+                const SizedBox(width: 4),
+                Text(
+                  '${city.name}, ${city.country}',
+                  style: AppText.label.copyWith(fontSize: 13),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Change',
+                  style: AppText.label.copyWith(
+                    fontSize: 13,
+                    color: AppColors.teal,
+                  ),
+                ),
+                const Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 18,
+                  color: AppColors.teal,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Searchable list of destinations; pops with the chosen city.
+class _DestinationSheet extends StatefulWidget {
+  const _DestinationSheet({required this.current});
+
+  final City current;
+
+  @override
+  State<_DestinationSheet> createState() => _DestinationSheetState();
+}
+
+class _DestinationSheetState extends State<_DestinationSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _query.trim().toLowerCase();
+    final matches = [
+      for (final c in cities)
+        if (q.isEmpty ||
+            '${c.name} ${c.country} ${c.area}'.toLowerCase().contains(q))
+          c,
+    ];
+
+    return SizedBox(
+      height: MediaQuery.sizeOf(context).height * 0.75,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Change destination', style: AppText.title),
+                const SizedBox(height: 12),
+                TextField(
+                  autofocus: false,
+                  onChanged: (v) => setState(() => _query = v),
+                  decoration: InputDecoration(
+                    hintText: 'Search a city or country',
+                    hintStyle: AppText.body,
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: AppColors.muted,
+                    ),
+                    filled: true,
+                    fillColor: AppColors.background,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: matches.isEmpty
+                ? Center(
+                    child: Text('No Guides there yet.', style: AppText.body),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.paddingOf(context).bottom + 12,
+                    ),
+                    itemCount: matches.length,
+                    itemBuilder: (context, i) {
+                      final c = matches[i];
+                      final current = c.id == widget.current.id;
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 4,
+                        ),
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            width: 52,
+                            height: 52,
+                            child: Photo(
+                              c.image,
+                              icon: Icons.location_city_outlined,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          '${c.name}, ${c.country}',
+                          style: AppText.label,
+                        ),
+                        subtitle: Row(
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: const BoxDecoration(
+                                color: AppColors.online,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '${c.guidesOnline} Guides online · ${c.area}',
+                              style: AppText.small,
+                            ),
+                          ],
+                        ),
+                        trailing: current
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: AppColors.teal,
+                              )
+                            : const Icon(
+                                Icons.chevron_right,
+                                color: AppColors.muted,
+                              ),
+                        onTap: () => Navigator.pop(context, c),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
