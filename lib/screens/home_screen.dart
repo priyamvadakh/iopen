@@ -15,7 +15,10 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       body: AquaBackground(
         child: ListView(
-          padding: EdgeInsets.only(top: top + 12, bottom: 28),
+          padding: EdgeInsets.only(
+            top: top + 12,
+            bottom: MediaQuery.paddingOf(context).bottom + 20,
+          ),
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),

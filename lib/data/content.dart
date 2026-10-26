@@ -179,6 +179,9 @@ class City {
     required this.guidesOnline,
     required this.area,
     this.panorama,
+    this.panoramaSpan = 110,
+    this.walkVideoId,
+    this.walkVideoCredit,
     this.hotspots = const [
       Hotspot('Metro', Icons.train_outlined, 0.2, 0.55),
       Hotspot('Main street', Icons.directions_walk, 0.5, 0.6),
@@ -197,6 +200,13 @@ class City {
   /// Neighbourhood shown in the place view title.
   final String area;
   final String? panorama;
+
+  /// Horizontal angle (degrees) the panorama, or the city photo, covers.
+  final double panoramaSpan;
+
+  /// Embeddable YouTube video of a real walk through the area.
+  final String? walkVideoId;
+  final String? walkVideoCredit;
   final List<Hotspot> hotspots;
 }
 
@@ -210,12 +220,16 @@ const cities = [
     lng: 55.27,
     guidesOnline: 34,
     area: 'Dubai Marina',
-    panorama: 'dubai_pano',
+    panorama: 'dubai_marina_360',
+    panoramaSpan: 210,
+    walkVideoId: 'XlNtZ3FojWM',
+    walkVideoCredit: 'Marina Walk tour by Travel Algorithm on YouTube',
+    // Positions match the JBR beach panorama (fractions of the image).
     hotspots: [
-      Hotspot('Metro 5 min', Icons.train_outlined, 0.16, 0.42),
-      Hotspot('Marina Walk', Icons.directions_walk, 0.47, 0.62),
-      Hotspot('Supermarket', Icons.shopping_basket_outlined, 0.74, 0.4),
-      Hotspot('Beach 8 min', Icons.beach_access_outlined, 0.92, 0.55),
+      Hotspot('Metro 5 min', Icons.train_outlined, 0.06, 0.42),
+      Hotspot('Supermarket', Icons.shopping_basket_outlined, 0.24, 0.5),
+      Hotspot('Marina Walk', Icons.directions_walk, 0.44, 0.47),
+      Hotspot('Beach access', Icons.beach_access_outlined, 0.7, 0.66),
     ],
   ),
   City(

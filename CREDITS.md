@@ -1,6 +1,8 @@
-# Photo credits
+# Credits
 
-Photos in `assets/images/` come from [Openverse](https://openverse.org) under the licences below.
+## Photos
+
+Photos in `assets/images/` come from [Openverse](https://openverse.org) and [Wikimedia Commons](https://commons.wikimedia.org) under the licences below.
 
 | File | Title | Author | Licence | Source |
 | --- | --- | --- | --- | --- |
@@ -19,7 +21,7 @@ Photos in `assets/images/` come from [Openverse](https://openverse.org) under th
 | country_thailand.jpg | Bangkok Temple 2 | Anthony Hartman from Meizhou, China | CC BY 2.0 | [link](https://commons.wikimedia.org/w/index.php?curid=352252) |
 | country_uae.jpg | Hong Kong Skyscrapers | bsterling | CC BY-SA 2.0 | [link](https://www.flickr.com/photos/49304919@N00/4889446455) |
 | dubai_marina.jpg | Dubai Marina | travelourplanet.com | CC BY 2.0 | [link](https://www.flickr.com/photos/63503049@N03/8973482776) |
-| dubai_pano.jpg | File:DubaiMarinaPanorama.jpg | ©2013 @ferd1graphy | CC BY-SA 3.0 | [link](https://commons.wikimedia.org/w/index.php?curid=30653456) |
+| dubai_marina_360.jpg | Dubai Marina The Beach | kallerna | CC0 1.0 | [link](https://commons.wikimedia.org/wiki/File:Dubai_Marina_The_Beach.jpg) |
 | hero_car.jpg | File:Mondial de l'Automobile 2010, Paris - France (5058799732).jpg | Mic from Reading - Berkshire, United Kingdom | CC BY 2.0 | [link](https://commons.wikimedia.org/w/index.php?curid=38712798) |
 | hero_hotel.jpg | La Peyrecout - Swimming Pool towards Trees | La Peyrecout Gites, Tarn (81), France | CC BY 2.0 | [link](https://www.flickr.com/photos/86877697@N00/273120508) |
 | hero_property.jpg | Modern house exterior with red roof and landscaped garden under clear blue sky | Shixart1985 | CC BY 2.0 | [link](https://commons.wikimedia.org/w/index.php?curid=189521339) |
@@ -42,3 +44,7 @@ Photos in `assets/images/` come from [Openverse](https://openverse.org) under th
 | prop_walls.jpg | Modern living room interior / Design Loft | Foto Miki Digital | CC PDM 1.0 | [link](https://www.flickr.com/photos/96511847@N04/9200493419) |
 | prop_windows.jpg | Winter View from the Living Room Window | wheezinggirl | CC BY 2.0 | [link](https://www.flickr.com/photos/13073825@N07/4108380733) |
 | traveler.jpg | Backpack | CollegeDegrees360 | CC BY-SA 2.0 | [link](https://www.flickr.com/photos/83633410@N07/7658317110) |
+
+## Video
+
+The Dubai "Walk video" tab embeds [Dubai Marina, Marina Walk Walking Tour](https://www.youtube.com/watch?v=XlNtZ3FojWM) by Travel Algorithm via YouTube's standard embed player.

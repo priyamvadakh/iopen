@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/content.dart';
-import '../screens/city_zoom_screen.dart';
 import '../screens/explore_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/inspect_screen.dart';
@@ -55,26 +54,14 @@ final appRouter = GoRouter(
         transitionDuration: const Duration(milliseconds: 250),
         transitionsBuilder: (context, animation, _, child) =>
             FadeTransition(opacity: animation, child: child),
-        child: CityZoomScreen(
+        child: PlaceViewScreen(
           city: cityById(state.pathParameters['id']!)!,
-          initialKind: InspectKind.fromName(
-            state.uri.queryParameters['intent'],
-          ),
+          kind:
+              InspectKind.fromName(state.uri.queryParameters['intent']) ??
+              InspectKind.property,
+          showIntro: true,
         ),
       ),
-      routes: [
-        GoRoute(
-          path: ':kind',
-          redirect: (context, state) =>
-              InspectKind.fromName(state.pathParameters['kind']) == null
-              ? '/city/${state.pathParameters['id']}'
-              : null,
-          builder: (context, state) => PlaceViewScreen(
-            city: cityById(state.pathParameters['id']!)!,
-            kind: InspectKind.fromName(state.pathParameters['kind'])!,
-          ),
-        ),
-      ],
     ),
   ],
 );

@@ -2,115 +2,157 @@ import 'package:flutter/material.dart';
 
 import '../app/theme.dart';
 import '../data/content.dart';
+import '../widgets/city_intro.dart';
 import '../widgets/common.dart';
+import '../widgets/panorama_viewer.dart';
+import '../widgets/video_embed.dart';
 
 class PlaceViewScreen extends StatefulWidget {
-  const PlaceViewScreen({super.key, required this.city, required this.kind});
+  const PlaceViewScreen({
+    super.key,
+    required this.city,
+    required this.kind,
+    this.showIntro = false,
+  });
 
   final City city;
   final InspectKind kind;
+
+  /// Plays the globe-to-city fly-in on top while the view loads.
+  final bool showIntro;
 
   @override
   State<PlaceViewScreen> createState() => _PlaceViewScreenState();
 }
 
 class _PlaceViewScreenState extends State<PlaceViewScreen> {
+  late InspectKind _kind = widget.kind;
   // Three checks start selected so the price summary has content.
-  late final Set<InspectCheck> _selected = widget.kind.checks.take(3).toSet();
+  late Set<InspectCheck> _selected = _kind.checks.take(3).toSet();
+  late bool _intro = widget.showIntro;
 
   void _toggle(InspectCheck check) => setState(() {
     if (!_selected.remove(check)) _selected.add(check);
   });
 
+  void _setKind(InspectKind kind) => setState(() {
+    _kind = kind;
+    _selected = kind.checks.take(3).toSet();
+  });
+
   @override
   Widget build(BuildContext context) {
-    final city = widget.city, kind = widget.kind;
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          _PanoramaPreview(city: city),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final city = widget.city, kind = _kind;
+    return Stack(
+      children: [
+        Scaffold(
+          body: AquaBackground(
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
-                Text(kind.placeTitle(city.area), style: AppText.display),
-                const SizedBox(height: 6),
-                Text(kind.placeSubtitle, style: AppText.body),
-                const SizedBox(height: 24),
-                const SectionHeader('Watch a sample'),
-                const SizedBox(height: 10),
-                _SampleVideo(image: city.image),
-                const SizedBox(height: 28),
-                SectionHeader(
-                  'What should your Guide check?',
-                  subtitle: 'Pick as many as you like.',
+                _LiveViewer(city: city),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(kind.placeTitle(city.area), style: AppText.display),
+                      const SizedBox(height: 6),
+                      Text(kind.placeSubtitle, style: AppText.body),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                IntentChips(selected: kind, onTap: _setKind),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SectionHeader('Watch a sample'),
+                      const SizedBox(height: 10),
+                      _SampleVideo(image: city.image),
+                      const SizedBox(height: 28),
+                      const SectionHeader(
+                        'What should your Guide check?',
+                        subtitle: 'Pick as many as you like.',
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final check in kind.checks)
+                            ChoicePill(
+                              label: check.label,
+                              icon: check.icon,
+                              selected: _selected.contains(check),
+                              showCheck: true,
+                              onTap: () => _toggle(check),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      const SectionHeader('Guides available now'),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final check in kind.checks)
-                      ChoicePill(
-                        label: check.label,
-                        icon: check.icon,
-                        selected: _selected.contains(check),
-                        showCheck: true,
-                        onTap: () => _toggle(check),
+                SizedBox(
+                  height: 150,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: guidesNearby.length,
+                    separatorBuilder: (context, _) => const SizedBox(width: 10),
+                    itemBuilder: (context, i) =>
+                        _GuideCard(guide: guidesNearby[i]),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 24, 20, 0),
+                  child: _PricingRow(),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.verified_user_outlined,
+                        size: 18,
+                        color: AppColors.teal,
                       ),
-                  ],
-                ),
-                const SizedBox(height: 28),
-                const SectionHeader('Guides available now'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 150,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: guidesNearby.length,
-              separatorBuilder: (context, _) => const SizedBox(width: 10),
-              itemBuilder: (context, i) => _GuideCard(guide: guidesNearby[i]),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 24, 20, 0),
-            child: _PricingRow(),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.verified_user_outlined,
-                  size: 18,
-                  color: AppColors.teal,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "Full refund if your Guide doesn't join.",
-                  style: AppText.small.copyWith(color: AppColors.ink),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Full refund if your Guide doesn't join.",
+                        style: AppText.small.copyWith(color: AppColors.ink),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-      bottomNavigationBar: _RequestBar(
-        checks: _selected.length,
-        onRequest: () => _confirm(context),
-      ),
+          bottomNavigationBar: _RequestBar(
+            checks: _selected.length,
+            onRequest: () => _confirm(context),
+          ),
+        ),
+        if (_intro)
+          Positioned.fill(
+            child: CityIntro(
+              city: city,
+              onDone: () {
+                if (mounted) setState(() => _intro = false);
+              },
+            ),
+          ),
+      ],
     );
   }
 
   void _confirm(BuildContext context) {
-    final checks = widget.kind.checks.where(_selected.contains).toList();
+    final checks = _kind.checks.where(_selected.contains).toList();
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.white,
@@ -124,10 +166,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
             children: [
               Text('Review your request', style: AppText.title),
               const SizedBox(height: 4),
-              Text(
-                widget.kind.placeTitle(widget.city.area),
-                style: AppText.body,
-              ),
+              Text(_kind.placeTitle(widget.city.area), style: AppText.body),
               const SizedBox(height: 16),
               for (final c in checks)
                 Padding(
@@ -168,144 +207,220 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
   }
 }
 
-/// Drag-to-explore panorama with hotspot pins that move with the image.
-class _PanoramaPreview extends StatefulWidget {
-  const _PanoramaPreview({required this.city});
+/// Top of the place view: the drag-to-look panorama, plus a real recorded
+/// walk video where one is available.
+class _LiveViewer extends StatefulWidget {
+  const _LiveViewer({required this.city});
 
   final City city;
 
   @override
-  State<_PanoramaPreview> createState() => _PanoramaPreviewState();
+  State<_LiveViewer> createState() => _LiveViewerState();
 }
 
-class _PanoramaPreviewState extends State<_PanoramaPreview> {
-  static const _height = 320.0;
-  static const _widthFactor = 2.4;
-  double? _offset;
+class _LiveViewerState extends State<_LiveViewer> {
+  bool _video = false;
 
   @override
   Widget build(BuildContext context) {
     final city = widget.city;
-    return SizedBox(
-      height: _height,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final viewW = constraints.maxWidth;
-          final panoW = viewW * _widthFactor;
-          final maxOffset = panoW - viewW;
-          final offset = _offset ?? maxOffset / 2;
+    final videoId = city.walkVideoId;
+    final top = MediaQuery.paddingOf(context).top;
 
-          return GestureDetector(
-            onHorizontalDragUpdate: (d) => setState(
-              () => _offset = (offset - d.delta.dx).clamp(0.0, maxOffset),
-            ),
-            child: ClipRect(
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: -offset,
-                    top: 0,
-                    bottom: 0,
-                    width: panoW,
-                    child: Photo(
-                      city.panorama ?? city.image,
-                      icon: Icons.panorama_outlined,
-                    ),
-                  ),
-                  const Positioned.fill(child: Scrim(top: true, strength: 0.5)),
-                  const Positioned.fill(child: Scrim(strength: 0.45)),
-                  for (final h in city.hotspots)
-                    Positioned(
-                      left: h.x * panoW - offset - 60,
-                      top: h.y * _height - 40,
-                      width: 120,
-                      child: _HotspotPin(hotspot: h),
-                    ),
-                  const TopBackButton(),
-                  Positioned(
-                    left: 16,
-                    bottom: 14,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 400,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: _video && videoId != null
+                    ? Padding(
+                        padding: EdgeInsets.only(top: top + 56),
+                        child: VideoEmbed(
+                          url:
+                              'https://www.youtube-nocookie.com/embed/$videoId'
+                              '?autoplay=1&mute=1&playsinline=1&rel=0&start=90',
+                        ),
+                      )
+                    : PanoramaViewer(
+                        image: city.panorama ?? city.image,
+                        spanDegrees: city.panoramaSpan,
+                        hotspots: city.hotspots,
+                        initialX: city.panorama == null ? 0.5 : 0.36,
                       ),
-                      decoration: BoxDecoration(
-                        color: AppColors.ink.withValues(alpha: 0.75),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.threesixty,
-                            size: 16,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Free preview · drag to explore',
-                            style: AppText.small.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
               ),
+              if (_video)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: top + 56,
+                  child: const ColoredBox(color: AppColors.ink),
+                )
+              else
+                const Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 120,
+                  child: Scrim(top: true, strength: 0.4),
+                ),
+              const TopBackButton(),
+              if (videoId != null)
+                Positioned(
+                  top: top + 8,
+                  right: 16,
+                  child: _ViewToggle(
+                    video: _video,
+                    onChanged: (v) => setState(() => _video = v),
+                  ),
+                ),
+              if (!_video)
+                Positioned(
+                  left: 16,
+                  bottom: 14,
+                  child: _Badge(
+                    icon: Icons.threesixty,
+                    text: 'Free preview · drag to explore',
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (_video && city.walkVideoCredit != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.directions_walk,
+                  size: 16,
+                  color: AppColors.teal,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Real recorded walk · ${city.walkVideoCredit}',
+                    style: AppText.small,
+                  ),
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+      ],
     );
   }
 }
 
-class _HotspotPin extends StatelessWidget {
-  const _HotspotPin({required this.hotspot});
+/// Glass segmented control in the screenshots' glossy style.
+class _ViewToggle extends StatelessWidget {
+  const _ViewToggle({required this.video, required this.onChanged});
 
-  final Hotspot hotspot;
+  final bool video;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
+    Widget segment(String label, IconData icon, bool selected, bool value) {
+      return GestureDetector(
+        onTap: () => onChanged(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: selected
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFF5BAEB4),
+                      AppColors.teal,
+                      AppColors.tealDark,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.teal.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                )
+              : null,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(hotspot.icon, size: 14, color: AppColors.teal),
-              const SizedBox(width: 4),
+              Icon(
+                icon,
+                size: 15,
+                color: selected ? Colors.white : AppColors.ink,
+              ),
+              const SizedBox(width: 5),
               Text(
-                hotspot.label,
+                label,
                 style: AppText.small.copyWith(
-                  color: AppColors.ink,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                  color: selected ? Colors.white : AppColors.ink,
                 ),
               ),
             ],
           ),
         ),
-        Container(width: 2, height: 10, color: Colors.white),
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: AppColors.teal,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-          ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(23),
+        border: Border.all(color: Colors.white),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          segment('360° view', Icons.threesixty, !video, false),
+          segment('Walk video', Icons.play_circle_outline, video, true),
+        ],
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.ink.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(12),
         ),
-      ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: AppText.small.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

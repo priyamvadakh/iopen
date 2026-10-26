@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../app/theme.dart';
 import '../data/content.dart';
 import '../widgets/common.dart';
+import '../widgets/glass_nav_bar.dart';
 import '../widgets/globe.dart';
 
-/// Bottom tab bar. It sits below the content instead of floating over it.
+/// Tab scaffold with the floating glass navigation pill. The body extends
+/// behind the pill, and the pill's height is added to the bottom padding so
+/// screens can keep their last item clear of it.
 class TabShell extends StatelessWidget {
   const TabShell({super.key, required this.shell});
 
@@ -15,66 +18,12 @@ class TabShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: shell,
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: Colors.white,
-          indicatorColor: AppColors.teal,
-          indicatorShape: const CircleBorder(),
-          surfaceTintColor: Colors.transparent,
-          labelTextStyle: WidgetStateProperty.resolveWith(
-            (states) => AppText.small.copyWith(
-              fontSize: 12,
-              fontWeight: states.contains(WidgetState.selected)
-                  ? FontWeight.w600
-                  : FontWeight.w500,
-              color: states.contains(WidgetState.selected)
-                  ? AppColors.teal
-                  : AppColors.muted,
-            ),
-          ),
-          iconTheme: WidgetStateProperty.resolveWith(
-            (states) => IconThemeData(
-              color: states.contains(WidgetState.selected)
-                  ? Colors.white
-                  : AppColors.muted,
-            ),
-          ),
-        ),
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: AppColors.border)),
-          ),
-          child: NavigationBar(
-            height: 68,
-            selectedIndex: shell.currentIndex,
-            onDestinationSelected: (i) =>
-                shell.goBranch(i, initialLocation: i == shell.currentIndex),
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.videocam_outlined),
-                selectedIcon: Icon(Icons.videocam),
-                label: 'Sessions',
-              ),
-              NavigationDestination(icon: Icon(Icons.public), label: 'Map'),
-              NavigationDestination(
-                icon: Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: Icon(Icons.account_balance_wallet),
-                label: 'Wallet',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Profile',
-              ),
-            ],
-          ),
-        ),
+      bottomNavigationBar: GlassNavBar(
+        currentIndex: shell.currentIndex,
+        onTap: (i) =>
+            shell.goBranch(i, initialLocation: i == shell.currentIndex),
       ),
     );
   }
@@ -88,7 +37,6 @@ class SessionsScreen extends StatelessWidget {
     return Scaffold(
       body: AquaBackground(
         child: SafeArea(
-          bottom: false,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
@@ -203,7 +151,6 @@ class MapScreen extends StatelessWidget {
     return Scaffold(
       body: AquaBackground(
         child: SafeArea(
-          bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -256,7 +203,6 @@ class WalletScreen extends StatelessWidget {
     return Scaffold(
       body: AquaBackground(
         child: SafeArea(
-          bottom: false,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             children: [
@@ -334,7 +280,6 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       body: AquaBackground(
         child: SafeArea(
-          bottom: false,
           child: ListView(
             padding: const EdgeInsets.symmetric(vertical: 12),
             children: [
