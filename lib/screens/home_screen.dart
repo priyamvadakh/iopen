@@ -501,7 +501,7 @@ abstract final class HomeHeroLayout {
   static Rect globeRect(Size screen, double topInset) {
     final r = globeRadius(screen);
     return Rect.fromCenter(
-      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.5),
+      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.3),
       width: r / 0.4,
       height: r / 0.4,
     );
@@ -538,7 +538,7 @@ class _GlobeHero extends StatelessWidget {
             // live here instead.
             Positioned(
               right: 12,
-              top: top + 170,
+              top: top + 200,
               child: ZoomControls(
                 onZoomIn: () => showFullGlobe(context),
                 onZoomOut: null,
