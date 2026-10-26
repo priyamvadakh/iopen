@@ -161,10 +161,11 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float dLat = abs(fract(latDeg / 15.0 + 0.5) - 0.5) * 15.0 * pxPerDeg;
   float dLng = abs(fract(lngDeg / 15.0 + 0.5) - 0.5) * 15.0 * pxPerDeg *
       cos(lat);
-  float grid = 1.0 - smoothstep(0.3, 1.1, min(dLat, dLng));
-  float gridAlpha = grid * mix(mix(0.2, 0.07, land), mix(0.3, 0.18, land),
+  float grid = 1.0 - smoothstep(mix(0.3, 0.15, uLight), mix(1.1, 0.75, uLight),
+      min(dLat, dLng));
+  float gridAlpha = grid * mix(mix(0.2, 0.07, land), mix(0.32, 0.22, land),
       uLight) * (1.0 - uRealism * 0.6);
-  vec3 gridColor = mix(vec3(0.65, 0.9, 0.9), vec3(0.97, 1.0, 0.99), uLight);
+  vec3 gridColor = mix(vec3(0.65, 0.9, 0.9), vec3(0.5, 0.68, 0.64), uLight);
   color = color * (1.0 - gridAlpha) + vec4(gridColor * gridAlpha, gridAlpha);
 
   // Clear-coat gloss: highlight, broad sheen and a glass glare.
