@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -125,6 +126,7 @@ class Globe extends StatefulWidget {
     this.onCityTap,
     this.onExpand,
     this.onZoomIn,
+    this.spin,
     this.initialLat = 20,
     this.initialLng = 52,
     this.showZoomControls = true,
@@ -137,6 +139,9 @@ class Globe extends StatefulWidget {
   /// instead of zooming here; it gets the current view's centre.
   final void Function(double lat, double lng)? onZoomIn;
   final double initialLat;
+
+  /// Turns the globe on its own while true (always, when not given).
+  final ValueListenable<bool>? spin;
 
   /// Shows a full-screen button with the zoom controls.
   final VoidCallback? onExpand;
@@ -633,18 +638,18 @@ class GlobePainter extends CustomPainter {
       canvas.drawRRect(
         rrect,
         Paint()
-          ..color = (isFocused ? _pinColor : const Color(0xFF0A2A31))
-              .withValues(alpha: (isFocused ? 0.95 : 0.85) * l.fade),
+          ..color = (isFocused ? const Color(0xFF0A2A31) : Colors.white)
+              .withValues(alpha: (isFocused ? 0.92 : 0.8) * l.fade),
       );
-      if (!isFocused) {
-        canvas.drawRRect(
-          rrect,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1
-            ..color = _pinColor.withValues(alpha: 0.35 * l.fade),
-        );
-      }
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = (isFocused ? _pinColor : Colors.white).withValues(
+            alpha: 0.6 * l.fade,
+          ),
+      );
       tp.paint(canvas, l.box.topLeft + const Offset(12, 7));
     }
   }
@@ -658,9 +663,7 @@ class GlobePainter extends CustomPainter {
     final base = AppText.small.copyWith(
       fontSize: 13,
       fontWeight: FontWeight.w700,
-      color: (focused ? const Color(0xFF0A2A31) : Colors.white).withValues(
-        alpha: alpha,
-      ),
+      color: (focused ? Colors.white : AppColors.ink).withValues(alpha: alpha),
     );
     return TextPainter(
       text: TextSpan(
@@ -670,7 +673,7 @@ class GlobePainter extends CustomPainter {
           TextSpan(
             text: '  ${city.guidesOnline}',
             style: base.copyWith(
-              color: (focused ? AppColors.tealDark : _pinColor).withValues(
+              color: (focused ? _pinColor : AppColors.teal).withValues(
                 alpha: alpha,
               ),
             ),

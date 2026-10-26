@@ -481,16 +481,16 @@ class _GlossyArrow extends StatelessWidget {
 
 /// Geometry of the Home globe hero, shared with the onboarding landing.
 abstract final class HomeHeroLayout {
-  static const height = 470.0;
+  static const height = 540.0;
 
   /// How far the content sheet rides up over the hero.
   static const sheetOverlap = 28.0;
   static const globeLat = 20.0;
   static const globeLng = 52.0;
 
-  /// The globe is big and sits low, so about three quarters of it shows
-  /// above the sheet; zooming in opens the whole globe.
-  static double globeRadius(Size screen) => screen.width * 0.48;
+  /// The globe nearly fills the width and sits low, its bottom tucked
+  /// under the sheet; zooming in opens the whole globe.
+  static double globeRadius(Size screen) => screen.width * 0.47;
 
   /// Where the hero stops being visible (the sheet's top edge).
   static double visibleBottom(double topInset) =>
@@ -501,7 +501,7 @@ abstract final class HomeHeroLayout {
   static Rect globeRect(Size screen, double topInset) {
     final r = globeRadius(screen);
     return Rect.fromCenter(
-      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.3),
+      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.72),
       width: r / 0.4,
       height: r / 0.4,
     );
@@ -509,13 +509,28 @@ abstract final class HomeHeroLayout {
 }
 
 /// Full-width globe at the top of Home, with the greeting and headline.
-class _GlobeHero extends StatelessWidget {
+class _GlobeHero extends StatefulWidget {
   const _GlobeHero({required this.onExpand});
 
   final VoidCallback onExpand;
 
   @override
+  State<_GlobeHero> createState() => _GlobeHeroState();
+}
+
+class _GlobeHeroState extends State<_GlobeHero> {
+  /// Whether the globe keeps turning through the live cities.
+  final _touring = ValueNotifier(true);
+
+  @override
+  void dispose() {
+    _touring.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final onExpand = widget.onExpand;
     final top = MediaQuery.paddingOf(context).top;
     return SizedBox(
       height: top + HomeHeroLayout.height,
@@ -529,6 +544,7 @@ class _GlobeHero extends StatelessWidget {
                 initialLng: HomeHeroLayout.globeLng,
                 insideScrollView: true,
                 showZoomControls: false,
+                spin: _touring,
                 onZoomIn: (lat, lng) =>
                     showFullGlobe(context, lat: lat, lng: lng),
                 onCityTap: (c) => context.push('/city/${c.id}'),
@@ -538,12 +554,17 @@ class _GlobeHero extends StatelessWidget {
             // live here instead.
             Positioned(
               right: 12,
-              top: top + 200,
+              top: top + 250,
               child: ZoomControls(
                 onZoomIn: () => showFullGlobe(context),
                 onZoomOut: null,
                 onExpand: onExpand,
               ),
+            ),
+            Positioned(
+              left: 16,
+              bottom: HomeHeroLayout.sheetOverlap + 14,
+              child: _TourChip(touring: _touring),
             ),
             Positioned(
               top: top + 10,
@@ -985,6 +1006,50 @@ class CityCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Glass chip that pauses or resumes the globe's tour of live cities.
+class _TourChip extends StatelessWidget {
+  const _TourChip({required this.touring});
+
+  final ValueNotifier<bool> touring;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: touring,
+      builder: (context, on, _) => Semantics(
+        button: true,
+        toggled: on,
+        child: GestureDetector(
+          onTap: () => touring.value = !on,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.88),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  on ? Icons.near_me_outlined : Icons.pause_circle_outline,
+                  size: 17,
+                  color: AppColors.ink,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  on ? 'Touring live cities' : 'Paused · tap to tour',
+                  style: AppText.label.copyWith(fontSize: 13),
                 ),
               ],
             ),
