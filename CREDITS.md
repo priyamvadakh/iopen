@@ -48,3 +48,8 @@ Photos in `assets/images/` come from [Openverse](https://openverse.org) and [Wik
 ## Video
 
 The Dubai "Walk video" tab embeds [Dubai Marina, Marina Walk Walking Tour](https://www.youtube.com/watch?v=XlNtZ3FojWM) by Travel Algorithm via YouTube's standard embed player.
+
+## Globe textures
+
+- `assets/textures/earth_day.jpg`: [Whole world - land and oceans](https://commons.wikimedia.org/wiki/File:Whole_world_-_land_and_oceans.jpg), NASA Visible Earth, public domain.
+- `assets/textures/earth_night.jpg`: [Earth's City Lights by DMSP](https://commons.wikimedia.org/wiki/File:Earthlights_dmsp.jpg), NASA, public domain.

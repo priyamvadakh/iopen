@@ -5,7 +5,7 @@ import '../data/content.dart';
 import '../widgets/city_intro.dart';
 import '../widgets/common.dart';
 import '../widgets/panorama_viewer.dart';
-import '../widgets/video_embed.dart';
+import '../widgets/zoomable_video.dart';
 
 class PlaceViewScreen extends StatefulWidget {
   const PlaceViewScreen({
@@ -221,6 +221,21 @@ class _LiveViewer extends StatefulWidget {
 class _LiveViewerState extends State<_LiveViewer> {
   bool _video = false;
 
+  void _openFullScreen(BuildContext context) {
+    final city = widget.city;
+    Navigator.of(context, rootNavigator: true).push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (context, _, _) => _FullScreenView(
+          city: city,
+          video: _video && city.walkVideoId != null,
+        ),
+        transitionsBuilder: (context, animation, _, child) =>
+            FadeTransition(opacity: animation, child: child),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final city = widget.city;
@@ -238,10 +253,9 @@ class _LiveViewerState extends State<_LiveViewer> {
                 child: _video && videoId != null
                     ? Padding(
                         padding: EdgeInsets.only(top: top + 56),
-                        child: VideoEmbed(
-                          url:
-                              'https://www.youtube-nocookie.com/embed/$videoId'
-                              '?autoplay=1&mute=1&playsinline=1&rel=0&start=90',
+                        child: ZoomableVideo(
+                          url: _walkUrl(videoId),
+                          onExpand: () => _openFullScreen(context),
                         ),
                       )
                     : PanoramaViewer(
@@ -249,6 +263,7 @@ class _LiveViewerState extends State<_LiveViewer> {
                         spanDegrees: city.panoramaSpan,
                         hotspots: city.hotspots,
                         initialX: city.panorama == null ? 0.5 : 0.36,
+                        onExpand: () => _openFullScreen(context),
                       ),
               ),
               if (_video)
@@ -314,6 +329,50 @@ class _LiveViewerState extends State<_LiveViewer> {
   }
 }
 
+String _walkUrl(String videoId) =>
+    'https://www.youtube-nocookie.com/embed/$videoId'
+    '?autoplay=1&mute=1&playsinline=1&rel=0&start=90';
+
+/// Full-screen 360° view or walk video, with free one-finger looking.
+class _FullScreenView extends StatelessWidget {
+  const _FullScreenView({required this.city, required this.video});
+
+  final City city;
+  final bool video;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+    void close() => Navigator.of(context).pop();
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            top: video ? top + 56 : 0,
+            child: video
+                ? ZoomableVideo(
+                    url: _walkUrl(city.walkVideoId!),
+                    onExpand: close,
+                    expanded: true,
+                  )
+                : PanoramaViewer(
+                    image: city.panorama ?? city.image,
+                    spanDegrees: city.panoramaSpan,
+                    hotspots: city.hotspots,
+                    initialX: city.panorama == null ? 0.5 : 0.36,
+                    insideScrollView: false,
+                    onExpand: close,
+                    expanded: true,
+                  ),
+          ),
+          const TopBackButton(),
+        ],
+      ),
+    );
+  }
+}
+
 /// Glass segmented control in the screenshots' glossy style.
 class _ViewToggle extends StatelessWidget {
   const _ViewToggle({required this.video, required this.onChanged});
@@ -341,13 +400,6 @@ class _ViewToggle extends StatelessWidget {
                       AppColors.tealDark,
                     ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.teal.withValues(alpha: 0.4),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
                 )
               : null,
           child: Row(

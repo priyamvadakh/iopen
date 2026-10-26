@@ -36,16 +36,7 @@ class GlassNavBar extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.fromLTRB(14, 0, 14, bottom > 0 ? bottom - 8 : 12),
       child: DecoratedBox(
-        decoration: ShapeDecoration(
-          shape: const StadiumBorder(),
-          shadows: [
-            BoxShadow(
-              color: AppColors.teal.withValues(alpha: 0.22),
-              blurRadius: 28,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
+        decoration: ShapeDecoration(shape: const StadiumBorder()),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(40),
           child: BackdropFilter(
@@ -131,13 +122,6 @@ class _NavButton extends StatelessWidget {
                             ],
                             stops: [0, 0.55, 1],
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.teal.withValues(alpha: 0.45),
-                              blurRadius: 14,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
                         )
                       : null,
                   child: Stack(

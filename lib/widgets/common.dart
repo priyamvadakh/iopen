@@ -76,9 +76,7 @@ class AppBackButton extends StatelessWidget {
       label: 'Back',
       child: Material(
         color: Colors.white,
-        shape: const CircleBorder(),
-        elevation: 1,
-        shadowColor: AppColors.ink.withValues(alpha: 0.3),
+        shape: const CircleBorder(side: BorderSide(color: AppColors.border)),
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: () => context.canPop() ? context.pop() : context.go('/home'),
@@ -354,23 +352,7 @@ class GlossyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
     return DecoratedBox(
-      decoration: ShapeDecoration(
-        shape: const StadiumBorder(),
-        shadows: enabled
-            ? [
-                BoxShadow(
-                  color: AppColors.teal.withValues(alpha: 0.35),
-                  blurRadius: 22,
-                  offset: const Offset(0, 10),
-                ),
-                const BoxShadow(
-                  color: Color(0x66BFEAEC),
-                  blurRadius: 28,
-                  spreadRadius: 2,
-                ),
-              ]
-            : null,
-      ),
+      decoration: ShapeDecoration(shape: const StadiumBorder()),
       child: Material(
         type: MaterialType.transparency,
         shape: const StadiumBorder(),
@@ -473,4 +455,72 @@ class _GlossPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GlossPainter oldDelegate) => false;
+}
+
+/// Glass column of zoom in / zoom out (and optional expand) buttons.
+class ZoomControls extends StatelessWidget {
+  const ZoomControls({
+    super.key,
+    required this.onZoomIn,
+    required this.onZoomOut,
+    this.onExpand,
+    this.expanded = false,
+  });
+
+  final VoidCallback? onZoomIn;
+  final VoidCallback? onZoomOut;
+  final VoidCallback? onExpand;
+
+  /// Shows a "close full screen" icon instead of "expand".
+  final bool expanded;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget button(IconData icon, String label, VoidCallback? onTap) =>
+        Semantics(
+          button: true,
+          label: label,
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(
+                icon,
+                size: 22,
+                color: onTap == null
+                    ? AppColors.muted.withValues(alpha: 0.4)
+                    : AppColors.ink,
+              ),
+            ),
+          ),
+        );
+
+    return Material(
+      color: Colors.white.withValues(alpha: 0.9),
+      shape: StadiumBorder(
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.9)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onExpand != null) ...[
+              button(
+                expanded ? Icons.close_fullscreen : Icons.open_in_full,
+                expanded ? 'Exit full screen' : 'Full screen',
+                onExpand,
+              ),
+              Container(width: 22, height: 1, color: AppColors.border),
+            ],
+            button(Icons.add, 'Zoom in', onZoomIn),
+            Container(width: 22, height: 1, color: AppColors.border),
+            button(Icons.remove, 'Zoom out', onZoomOut),
+          ],
+        ),
+      ),
+    );
+  }
 }

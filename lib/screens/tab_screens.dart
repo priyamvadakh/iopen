@@ -169,7 +169,14 @@ class MapScreen extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: Globe(onCityTap: (c) => context.push('/city/${c.id}')),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: SpaceBackdrop(
+                    child: Globe(
+                      onCityTap: (c) => context.push('/city/${c.id}'),
+                    ),
+                  ),
+                ),
               ),
               SizedBox(
                 height: 44,

@@ -31,13 +31,6 @@ class PhoneFrame extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.ink,
                 borderRadius: BorderRadius.circular(58),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.ink.withValues(alpha: 0.25),
-                    blurRadius: 40,
-                    offset: const Offset(0, 16),
-                  ),
-                ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(46),

@@ -70,9 +70,11 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/textures/
 
   shaders:
     - shaders/panorama.frag
+    - shaders/globe.frag
 
   # To add assets to your application, add an assets section, like this:
   # assets:

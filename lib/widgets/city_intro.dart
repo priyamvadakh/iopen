@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 import '../app/theme.dart';
@@ -28,10 +30,29 @@ class _CityIntroState extends State<CityIntro> with TickerProviderStateMixin {
     duration: const Duration(milliseconds: 1800),
   )..repeat();
 
+  GlobeAssets? _assets = GlobeAssets.loaded;
+  late ui.FragmentShader? _shader = _assets?.program.fragmentShader();
+
+  @override
+  void initState() {
+    super.initState();
+    if (_assets == null) {
+      GlobeAssets.load().then((a) {
+        if (mounted) {
+          setState(() {
+            _assets = a;
+            _shader = a.program.fragmentShader();
+          });
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
     _zoom.dispose();
     _pulse.dispose();
+    _shader?.dispose();
     super.dispose();
   }
 
@@ -55,7 +76,11 @@ class _CityIntroState extends State<CityIntro> with TickerProviderStateMixin {
           return Opacity(
             opacity: fadeOut,
             child: ColoredBox(
-              color: AppColors.tealTint,
+              color: Color.lerp(
+                const Color(0xFF0A2E36),
+                AppColors.tealTint,
+                skylineIn,
+              )!,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -80,11 +105,14 @@ class _CityIntroState extends State<CityIntro> with TickerProviderStateMixin {
                       opacity: globeOpacity,
                       child: CustomPaint(
                         painter: GlobePainter(
+                          assets: _assets,
+                          shader: _shader,
                           viewLat: 10 + (city.lat - 10) * flight,
                           viewLng: city.lng - 40 * (1 - flight),
                           zoom: 1 + 7 * flight * flight,
-                          pulse: _pulse.value,
+                          time: _pulse.value * 1.8,
                           showLabels: false,
+                          showArcs: false,
                         ),
                       ),
                     ),
@@ -94,11 +122,26 @@ class _CityIntroState extends State<CityIntro> with TickerProviderStateMixin {
                     bottom: MediaQuery.paddingOf(context).bottom + 40,
                     child: Column(
                       children: [
-                        Text(city.name, style: AppText.display),
+                        Text(
+                          city.name,
+                          style: AppText.display.copyWith(
+                            color: Color.lerp(
+                              Colors.white,
+                              AppColors.ink,
+                              skylineIn,
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           'Connecting you to ${city.area}…',
-                          style: AppText.body,
+                          style: AppText.body.copyWith(
+                            color: Color.lerp(
+                              Colors.white70,
+                              AppColors.muted,
+                              skylineIn,
+                            ),
+                          ),
                         ),
                       ],
                     ),

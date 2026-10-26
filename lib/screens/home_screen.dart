@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,57 +9,78 @@ import '../data/content.dart';
 import '../widgets/common.dart';
 import '../widgets/globe.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  // Drives the staggered fade-in of each section.
+  late final _entrance = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..forward();
+
+  @override
+  void dispose() {
+    _entrance.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.paddingOf(context).top;
-    return Scaffold(
-      body: AquaBackground(
-        child: ListView(
-          padding: EdgeInsets.only(
-            top: top + 12,
-            bottom: MediaQuery.paddingOf(context).bottom + 20,
-          ),
+    final sections = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'What do you want to see?',
+              style: AppText.display.copyWith(fontSize: 25),
+            ),
+            const SizedBox(height: 14),
+            _SearchField(onTap: () => context.push('/explore')),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: IntentChips(onTap: (k) => context.push('/inspect/${k.name}')),
+      ),
+      const Padding(
+        padding: EdgeInsets.only(top: 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Hi Priya',
-                      style: AppText.body.copyWith(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  _WalletChip(onTap: () => context.go('/wallet')),
-                ],
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: SectionHeader(
+                'See before you decide',
+                subtitle: 'Avoid surprises. Inspect with a local Guide live.',
               ),
             ),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('What do you want to see?', style: AppText.display),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _SearchField(onTap: () => context.push('/explore')),
-            ),
-            const SizedBox(height: 14),
-            IntentChips(onTap: (k) => context.push('/inspect/${k.name}')),
-            const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: _GlobeCard(),
-            ),
-            const SizedBox(height: 14),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: _TrustStrip(),
-            ),
-            const SizedBox(height: 28),
+            SizedBox(height: 6),
+            _DecideCarousel(),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+        child: _GlobeCard(onExpand: () => context.go('/map')),
+      ),
+      const Padding(
+        padding: EdgeInsets.fromLTRB(20, 14, 20, 0),
+        child: _TrustStrip(),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: SectionHeader(
@@ -76,34 +100,337 @@ class HomeScreen extends StatelessWidget {
                     _SessionCard(session: recentSessions[i]),
               ),
             ),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SectionHeader(
-                'Popular now',
-                onSeeAll: () => context.push('/explore'),
-              ),
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+        child: Column(
+          children: [
+            SectionHeader(
+              'Popular now',
+              onSeeAll: () => context.push('/explore'),
             ),
             const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.05,
-                children: [
-                  for (final id in popularCityIds)
-                    CityCard(
-                      city: cityById(id)!,
-                      onTap: () => context.push('/city/$id'),
-                    ),
-                ],
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.05,
+              children: [
+                for (final id in popularCityIds)
+                  CityCard(
+                    city: cityById(id)!,
+                    onTap: () => context.push('/city/$id'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ];
+
+    return Scaffold(
+      body: AquaBackground(
+        child: ListView(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.paddingOf(context).bottom + 20,
+          ),
+          children: [
+            const _HeroCarousel(),
+            // The content sheet overlaps the hero with rounded corners.
+            Transform.translate(
+              offset: const Offset(0, -28),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.white, Color(0x00FFFFFF)],
+                    stops: [0, 0.4],
+                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < sections.length; i++)
+                      _Reveal(
+                        animation: _entrance,
+                        index: i,
+                        child: sections[i],
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Fades and slides a section in, slightly after the one above it.
+class _Reveal extends StatelessWidget {
+  const _Reveal({
+    required this.animation,
+    required this.index,
+    required this.child,
+  });
+
+  final Animation<double> animation;
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = math.min(0.55, index * 0.08);
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Interval(start, start + 0.45, curve: Curves.easeOut),
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween(
+          begin: const Offset(0, 0.08),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _Slide {
+  const _Slide(this.image, this.question, this.line, this.route, this.icon);
+
+  final String image;
+  final String question;
+  final String line;
+  final String route;
+  final IconData icon;
+}
+
+const _slides = [
+  _Slide(
+    'hero_car',
+    'Buying a car?',
+    'See what the seller hides.',
+    '/inspect/car',
+    Icons.directions_car_outlined,
+  ),
+  _Slide(
+    'dubai_marina',
+    'Moving to Dubai?',
+    'Walk the street first.',
+    '/city/dubai',
+    Icons.apartment_outlined,
+  ),
+  _Slide(
+    'hero_hotel',
+    'Booking a hotel?',
+    'Check the real room.',
+    '/inspect/hotel',
+    Icons.hotel_outlined,
+  ),
+  _Slide(
+    'loc_streets',
+    'Visiting a city?',
+    'Feel the vibe first.',
+    '/inspect/place',
+    Icons.place_outlined,
+  ),
+];
+
+/// Auto-sliding photo hero, as on the reference Home screen.
+class _HeroCarousel extends StatefulWidget {
+  const _HeroCarousel();
+
+  @override
+  State<_HeroCarousel> createState() => _HeroCarouselState();
+}
+
+class _HeroCarouselState extends State<_HeroCarousel> {
+  final _controller = PageController();
+  Timer? _timer;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!_controller.hasClients) return;
+      _controller.animateToPage(
+        (_page + 1) % _slides.length,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+    final slide = _slides[_page];
+    return SizedBox(
+      height: top + 330,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          PageView.builder(
+            controller: _controller,
+            itemCount: _slides.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (context, i) => _KenBurns(
+              active: i == _page,
+              child: Photo(_slides[i].image, icon: _slides[i].icon),
+            ),
+          ),
+          const IgnorePointer(child: Scrim(top: true, strength: 0.45)),
+          const IgnorePointer(child: Scrim(strength: 0.85)),
+          Positioned(
+            top: top + 10,
+            left: 20,
+            right: 20,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Hi Priya 👋',
+                    style: AppText.section.copyWith(color: Colors.white),
+                  ),
+                ),
+                _WalletChip(onTap: () => context.go('/wallet')),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 50,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'See it live.',
+                  style: AppText.display.copyWith(
+                    color: Colors.white,
+                    fontSize: 30,
+                  ),
+                ),
+                Text(
+                  'Know before you go.',
+                  style: AppText.display.copyWith(
+                    color: const Color(0xFF8EE3E8),
+                    fontSize: 30,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  child: _SlideChip(
+                    key: ValueKey(_page),
+                    slide: slide,
+                    onTap: () => context.push(slide.route),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    for (var i = 0; i < _slides.length; i++)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.only(right: 6),
+                        width: i == _page ? 22 : 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(
+                            alpha: i == _page ? 1 : 0.5,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Slow zoom on the visible slide.
+class _KenBurns extends StatelessWidget {
+  const _KenBurns({required this.active, required this.child});
+
+  final bool active;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 1, end: active ? 1.1 : 1),
+      duration: const Duration(seconds: 6),
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
+      child: child,
+    );
+  }
+}
+
+class _SlideChip extends StatelessWidget {
+  const _SlideChip({super.key, required this.slide, required this.onTap});
+
+  final _Slide slide;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.18),
+      shape: StadiumBorder(
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
+      ),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(slide.icon, size: 18, color: Colors.white),
+              const SizedBox(width: 8),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '${slide.question} ',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    TextSpan(text: slide.line),
+                  ],
+                ),
+                style: AppText.small.copyWith(color: Colors.white),
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, size: 18, color: Colors.white),
+            ],
+          ),
         ),
       ),
     );
@@ -118,7 +445,7 @@ class _WalletChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.tealTint,
+      color: Colors.white.withValues(alpha: 0.92),
       shape: const StadiumBorder(),
       child: InkWell(
         customBorder: const StadiumBorder(),
@@ -153,14 +480,14 @@ class _SearchField extends StatelessWidget {
     return Material(
       color: Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.button),
+        borderRadius: BorderRadius.circular(30),
         side: const BorderSide(color: AppColors.border),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.button),
+        borderRadius: BorderRadius.circular(30),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
           child: Row(
             children: [
               const Icon(Icons.search, color: AppColors.muted, size: 22),
@@ -174,77 +501,306 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-class _GlobeCard extends StatelessWidget {
-  const _GlobeCard();
+/// 3D tilted card carousel ("See Before You Decide" in the reference).
+class _DecideCarousel extends StatefulWidget {
+  const _DecideCarousel();
+
+  @override
+  State<_DecideCarousel> createState() => _DecideCarouselState();
+}
+
+class _DecideCarouselState extends State<_DecideCarousel> {
+  static const _kinds = [
+    InspectKind.place,
+    InspectKind.car,
+    InspectKind.property,
+    InspectKind.hotel,
+  ];
+  final _controller = PageController(viewportFraction: 0.58, initialPage: 1);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 330,
-      decoration: BoxDecoration(
-        color: AppColors.tealTint,
-        borderRadius: BorderRadius.circular(24),
+    return SizedBox(
+      height: 290,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final page =
+              _controller.hasClients && _controller.position.haveDimensions
+              ? _controller.page!
+              : 1.0;
+          return PageView.builder(
+            controller: _controller,
+            itemCount: _kinds.length,
+            itemBuilder: (context, i) {
+              final delta = i - page;
+              final shrink = 1 - math.min(1, delta.abs()) * 0.14;
+              final transform = Matrix4.identity()
+                ..setEntry(3, 2, 0.0014)
+                ..rotateY(-delta * 0.5)
+                ..scaleByDouble(shrink, shrink, 1, 1);
+              return Transform(
+                alignment: Alignment.center,
+                transform: transform,
+                child: Opacity(
+                  opacity: 1 - math.min(1, delta.abs()) * 0.3,
+                  child: _DecideCard(
+                    kind: _kinds[i],
+                    active: delta.abs() < 0.5,
+                    onTap: () => context.push('/inspect/${_kinds[i].name}'),
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Globe(onCityTap: (c) => context.push('/city/${c.id}')),
-          ),
-          Positioned(
-            top: 14,
-            left: 14,
-            child: IgnorePointer(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+    );
+  }
+}
+
+class _DecideCard extends StatelessWidget {
+  const _DecideCard({
+    required this.kind,
+    required this.active,
+    required this.onTap,
+  });
+
+  final InspectKind kind;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+      child: Material(
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 140,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.online,
-                        shape: BoxShape.circle,
+                    Photo(kind.hero, icon: kind.icon),
+                    Positioned(
+                      left: 12,
+                      bottom: 10,
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(kind.icon, size: 20, color: AppColors.teal),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$totalGuidesOnline Guides online now',
-                      style: AppText.label.copyWith(fontSize: 13),
                     ),
                   ],
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            bottom: 12,
-            left: 0,
-            right: 0,
-            child: IgnorePointer(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.touch_app_outlined,
-                    size: 16,
-                    color: AppColors.muted,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 10, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        kind.title,
+                        style: AppText.label.copyWith(fontSize: 16),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Expanded(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                kind.subtitle,
+                                style: AppText.small,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            AnimatedOpacity(
+                              opacity: active ? 1 : 0,
+                              duration: const Duration(milliseconds: 200),
+                              child: const _GlossyArrow(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 4),
-                  Text('Tap a pin to explore', style: AppText.small),
-                ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlossyArrow extends StatelessWidget {
+  const _GlossyArrow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF5BAEB4), AppColors.teal, AppColors.tealDark],
+        ),
+      ),
+      child: const Icon(Icons.chevron_right, color: Colors.white, size: 22),
+    );
+  }
+}
+
+class _GlobeCard extends StatelessWidget {
+  const _GlobeCard({required this.onExpand});
+
+  final VoidCallback onExpand;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 360,
+      child: SpaceBackdrop(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Globe(
+                insideScrollView: true,
+                onExpand: onExpand,
+                onCityTap: (c) => context.push('/city/${c.id}'),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              top: 14,
+              left: 14,
+              child: IgnorePointer(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _PulseDot(),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$totalGuidesOnline Guides online now',
+                        style: AppText.label.copyWith(
+                          fontSize: 13,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Text(
+                  'Tap a pin · pinch with two fingers to zoom',
+                  textAlign: TextAlign.center,
+                  style: AppText.small.copyWith(color: Colors.white70),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Green "online" dot with a soft ripple.
+class _PulseDot extends StatefulWidget {
+  const _PulseDot();
+
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot>
+    with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 14,
+      height: 14,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) => Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 6 + 8 * _c.value,
+              height: 6 + 8 * _c.value,
+              decoration: BoxDecoration(
+                color: const Color(0xFF4ADE80)
+                    .withValues(alpha: 0.5 * (1 - _c.value)),
+                shape: BoxShape.circle,
+              ),
+            ),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Color(0xFF4ADE80),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
