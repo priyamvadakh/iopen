@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -68,12 +67,8 @@ class _HomeScreenState extends State<HomeScreen>
           ],
         ),
       ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-        child: _GlobeCard(onExpand: () => context.go('/map')),
-      ),
       const Padding(
-        padding: EdgeInsets.fromLTRB(20, 14, 20, 0),
+        padding: EdgeInsets.fromLTRB(20, 18, 20, 0),
         child: _TrustStrip(),
       ),
       Padding(
@@ -140,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen>
             bottom: MediaQuery.paddingOf(context).bottom + 20,
           ),
           children: [
-            const _HeroCarousel(),
+            _GlobeHero(onExpand: () => context.go('/map')),
             // The content sheet overlaps the hero with rounded corners.
             Transform.translate(
               offset: const Offset(0, -28),
@@ -201,237 +196,6 @@ class _Reveal extends StatelessWidget {
           end: Offset.zero,
         ).animate(curved),
         child: child,
-      ),
-    );
-  }
-}
-
-class _Slide {
-  const _Slide(this.image, this.question, this.line, this.route, this.icon);
-
-  final String image;
-  final String question;
-  final String line;
-  final String route;
-  final IconData icon;
-}
-
-const _slides = [
-  _Slide(
-    'hero_car',
-    'Buying a car?',
-    'See what the seller hides.',
-    '/inspect/car',
-    Icons.directions_car_outlined,
-  ),
-  _Slide(
-    'dubai_marina',
-    'Moving to Dubai?',
-    'Walk the street first.',
-    '/city/dubai',
-    Icons.apartment_outlined,
-  ),
-  _Slide(
-    'hero_hotel',
-    'Booking a hotel?',
-    'Check the real room.',
-    '/inspect/hotel',
-    Icons.hotel_outlined,
-  ),
-  _Slide(
-    'loc_streets',
-    'Visiting a city?',
-    'Feel the vibe first.',
-    '/inspect/place',
-    Icons.place_outlined,
-  ),
-];
-
-/// Auto-sliding photo hero, as on the reference Home screen.
-class _HeroCarousel extends StatefulWidget {
-  const _HeroCarousel();
-
-  @override
-  State<_HeroCarousel> createState() => _HeroCarouselState();
-}
-
-class _HeroCarouselState extends State<_HeroCarousel> {
-  final _controller = PageController();
-  Timer? _timer;
-  int _page = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!_controller.hasClients) return;
-      _controller.animateToPage(
-        (_page + 1) % _slides.length,
-        duration: const Duration(milliseconds: 700),
-        curve: Curves.easeInOutCubic,
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final top = MediaQuery.paddingOf(context).top;
-    final slide = _slides[_page];
-    return SizedBox(
-      height: top + 330,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          PageView.builder(
-            controller: _controller,
-            itemCount: _slides.length,
-            onPageChanged: (i) => setState(() => _page = i),
-            itemBuilder: (context, i) => _KenBurns(
-              active: i == _page,
-              child: Photo(_slides[i].image, icon: _slides[i].icon),
-            ),
-          ),
-          const IgnorePointer(child: Scrim(top: true, strength: 0.45)),
-          const IgnorePointer(child: Scrim(strength: 0.85)),
-          Positioned(
-            top: top + 10,
-            left: 20,
-            right: 20,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Hi Priya 👋',
-                    style: AppText.section.copyWith(color: Colors.white),
-                  ),
-                ),
-                _WalletChip(onTap: () => context.go('/wallet')),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 50,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'See it live.',
-                  style: AppText.display.copyWith(
-                    color: Colors.white,
-                    fontSize: 30,
-                  ),
-                ),
-                Text(
-                  'Know before you go.',
-                  style: AppText.display.copyWith(
-                    color: const Color(0xFF8EE3E8),
-                    fontSize: 30,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  child: _SlideChip(
-                    key: ValueKey(_page),
-                    slide: slide,
-                    onTap: () => context.push(slide.route),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    for (var i = 0; i < _slides.length; i++)
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.only(right: 6),
-                        width: i == _page ? 22 : 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(
-                            alpha: i == _page ? 1 : 0.5,
-                          ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Slow zoom on the visible slide.
-class _KenBurns extends StatelessWidget {
-  const _KenBurns({required this.active, required this.child});
-
-  final bool active;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 1, end: active ? 1.1 : 1),
-      duration: const Duration(seconds: 6),
-      builder: (context, scale, child) =>
-          Transform.scale(scale: scale, child: child),
-      child: child,
-    );
-  }
-}
-
-class _SlideChip extends StatelessWidget {
-  const _SlideChip({super.key, required this.slide, required this.onTap});
-
-  final _Slide slide;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.18),
-      shape: StadiumBorder(
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.5)),
-      ),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(slide.icon, size: 18, color: Colors.white),
-              const SizedBox(width: 8),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '${slide.question} ',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    TextSpan(text: slide.line),
-                  ],
-                ),
-                style: AppText.small.copyWith(color: Colors.white),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, size: 18, color: Colors.white),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -680,19 +444,26 @@ class _GlossyArrow extends StatelessWidget {
   }
 }
 
-class _GlobeCard extends StatelessWidget {
-  const _GlobeCard({required this.onExpand});
+/// Full-width globe at the top of Home, with the greeting and headline.
+class _GlobeHero extends StatelessWidget {
+  const _GlobeHero({required this.onExpand});
 
   final VoidCallback onExpand;
 
   @override
   Widget build(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
     return SizedBox(
-      height: 360,
+      height: top + 470,
       child: SpaceBackdrop(
+        radius: 0,
         child: Stack(
           children: [
-            Positioned.fill(
+            Positioned(
+              left: 0,
+              right: 0,
+              top: top + 118,
+              bottom: 84,
               child: Globe(
                 insideScrollView: true,
                 onExpand: onExpand,
@@ -700,47 +471,87 @@ class _GlobeCard extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: 14,
-              left: 14,
-              child: IgnorePointer(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
+              top: top + 10,
+              left: 20,
+              right: 20,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Hi Priya 👋',
+                      style: AppText.section.copyWith(color: Colors.white),
                     ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const _PulseDot(),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$totalGuidesOnline Guides online now',
-                        style: AppText.label.copyWith(
-                          fontSize: 13,
-                          color: Colors.white,
-                        ),
+                  _WalletChip(onTap: () => context.go('/wallet')),
+                ],
+              ),
+            ),
+            Positioned(
+              top: top + 50,
+              left: 20,
+              right: 20,
+              child: IgnorePointer(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'See it live.',
+                      style: AppText.display.copyWith(
+                        color: Colors.white,
+                        fontSize: 30,
                       ),
-                    ],
-                  ),
+                    ),
+                    Text(
+                      'Know before you go.',
+                      style: AppText.display.copyWith(
+                        color: const Color(0xFF8EE3E8),
+                        fontSize: 30,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
             Positioned(
-              bottom: 12,
               left: 0,
               right: 0,
+              bottom: 44,
               child: IgnorePointer(
-                child: Text(
-                  'Tap a pin · pinch with two fingers to zoom',
-                  textAlign: TextAlign.center,
-                  style: AppText.small.copyWith(color: Colors.white70),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const _PulseDot(),
+                          const SizedBox(width: 8),
+                          Text(
+                            '$totalGuidesOnline Guides online now',
+                            style: AppText.label.copyWith(
+                              fontSize: 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Tap a pin · pinch with two fingers to zoom',
+                      style: AppText.small.copyWith(color: Colors.white70),
+                    ),
+                  ],
                 ),
               ),
             ),
