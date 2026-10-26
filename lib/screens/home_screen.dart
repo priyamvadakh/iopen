@@ -168,15 +168,24 @@ class _HomeScreenState extends State<HomeScreen>
             Transform.translate(
               offset: const Offset(0, -HomeHeroLayout.sheetOverlap),
               child: Container(
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFBFDFD),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                  // A light lift off the globe.
+                margin: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBFDFD),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  // A soft neutral lift plus a very faint brand-teal glow.
                   boxShadow: [
+                    const BoxShadow(
+                      color: Color(0x1210202A),
+                      blurRadius: 18,
+                      offset: Offset(0, -4),
+                    ),
                     BoxShadow(
-                      color: Color(0x1A1F4D45),
-                      blurRadius: 24,
-                      offset: Offset(0, -6),
+                      color: AppColors.teal.withValues(alpha: 0.07),
+                      blurRadius: 40,
+                      spreadRadius: 2,
+                      offset: const Offset(0, -10),
                     ),
                   ],
                 ),
