@@ -97,7 +97,7 @@ vec4 giraffeSkin(float lat, float lng, float z) {
   float seed;
   float border = giraffeBorder(world * PATCH_SCALE, seed);
   float pxPerCell = uRadius / PATCH_SCALE * max(z, 0.2);
-  float lineHalf = mix(0.06, 0.035, uLight) + 0.6 / pxPerCell;
+  float lineHalf = mix(0.06, 0.018, uLight) + mix(0.6, 0.45, uLight) / pxPerCell;
   float aa = 1.0 / pxPerCell;
   float patchMask = smoothstep(lineHalf - aa, lineHalf + aa, border);
   // Light style: soft mint patches on a white network, fully opaque.
