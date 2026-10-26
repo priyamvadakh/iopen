@@ -571,9 +571,10 @@ class _GlobeHeroState extends State<_GlobeHero> {
           ),
         ),
         Positioned(
-          left: 16,
+          left: 0,
+          right: 0,
           bottom: HomeHeroLayout.sheetOverlap + 14,
-          child: _TourChip(touring: _touring),
+          child: Center(child: _TourChip(touring: _touring)),
         ),
         Positioned(
           top: top + 10,
@@ -617,11 +618,11 @@ class _GlobeHeroState extends State<_GlobeHero> {
           ),
         ),
         Positioned(
-          left: 20,
+          left: 0,
+          right: 0,
           top: top + 138,
           child: IgnorePointer(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
