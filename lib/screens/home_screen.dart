@@ -493,7 +493,7 @@ class _GlossyArrow extends StatelessWidget {
 
 /// Geometry of the Home globe hero, shared with the onboarding landing.
 abstract final class HomeHeroLayout {
-  static const height = 540.0;
+  static const height = 520.0;
 
   /// How far the content sheet rides up over the hero.
   static const sheetOverlap = 28.0;
