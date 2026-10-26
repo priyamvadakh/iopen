@@ -589,7 +589,7 @@ class _GlobeHero extends StatelessWidget {
             ),
             Positioned(
               left: 20,
-              top: top + 128,
+              top: top + 138,
               child: IgnorePointer(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
