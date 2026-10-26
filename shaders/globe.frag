@@ -142,6 +142,16 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
     land
   );
 
+  // Latitude / longitude grid every 15°, a hairline at any zoom.
+  float pxPerDeg = uRadius / DEG * max(z, 0.15);
+  float dLat = abs(fract(latDeg / 15.0 + 0.5) - 0.5) * 15.0 * pxPerDeg;
+  float dLng = abs(fract(lngDeg / 15.0 + 0.5) - 0.5) * 15.0 * pxPerDeg *
+      cos(lat);
+  float grid = 1.0 - smoothstep(0.3, 1.1, min(dLat, dLng));
+  float gridAlpha = grid * mix(0.2, 0.07, land) * (1.0 - uRealism * 0.6);
+  color = color * (1.0 - gridAlpha) +
+      vec4(vec3(0.65, 0.9, 0.9) * gridAlpha, gridAlpha);
+
   // Clear-coat gloss: highlight, broad sheen and a glass glare.
   vec3 halfVec = normalize(sun + vec3(0.0, 0.0, 1.0));
   float nh = max(dot(n, halfVec), 0.0);

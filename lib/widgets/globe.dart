@@ -161,7 +161,6 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
   Duration _resumeAt = Duration.zero;
   bool _dragging = false;
   bool _pinching = false;
-  bool _reduceMotion = false;
   double _zoom = 1;
   double _targetZoom = 1;
   double _zoomAtScaleStart = 1;
@@ -175,7 +174,7 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
     if (factor > 1 && _handOff()) return;
     setState(() {
       _targetZoom = (_targetZoom * factor).clamp(_minZoom, _maxZoom);
-      _resumeAt = _last + const Duration(seconds: 3);
+      _resumeAt = _last + const Duration(milliseconds: 1200);
     });
   }
 
@@ -212,11 +211,8 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
     setState(() {
       _time = elapsed.inMicroseconds / 1e6;
       _zoom += (_targetZoom - _zoom) * math.min(1, dt * 10);
-      if (!_dragging &&
-          elapsed > _resumeAt &&
-          !onboardingActive.value &&
-          !_reduceMotion) {
-        _lng += dt * 5 / _zoom;
+      if (!_dragging && elapsed > _resumeAt && !onboardingActive.value) {
+        _lng += dt * 7 / _zoom;
       }
     });
   }
@@ -234,6 +230,14 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
     final g = GlobePainter.geometry(size);
     City? best;
     var bestDist = 36.0;
+    for (final l in GlobePainter.placeLabels(
+      viewLat: _lat,
+      viewLng: _lng,
+      center: g.center,
+      radius: g.radius * _zoom,
+    )) {
+      if (l.box.inflate(10).contains(pos)) return l.city;
+    }
     for (final city in cities) {
       final p = projectPoint(
         lat: city.lat,
@@ -244,10 +248,6 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
         radius: g.radius * _zoom,
       );
       if (p == null || p.depth < 0.1) continue;
-      if (GlobePainter.hasLabel(city, p.depth)) {
-        final (box, _) = GlobePainter.labelLayout(city, p.offset);
-        if (box.inflate(14).contains(pos)) return city;
-      }
       final dist = (p.offset - pos).distance;
       if (dist < bestDist) {
         bestDist = dist;
@@ -283,12 +283,11 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
 
   void _settle() {
     _dragging = false;
-    _resumeAt = _last + const Duration(seconds: 3);
+    _resumeAt = _last + const Duration(milliseconds: 1200);
   }
 
   @override
   Widget build(BuildContext context) {
-    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest;
@@ -452,9 +451,6 @@ class GlobePainter extends CustomPainter {
     radius: math.min(size.width, size.height) * 0.4,
   );
 
-  // Nearby Gulf pins overlap, so only some get a name.
-  static const _labelled = {'dubai', 'beirut', 'tokyo', 'bangkok'};
-
   static const _pinColor = Color(0xFF7FE6EE);
 
   @override
@@ -582,6 +578,16 @@ class GlobePainter extends CustomPainter {
 
   void _paintPins(Canvas canvas, Offset center, double r) {
     final pulse = (time % 1.8) / 1.8;
+    final labels = showLabels
+        ? placeLabels(
+            viewLat: viewLat,
+            viewLng: viewLng,
+            center: center,
+            radius: r,
+          )
+        : const <PlacedLabel>[];
+    final focused = labels.isEmpty ? null : labels.first.city;
+
     for (final city in cities) {
       final p = projectPoint(
         lat: city.lat,
@@ -594,78 +600,128 @@ class GlobePainter extends CustomPainter {
       if (p == null || p.depth < 0.1) continue;
       final o = p.offset;
       final fade = math.min(1.0, p.depth * 2.5);
+      if (city == focused) {
+        canvas.drawCircle(
+          o,
+          8 + 14 * pulse,
+          Paint()
+            ..color = _pinColor.withValues(alpha: 0.5 * (1 - pulse) * fade),
+        );
+      }
+      // Soft halo, white ring, dark centre.
       canvas.drawCircle(
         o,
-        5 + 14 * pulse,
-        Paint()..color = _pinColor.withValues(alpha: 0.45 * (1 - pulse) * fade),
+        11,
+        Paint()..color = _pinColor.withValues(alpha: 0.32 * fade),
       );
       canvas.drawCircle(
         o,
-        8,
-        Paint()
-          ..color = _pinColor.withValues(alpha: 0.55 * fade)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-      );
-      canvas.drawCircle(
-        o,
-        4,
+        6.5,
         Paint()..color = Colors.white.withValues(alpha: fade),
       );
       canvas.drawCircle(
         o,
-        2.6,
-        Paint()..color = AppColors.teal.withValues(alpha: fade),
+        3,
+        Paint()..color = const Color(0xFF0A2A31).withValues(alpha: fade),
       );
+    }
 
-      if (showLabels && hasLabel(city, p.depth)) {
-        // Dark pill behind white text keeps names readable on any land.
-        final (box, tp) = labelLayout(city, o, alpha: fade);
-        final rrect = RRect.fromRectAndRadius(box, const Radius.circular(12));
-        canvas.drawRRect(
-          rrect,
-          Paint()
-            ..color = const Color(0xFF0A2A31).withValues(alpha: 0.82 * fade),
-        );
+    for (final l in labels) {
+      final isFocused = l.city == focused;
+      final tp = _labelText(l.city, focused: isFocused, alpha: l.fade);
+      final rrect = RRect.fromRectAndRadius(l.box, const Radius.circular(12));
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..color = (isFocused ? _pinColor : const Color(0xFF0A2A31))
+              .withValues(alpha: (isFocused ? 0.95 : 0.85) * l.fade),
+      );
+      if (!isFocused) {
         canvas.drawRRect(
           rrect,
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1
-            ..color = _pinColor.withValues(alpha: 0.6 * fade),
+            ..color = _pinColor.withValues(alpha: 0.35 * l.fade),
         );
-        tp.paint(canvas, box.topLeft + const Offset(12, 7));
       }
+      tp.paint(canvas, l.box.topLeft + const Offset(12, 7));
     }
   }
 
-  static bool hasLabel(City city, double depth) =>
-      _labelled.contains(city.id) && depth > 0.4;
-
-  /// Where a city's name pill sits next to its dot, shared by painting and
-  /// tap handling so the whole pill is a touch target.
-  static (Rect, TextPainter) labelLayout(
-    City city,
-    Offset dot, {
+  /// "Name  count", with the count in the accent colour.
+  static TextPainter _labelText(
+    City city, {
+    bool focused = false,
     double alpha = 1,
   }) {
-    final tp = TextPainter(
+    final base = AppText.small.copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      color: (focused ? const Color(0xFF0A2A31) : Colors.white).withValues(
+        alpha: alpha,
+      ),
+    );
+    return TextPainter(
       text: TextSpan(
-        text: city.name,
-        style: AppText.small.copyWith(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: Colors.white.withValues(alpha: alpha),
-        ),
+        style: base,
+        children: [
+          TextSpan(text: city.name),
+          TextSpan(
+            text: '  ${city.guidesOnline}',
+            style: base.copyWith(
+              color: (focused ? AppColors.tealDark : _pinColor).withValues(
+                alpha: alpha,
+              ),
+            ),
+          ),
+        ],
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    final box = Rect.fromLTWH(
-      dot.dx + 8,
-      dot.dy - tp.height - 16,
-      tp.width + 24,
-      tp.height + 14,
-    );
-    return (box, tp);
+  }
+
+  /// Name pills for the cities facing the viewer, nearest the middle first;
+  /// a pill that would overlap one already placed is left out. The first is
+  /// the focused city. Shared by painting and tap handling, so the whole
+  /// pill is a touch target.
+  static List<PlacedLabel> placeLabels({
+    required double viewLat,
+    required double viewLng,
+    required Offset center,
+    required double radius,
+  }) {
+    final visible = <(City, Offset, double)>[];
+    for (final city in cities) {
+      final p = projectPoint(
+        lat: city.lat,
+        lng: city.lng,
+        viewLat: viewLat,
+        viewLng: viewLng,
+        center: center,
+        radius: radius,
+      );
+      if (p != null && p.depth > 0.35) visible.add((city, p.offset, p.depth));
+    }
+    visible.sort((a, b) => b.$3.compareTo(a.$3));
+    final placed = <PlacedLabel>[];
+    for (final (city, dot, depth) in visible) {
+      final tp = _labelText(city);
+      final box = Rect.fromCenter(
+        center: Offset(dot.dx, dot.dy - 14 - (tp.height + 14) / 2),
+        width: tp.width + 24,
+        height: tp.height + 14,
+      );
+      if (placed.any((l) => l.box.inflate(3).overlaps(box))) continue;
+      placed.add(
+        PlacedLabel(
+          city: city,
+          box: box,
+          fade: ((depth - 0.35) / 0.25).clamp(0.0, 1.0),
+        ),
+      );
+    }
+    return placed;
   }
 
   static (double, double, double) _toVector(double lat, double lng) {
@@ -697,4 +753,16 @@ class GlobePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(GlobePainter old) => true;
+}
+
+class PlacedLabel {
+  const PlacedLabel({
+    required this.city,
+    required this.box,
+    required this.fade,
+  });
+
+  final City city;
+  final Rect box;
+  final double fade;
 }
