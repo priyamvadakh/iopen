@@ -124,12 +124,19 @@ class Globe extends StatefulWidget {
     super.key,
     this.onCityTap,
     this.onExpand,
+    this.onZoomIn,
+    this.initialLat = 20,
     this.initialLng = 52,
     this.showZoomControls = true,
     this.insideScrollView = false,
   });
 
   final ValueChanged<City>? onCityTap;
+
+  /// When set, zooming in (pinch, wheel or +) hands over to a bigger view
+  /// instead of zooming here; it gets the current view's centre.
+  final void Function(double lat, double lng)? onZoomIn;
+  final double initialLat;
 
   /// Shows a full-screen button with the zoom controls.
   final VoidCallback? onExpand;
@@ -147,7 +154,8 @@ class Globe extends StatefulWidget {
 class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   late double _lng = widget.initialLng;
-  double _lat = 20;
+  late double _lat = widget.initialLat;
+  Duration _handedOffAt = const Duration(days: -1);
   double _time = 0;
   Duration _last = Duration.zero;
   Duration _resumeAt = Duration.zero;
@@ -163,10 +171,24 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
   static const _minZoom = 0.8;
   static const _maxZoom = 3.5;
 
-  void _zoomBy(double factor) => setState(() {
-    _targetZoom = (_targetZoom * factor).clamp(_minZoom, _maxZoom);
-    _resumeAt = _last + const Duration(seconds: 3);
-  });
+  void _zoomBy(double factor) {
+    if (factor > 1 && _handOff()) return;
+    setState(() {
+      _targetZoom = (_targetZoom * factor).clamp(_minZoom, _maxZoom);
+      _resumeAt = _last + const Duration(seconds: 3);
+    });
+  }
+
+  /// Passes a zoom-in to [Globe.onZoomIn], at most once a second.
+  bool _handOff() {
+    final onZoomIn = widget.onZoomIn;
+    if (onZoomIn == null) return false;
+    if (_last - _handedOffAt > const Duration(seconds: 1)) {
+      _handedOffAt = _last;
+      onZoomIn(_lat, _lng);
+    }
+    return true;
+  }
 
   @override
   void initState() {
@@ -288,6 +310,7 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
                     _zoomAtScaleStart = _zoom;
                   };
                   r.onUpdate = (scale, delta, focal) {
+                    if (scale > 1.12 && _handOff()) return;
                     _pinch(scale, delta, focal, size);
                   };
                   r.onEnd = () {
@@ -354,7 +377,9 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
                     bottom: 0,
                     child: Center(
                       child: ZoomControls(
-                        onZoomIn: _targetZoom < _maxZoom - 0.01
+                        onZoomIn:
+                            widget.onZoomIn != null ||
+                                _targetZoom < _maxZoom - 0.01
                             ? () => _zoomBy(1.4)
                             : null,
                         onZoomOut: _targetZoom > _minZoom + 0.01

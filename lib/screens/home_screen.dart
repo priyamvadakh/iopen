@@ -9,6 +9,7 @@ import '../data/content.dart';
 import '../data/user_store.dart';
 import '../widgets/common.dart';
 import '../widgets/globe.dart';
+import 'globe_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -165,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen>
             _GlobeHero(onExpand: () => context.go('/map')),
             // The content sheet overlaps the hero with rounded corners.
             Transform.translate(
-              offset: const Offset(0, -28),
+              offset: const Offset(0, -HomeHeroLayout.sheetOverlap),
               child: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -283,7 +284,14 @@ class _SearchField extends StatelessWidget {
             children: [
               const Icon(Icons.search, color: AppColors.muted, size: 22),
               const SizedBox(width: 10),
-              Text('Search a city, address or listing', style: AppText.body),
+              Expanded(
+                child: Text(
+                  'Search a city, address or listing',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.body,
+                ),
+              ),
             ],
           ),
         ),
@@ -474,18 +482,30 @@ class _GlossyArrow extends StatelessWidget {
 /// Geometry of the Home globe hero, shared with the onboarding landing.
 abstract final class HomeHeroLayout {
   static const height = 470.0;
-  static const globeTop = 118.0;
-  static const globeBottomInset = 84.0;
+
+  /// How far the content sheet rides up over the hero.
+  static const sheetOverlap = 28.0;
   static const globeLat = 20.0;
   static const globeLng = 52.0;
 
-  /// The globe's box in screen coordinates (page scrolled to the top).
-  static Rect globeRect(Size screen, double topInset) => Rect.fromLTRB(
-    0,
-    topInset + globeTop,
-    screen.width,
-    topInset + height - globeBottomInset,
-  );
+  /// The globe is big and sits low, so about three quarters of it shows
+  /// above the sheet; zooming in opens the whole globe.
+  static double globeRadius(Size screen) => screen.width * 0.48;
+
+  /// Where the hero stops being visible (the sheet's top edge).
+  static double visibleBottom(double topInset) =>
+      topInset + height - sheetOverlap;
+
+  /// The globe's paint box in screen coordinates (page scrolled to the top);
+  /// GlobePainter draws a radius of 0.4 × its shorter side.
+  static Rect globeRect(Size screen, double topInset) {
+    final r = globeRadius(screen);
+    return Rect.fromCenter(
+      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.5),
+      width: r / 0.4,
+      height: r / 0.4,
+    );
+  }
 }
 
 /// Full-width globe at the top of Home, with the greeting and headline.
@@ -503,16 +523,26 @@ class _GlobeHero extends StatelessWidget {
         radius: 0,
         child: Stack(
           children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              top: top + HomeHeroLayout.globeTop,
-              bottom: HomeHeroLayout.globeBottomInset,
+            Positioned.fromRect(
+              rect: HomeHeroLayout.globeRect(MediaQuery.sizeOf(context), top),
               child: Globe(
                 initialLng: HomeHeroLayout.globeLng,
                 insideScrollView: true,
-                onExpand: onExpand,
+                showZoomControls: false,
+                onZoomIn: (lat, lng) =>
+                    showFullGlobe(context, lat: lat, lng: lng),
                 onCityTap: (c) => context.push('/city/${c.id}'),
+              ),
+            ),
+            // The globe's box is wider than the screen, so the controls
+            // live here instead.
+            Positioned(
+              right: 12,
+              top: top + 170,
+              child: ZoomControls(
+                onZoomIn: () => showFullGlobe(context),
+                onZoomOut: null,
+                onExpand: onExpand,
               ),
             ),
             Positioned(
@@ -558,11 +588,11 @@ class _GlobeHero extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: 0,
-              right: 0,
-              bottom: 44,
+              left: 20,
+              top: top + 128,
               child: IgnorePointer(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -590,11 +620,6 @@ class _GlobeHero extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Tap a pin · pinch with two fingers to zoom',
-                      style: AppText.small.copyWith(color: Colors.white70),
                     ),
                   ],
                 ),

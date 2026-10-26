@@ -276,7 +276,16 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
       ((t - _revealStart) / (_finaleEnd - _revealStart)).clamp(0.0, 1.0),
     );
 
-    return Positioned.fill(
+    // While landing, the sheet's edge on Home tucks the globe's bottom away.
+    return Positioned(
+      left: 0,
+      top: 0,
+      right: 0,
+      height: ui.lerpDouble(
+        size.height,
+        HomeHeroLayout.visibleBottom(top),
+        land,
+      ),
       child: ClipPath(
         clipper: _HoleClipper(dot.center, hole, enabled: reveal < 1),
         child: CustomPaint(

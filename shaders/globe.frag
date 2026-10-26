@@ -89,9 +89,9 @@ float giraffeBorder(vec3 q, out float seed) {
   return border;
 }
 
-// Giraffe skin at a point on the sphere: warm patches, a little deeper in
-// the middle, separated by a cream network.
-vec3 giraffeSkin(float lat, float lng, float z) {
+// Giraffe skin at a point on the sphere: see-through warm patches, a little
+// deeper in the middle, separated by a cream network. Alpha in .a.
+vec4 giraffeSkin(float lat, float lng, float z) {
   vec3 world = vec3(cos(lat) * sin(lng), sin(lat), cos(lat) * cos(lng));
   float seed;
   float border = giraffeBorder(world * PATCH_SCALE, seed);
@@ -99,10 +99,13 @@ vec3 giraffeSkin(float lat, float lng, float z) {
   float lineHalf = 0.06 + 0.6 / pxPerCell;
   float aa = 1.0 / pxPerCell;
   float patchMask = smoothstep(lineHalf - aa, lineHalf + aa, border);
-  vec3 patchColor = mix(vec3(0.84, 0.6, 0.36), vec3(0.74, 0.48, 0.27), seed);
+  vec3 patchColor = mix(vec3(0.98, 0.72, 0.44), vec3(0.9, 0.6, 0.34), seed);
   patchColor *= mix(1.0, 0.86, smoothstep(0.1, 0.45, border));
   vec3 lineColor = vec3(0.98, 0.93, 0.82);
-  return mix(lineColor, patchColor, patchMask);
+  return vec4(
+    mix(lineColor, patchColor, patchMask),
+    mix(0.8, 0.32, patchMask)
+  );
 }
 
 // Front of the glass at (lat, lng) with view-space normal n, premultiplied.
@@ -118,9 +121,11 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
 
   // Land: giraffe skin, blending to real colours when zoomed in.
   float land = landAt(uv);
-  vec3 skin = giraffeSkin(lat, lng, z);
+  vec4 skin = giraffeSkin(lat, lng, z);
   vec3 day = texture(uDay, uv).rgb * 1.15;
-  vec3 landColor = mix(skin, day, uRealism * 0.85) * shade;
+  vec3 landColor = mix(skin.rgb, day, uRealism * 0.85) * shade;
+  // The skin is see-through glass; zoomed in it turns solid for detail.
+  float landAlpha = mix(skin.a, 1.0, uRealism);
 
   // Night side: dimmer land with warm city lights.
   float lit = smoothstep(-0.2, 0.35, light);
@@ -131,8 +136,11 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   // Sea: tinted clear glass, more solid when zoomed in.
   float seaAlpha = mix(0.16, 0.85, uRealism);
   vec3 seaColor = mix(vec3(0.16, 0.42, 0.46), vec3(0.08, 0.2, 0.27), uRealism);
-  vec4 color = mix(vec4(seaColor * seaAlpha, seaAlpha), vec4(landColor, 1.0),
-      land);
+  vec4 color = mix(
+    vec4(seaColor * seaAlpha, seaAlpha),
+    vec4(landColor * landAlpha, landAlpha),
+    land
+  );
 
   // Clear-coat gloss: highlight, broad sheen and a glass glare.
   vec3 halfVec = normalize(sun + vec3(0.0, 0.0, 1.0));
@@ -157,8 +165,8 @@ vec4 backSide(vec3 n) {
   float lng = uLng + atan(b.x, b.z * cosLat0 - b.y * sinLat0);
   float lngDeg = mod(lng * DEG + 180.0, 360.0) - 180.0;
   float land = landAt(toUv(vec2(lat * DEG, lngDeg)));
-  float a = land * 0.3 * (1.0 - uRealism);
-  return vec4(vec3(0.62, 0.5, 0.36) * a, a);
+  float a = land * 0.22 * (1.0 - uRealism);
+  return vec4(vec3(0.85, 0.7, 0.5) * a, a);
 }
 
 void main() {
