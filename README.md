@@ -54,7 +54,7 @@ Firebase packages are installed but not configured. To connect a project, run
 
 ## Vercel
 
-Live: https://remote-guide-eight.vercel.app
+Live: https://iopen.vercel.app
 
 Vercel serves the prebuilt web app. To redeploy after changes:
 
