@@ -4,9 +4,10 @@
 
 precision highp float;
 
-// iOpen globe: real continent shapes (from the NASA day texture) drawn in the
-// app icon's style — aqua land covered in giraffe spots on a navy ocean —
-// with a glossy clear coat, rim glow and warm city lights on the night side.
+// iOpen globe: a clear glass sphere whose continents (real shapes from the
+// NASA day texture) wear giraffe skin — warm patches on a cream network.
+// The far side's continents show faintly through the glass, under a glossy
+// clear coat and rim glow.
 // Zooming in (uRealism) blends the land towards real satellite colours.
 // uFlat unrolls the sphere into a flat map: in between, the map curves like
 // a sphere of growing curvature, so it visibly wraps into the globe.
@@ -88,8 +89,24 @@ float giraffeBorder(vec3 q, out float seed) {
   return border;
 }
 
-// Surface colour for a point at (lat, lng) whose normal in view space is n.
-vec3 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
+// Giraffe skin at a point on the sphere: warm patches, a little deeper in
+// the middle, separated by a cream network.
+vec3 giraffeSkin(float lat, float lng, float z) {
+  vec3 world = vec3(cos(lat) * sin(lng), sin(lat), cos(lat) * cos(lng));
+  float seed;
+  float border = giraffeBorder(world * PATCH_SCALE, seed);
+  float pxPerCell = uRadius / PATCH_SCALE * max(z, 0.2);
+  float lineHalf = 0.06 + 0.6 / pxPerCell;
+  float aa = 1.0 / pxPerCell;
+  float patchMask = smoothstep(lineHalf - aa, lineHalf + aa, border);
+  vec3 patchColor = mix(vec3(0.84, 0.6, 0.36), vec3(0.74, 0.48, 0.27), seed);
+  patchColor *= mix(1.0, 0.86, smoothstep(0.1, 0.45, border));
+  vec3 lineColor = vec3(0.98, 0.93, 0.82);
+  return mix(lineColor, patchColor, patchMask);
+}
+
+// Front of the glass at (lat, lng) with view-space normal n, premultiplied.
+vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float z = n.z;
   float latDeg = lat * DEG;
   float lngDeg = mod(lng * DEG + 180.0, 360.0) - 180.0;
@@ -97,47 +114,51 @@ vec3 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
 
   vec3 sun = normalize(SUN);
   float light = mix(0.55, dot(n, sun), curve);
-  float lit = smoothstep(-0.2, 0.35, light);
-  float shade = 0.32 + 0.8 * max(light, 0.0);
+  float shade = 0.55 + 0.6 * max(light, 0.0);
 
-  // Navy ocean, like the "Anytime" screen.
-  vec3 color = mix(vec3(0.06, 0.12, 0.18), vec3(0.12, 0.24, 0.31), shade);
-
-  // Aqua land, like the app icon, blending to real colours when zoomed in.
-  vec3 day = texture(uDay, uv).rgb;
+  // Land: giraffe skin, blending to real colours when zoomed in.
   float land = landAt(uv);
-  vec3 aqua = mix(vec3(0.49, 0.77, 0.75), day * 1.15, uRealism * 0.85);
-  color = mix(color, aqua * shade, land);
+  vec3 skin = giraffeSkin(lat, lng, z);
+  vec3 day = texture(uDay, uv).rgb * 1.15;
+  vec3 landColor = mix(skin, day, uRealism * 0.85) * shade;
 
-  // Subtle giraffe pattern on land: patches a little darker than the land,
-  // separated by a slightly lighter network.
-  vec3 world = vec3(cos(lat) * sin(lng), sin(lat), cos(lat) * cos(lng));
-  float seed;
-  float border = giraffeBorder(world * PATCH_SCALE, seed);
-  float pxPerCell = uRadius / PATCH_SCALE * max(z, 0.2);
-  float lineHalf = 0.03 + 0.6 / pxPerCell;
-  float aa = 1.0 / pxPerCell;
-  float patchMask = smoothstep(lineHalf - aa, lineHalf + aa, border);
-  vec3 patchColor = aqua * mix(0.74, 0.84, seed);
-  vec3 lineColor = min(aqua * 1.12, vec3(1.0));
-  vec3 giraffe = mix(lineColor, patchColor, patchMask) * shade;
-  color = mix(color, giraffe, land * (1.0 - uRealism * 0.9));
-
-  // Night side: dim, with warm city lights.
+  // Night side: dimmer land with warm city lights.
+  float lit = smoothstep(-0.2, 0.35, light);
   float city = dot(texture(uNight, uv).rgb, vec3(0.3, 0.5, 0.2));
-  vec3 cities = vec3(1.0, 0.8, 0.5) * smoothstep(0.3, 0.65, city) * land;
-  color = mix(color * 0.35 + cities, color, lit);
+  vec3 cities = vec3(1.0, 0.85, 0.55) * smoothstep(0.3, 0.65, city);
+  landColor = mix(landColor * 0.45 + cities, landColor, lit);
+
+  // Sea: tinted clear glass, more solid when zoomed in.
+  float seaAlpha = mix(0.16, 0.85, uRealism);
+  vec3 seaColor = mix(vec3(0.16, 0.42, 0.46), vec3(0.08, 0.2, 0.27), uRealism);
+  vec4 color = mix(vec4(seaColor * seaAlpha, seaAlpha), vec4(landColor, 1.0),
+      land);
 
   // Clear-coat gloss: highlight, broad sheen and a glass glare.
   vec3 halfVec = normalize(sun + vec3(0.0, 0.0, 1.0));
   float nh = max(dot(n, halfVec), 0.0);
-  color += vec3(1.0) * (pow(nh, 120.0) * 0.22 + pow(nh, 10.0) * 0.06) * curve;
+  float spec = (pow(nh, 120.0) * 0.32 + pow(nh, 10.0) * 0.05) * curve;
   float glare = 1.0 - smoothstep(0.0, 0.55, length(p - vec2(-0.38, -0.42)));
-  color += vec3(0.85, 0.97, 1.0) * glare * glare * 0.07 * curve;
+  spec += glare * glare * 0.08 * curve;
+  color += vec4(vec3(spec), spec);
 
-  // Rim light.
-  float fresnel = pow(1.0 - z, 2.2);
-  return mix(color, RIM, fresnel * 0.6);
+  // Rim light: glass edges catch the light.
+  float fresnel = pow(1.0 - z, 2.2) * curve;
+  color = mix(color, vec4(RIM, 1.0), fresnel * 0.55);
+  return color;
+}
+
+// The far side's continents seen through the glass (mirrored, dimmer).
+vec4 backSide(vec3 n) {
+  vec3 b = vec3(n.x, n.y, -n.z);
+  float sinLat0 = sin(uLat);
+  float cosLat0 = cos(uLat);
+  float lat = asin(clamp(b.z * sinLat0 + b.y * cosLat0, -1.0, 1.0));
+  float lng = uLng + atan(b.x, b.z * cosLat0 - b.y * sinLat0);
+  float lngDeg = mod(lng * DEG + 180.0, 360.0) - 180.0;
+  float land = landAt(toUv(vec2(lat * DEG, lngDeg)));
+  float a = land * 0.3 * (1.0 - uRealism);
+  return vec4(vec3(0.62, 0.5, 0.36) * a, a);
 }
 
 void main() {
@@ -170,9 +191,8 @@ void main() {
     float lat = asin(clamp(v.z * sin(lat0) + v.y * cos(lat0), -1.0, 1.0));
     float lng = uLng + atan(v.x, v.z * cos(lat0) - v.y * sin(lat0));
     vec3 n = vec3(sx * cy, sy, cy * cx);
-    vec3 color = surface(n, lat, lng, p, c);
     float alpha = smoothstep(1.0, 1.0 - edge, m);
-    fragColor = vec4(color * alpha, alpha);
+    fragColor = surface(n, lat, lng, p, c) * alpha;
     return;
   }
 
@@ -194,7 +214,8 @@ void main() {
   float lat = asin(clamp(z * sinLat0 + n.y * cosLat0, -1.0, 1.0));
   float lng = uLng + atan(n.x, z * cosLat0 - n.y * sinLat0);
 
-  vec3 color = surface(n, lat, lng, p, 1.0);
+  vec4 front = surface(n, lat, lng, p, 1.0);
+  vec4 color = front + backSide(n) * (1.0 - front.a);
   float alpha = smoothstep(1.0, 1.0 - edge, d);
-  fragColor = vec4(color * alpha, alpha);
+  fragColor = color * alpha;
 }
