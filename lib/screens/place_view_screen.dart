@@ -234,6 +234,7 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
           Positioned.fill(
             child: CityIntro(
               city: city,
+              area: _area,
               onDone: () {
                 if (mounted) setState(() => _intro = false);
               },

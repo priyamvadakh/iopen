@@ -7,6 +7,23 @@ import '../app/theme.dart';
 import '../data/content.dart';
 import '../widgets/common.dart';
 
+/// Desaturates the map and pulls it towards teal.
+const _brandTint = ColorFilter.matrix([
+  0.28, 0.5, 0.12, 0, 22, //
+  0.3, 0.55, 0.12, 0, 42, //
+  0.3, 0.55, 0.12, 0, 46, //
+  0, 0, 0, 1, 0,
+]);
+
+/// OpenStreetMap tiles tinted to the app's aqua palette.
+TileLayer brandTileLayer() => TileLayer(
+  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  userAgentPackageName: 'com.example.iopen',
+  maxNativeZoom: 19,
+  tileBuilder: (context, tile, _) =>
+      ColorFiltered(colorFilter: _brandTint, child: tile),
+);
+
 /// Street map of where Guides are, with search on top.
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key, this.focusCityId});
@@ -22,14 +39,6 @@ class _MapScreenState extends State<MapScreen>
     with SingleTickerProviderStateMixin {
   static const _start = LatLng(24, 60);
   static const _startZoom = 3.0;
-
-  /// Desaturates the map and pulls it towards teal.
-  static const _brandTint = ColorFilter.matrix([
-    0.28, 0.5, 0.12, 0, 22, //
-    0.3, 0.55, 0.12, 0, 42, //
-    0.3, 0.55, 0.12, 0, 46, //
-    0, 0, 0, 1, 0,
-  ]);
 
   final _map = MapController();
   final _search = TextEditingController();
@@ -149,14 +158,7 @@ class _MapScreenState extends State<MapScreen>
               },
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.iopen',
-                maxNativeZoom: 19,
-                // Soften the standard map into the app's aqua palette.
-                tileBuilder: (context, tile, _) =>
-                    ColorFiltered(colorFilter: _brandTint, child: tile),
-              ),
+              brandTileLayer(),
               MarkerLayer(
                 markers: [
                   for (final c in cities)
