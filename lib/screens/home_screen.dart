@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../app/onboarding_state.dart';
 import '../app/theme.dart';
 import '../data/content.dart';
+import '../data/user_store.dart';
 import '../widgets/common.dart';
-import '../widgets/giraffe.dart';
 import '../widgets/globe.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -67,9 +67,15 @@ class _HomeScreenState extends State<HomeScreen>
           ],
         ),
       ),
-      Padding(
-        padding: const EdgeInsets.only(top: 14),
-        child: IntentChips(onTap: (k) => context.push('/inspect/${k.name}')),
+      // Picks up where the user left off.
+      ValueListenableBuilder(
+        valueListenable: UserStore.instance.lastViewed,
+        builder: (context, last, _) => last == null
+            ? const SizedBox.shrink()
+            : Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: _ContinueCard(last: last),
+              ),
       ),
       const Padding(
         padding: EdgeInsets.only(top: 28),
@@ -90,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       const Padding(
         padding: EdgeInsets.fromLTRB(20, 18, 20, 0),
-        child: _TrustStrip(),
+        child: _HowItWorks(),
       ),
       Padding(
         padding: const EdgeInsets.only(top: 28),
@@ -515,8 +521,6 @@ class _GlobeHero extends StatelessWidget {
               right: 20,
               child: Row(
                 children: [
-                  const GiraffeIcon(size: 32),
-                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Hi Priya 👋',
@@ -658,49 +662,144 @@ class _PulseDotState extends State<_PulseDot>
   }
 }
 
-class _TrustStrip extends StatelessWidget {
-  const _TrustStrip();
+class _ContinueCard extends StatelessWidget {
+  const _ContinueCard({required this.last});
+
+  final LastViewed last;
 
   @override
   Widget build(BuildContext context) {
-    Widget item(IconData icon, String strong, String rest) => Expanded(
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: AppColors.teal),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: strong,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
-                    ),
-                  ),
-                  TextSpan(text: '\n$rest'),
-                ],
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push(
+          '/city/${last.city.id}?area=${last.area.id}&intent=${last.kind.name}',
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: Photo(last.area.image, icon: last.kind.icon),
+                ),
               ),
-              style: AppText.small.copyWith(fontSize: 12),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Continue exploring',
+                      style: AppText.small.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.teal,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      last.kind.placeTitle(last.area.name),
+                      style: AppText.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${last.city.guidesOnline} Guides online in '
+                      '${last.city.name}',
+                      style: AppText.small,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.muted),
+            ],
           ),
-        ],
+        ),
       ),
     );
+  }
+}
 
+/// Sets expectations up front: what happens, how fast, and when you pay.
+class _HowItWorks extends StatelessWidget {
+  const _HowItWorks();
+
+  @override
+  Widget build(BuildContext context) {
+    const steps = [
+      (Icons.place_outlined, 'Pick a place', 'Choose what to check'),
+      (Icons.videocam_outlined, 'Guide goes live', 'Usually within 5 min'),
+      (Icons.verified_user_outlined, 'Pay after', 'Only once they join'),
+    ];
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.button),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.border),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          item(Icons.star_rounded, '4.8', 'average'),
-          item(Icons.videocam_outlined, '2,300', 'sessions'),
-          item(Icons.verified_user_outlined, 'Refund', "if Guide doesn't join"),
+          Row(
+            children: [
+              Expanded(child: Text('How it works', style: AppText.label)),
+              const Icon(Icons.star_rounded, size: 16, color: AppColors.star),
+              const SizedBox(width: 2),
+              Text(
+                '4.8 · 2,300 sessions',
+                style: AppText.small.copyWith(fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < steps.length; i++)
+                Expanded(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          color: AppColors.tealTint,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          steps[i].$1,
+                          size: 20,
+                          color: AppColors.teal,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${i + 1}. ${steps[i].$2}',
+                        textAlign: TextAlign.center,
+                        style: AppText.small.copyWith(
+                          color: AppColors.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        steps[i].$3,
+                        textAlign: TextAlign.center,
+                        style: AppText.small.copyWith(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );

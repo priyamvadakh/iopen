@@ -153,6 +153,7 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
   Duration _resumeAt = Duration.zero;
   bool _dragging = false;
   bool _pinching = false;
+  bool _reduceMotion = false;
   double _zoom = 1;
   double _targetZoom = 1;
   double _zoomAtScaleStart = 1;
@@ -189,7 +190,10 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
     setState(() {
       _time = elapsed.inMicroseconds / 1e6;
       _zoom += (_targetZoom - _zoom) * math.min(1, dt * 10);
-      if (!_dragging && elapsed > _resumeAt && !onboardingActive.value) {
+      if (!_dragging &&
+          elapsed > _resumeAt &&
+          !onboardingActive.value &&
+          !_reduceMotion) {
         _lng += dt * 5 / _zoom;
       }
     });
@@ -256,6 +260,7 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest;
@@ -561,19 +566,37 @@ class GlobePainter extends CustomPainter {
       );
 
       if (showLabels && _labelled.contains(city.id) && p.depth > 0.4) {
+        // Dark pill behind white text keeps names readable on any land.
         final tp = TextPainter(
           text: TextSpan(
             text: city.name,
             style: AppText.small.copyWith(
               fontSize: 11,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: Colors.white.withValues(alpha: fade),
-              shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
             ),
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        tp.paint(canvas, o + Offset(8, -tp.height - 2));
+        final box = Rect.fromLTWH(
+          o.dx + 8,
+          o.dy - tp.height - 10,
+          tp.width + 12,
+          tp.height + 6,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(box, const Radius.circular(9)),
+          Paint()
+            ..color = const Color(0xFF0A2A31).withValues(alpha: 0.82 * fade),
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(box, const Radius.circular(9)),
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1
+            ..color = _pinColor.withValues(alpha: 0.6 * fade),
+        );
+        tp.paint(canvas, box.topLeft + const Offset(6, 3));
       }
     }
   }

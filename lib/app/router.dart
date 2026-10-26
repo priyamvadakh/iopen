@@ -25,7 +25,15 @@ final appRouter = GoRouter(
         StatefulShellBranch(
           routes: [_tab('/sessions', const SessionsScreen())],
         ),
-        StatefulShellBranch(routes: [_tab('/map', const MapScreen())]),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/map',
+              builder: (context, state) =>
+                  MapScreen(focusCityId: state.uri.queryParameters['city']),
+            ),
+          ],
+        ),
         StatefulShellBranch(routes: [_tab('/wallet', const WalletScreen())]),
         StatefulShellBranch(routes: [_tab('/profile', const ProfileScreen())]),
       ],

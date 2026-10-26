@@ -22,7 +22,7 @@ const float PI = 3.14159265;
 const float DEG = 57.29578;
 const vec3 SUN = vec3(-0.6, 0.45, 0.66);
 const vec3 RIM = vec3(0.6, 0.92, 0.9);
-const float SPOT_SPACING = 2.4;  // degrees between giraffe spots
+const float PATCH_SCALE = 6.0;   // giraffe patches across the globe
 
 vec2 toUv(vec2 latLng) {
   return vec2(fract((latLng.y + 180.0) / 360.0), (90.0 - latLng.x) / 180.0);
@@ -30,46 +30,57 @@ vec2 toUv(vec2 latLng) {
 
 float landAt(vec2 uv) {
   vec3 c = texture(uDay, uv).rgb;
-  return 1.0 - smoothstep(0.08, 0.2, c.b - max(c.r, c.g));
+  // The texture's oceans are dark navy, only a little bluer than land.
+  return 1.0 - smoothstep(0.035, 0.09, c.b - max(c.r, c.g));
 }
 
-float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+vec3 hash3(vec3 p) {
+  p = vec3(
+    dot(p, vec3(127.1, 311.7, 74.7)),
+    dot(p, vec3(269.5, 183.3, 246.1)),
+    dot(p, vec3(113.5, 271.9, 124.6))
+  );
+  return fract(sin(p) * 43758.5453);
 }
 
-// Giraffe spots: one jittered, rotated ellipse per cell on a lat/lng grid.
-// Returns the spot coverage and, through [centre], the spot's lat/lng.
-float giraffeSpots(float latDeg, float lngDeg, float pxPerDeg, out vec2 centre) {
-  float best = 0.0;
-  centre = vec2(latDeg, lngDeg);
-  float row0 = floor(latDeg / SPOT_SPACING + 0.5);
-  for (int dr = -1; dr <= 1; dr++) {
-    float row = row0 + float(dr);
-    float latC = row * SPOT_SPACING;
-    float lngStep = SPOT_SPACING / max(cos(latC / DEG), 0.1);
-    float col0 = floor(lngDeg / lngStep + 0.5);
-    for (int dc = -1; dc <= 1; dc++) {
-      vec2 id = vec2(row, col0 + float(dc));
-      vec2 c = vec2(
-        latC + (hash(id) - 0.5) * 0.5 * SPOT_SPACING,
-        id.y * lngStep + (hash(id + 7.3) - 0.5) * 0.5 * lngStep
-      );
-      float dLng = mod(lngDeg - c.y + 180.0, 360.0) - 180.0;
-      vec2 o = vec2(dLng * cos(latDeg / DEG), latDeg - c.x);
-      float ang = hash(id + 19.1) * PI;
-      vec2 r = vec2(cos(ang) * o.x + sin(ang) * o.y, -sin(ang) * o.x + cos(ang) * o.y);
-      float a = SPOT_SPACING * (0.26 + 0.12 * hash(id + 3.7));
-      float b = a * 0.58;
-      float e = length(r / vec2(a, b));
-      float aa = 1.0 / max(pxPerDeg * b, 1.0);
-      float m = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, e);
-      if (m > best) {
-        best = m;
-        centre = c;
+// Reticulated giraffe pattern: 3D Voronoi cells on the sphere. Returns the
+// distance to the nearest cell border (in cell units) and, through [seed], a
+// value that varies per patch.
+float giraffeBorder(vec3 q, out float seed) {
+  vec3 cell = floor(q);
+  vec3 f = fract(q);
+  vec3 nearest = vec3(0.0);
+  vec3 nearestCell = vec3(0.0);
+  float best = 8.0;
+  for (int k = -1; k <= 1; k++) {
+    for (int j = -1; j <= 1; j++) {
+      for (int i = -1; i <= 1; i++) {
+        vec3 g = vec3(float(i), float(j), float(k));
+        vec3 o = g + 0.15 + 0.7 * hash3(cell + g) - f;
+        float d = dot(o, o);
+        if (d < best) {
+          best = d;
+          nearest = o;
+          nearestCell = g;
+        }
       }
     }
   }
-  return best;
+  seed = hash3(cell + nearestCell).x;
+  float border = 8.0;
+  for (int k = -2; k <= 2; k++) {
+    for (int j = -2; j <= 2; j++) {
+      for (int i = -2; i <= 2; i++) {
+        vec3 g = nearestCell + vec3(float(i), float(j), float(k));
+        vec3 o = g + 0.15 + 0.7 * hash3(cell + g) - f;
+        vec3 diff = o - nearest;
+        if (dot(diff, diff) > 0.0001) {
+          border = min(border, dot(0.5 * (nearest + o), normalize(diff)));
+        }
+      }
+    }
+  }
+  return border;
 }
 
 void main() {
@@ -110,25 +121,31 @@ void main() {
   vec3 aqua = mix(vec3(0.49, 0.77, 0.75), day * 1.15, uRealism * 0.85);
   color = mix(color, aqua * shade, land);
 
-  // Giraffe spots on land.
-  float pxPerDeg = uRadius / DEG * max(z, 0.25);
-  vec2 spotCentre;
-  float spot = giraffeSpots(latDeg, lngDeg, pxPerDeg, spotCentre);
-  float spotLand = landAt(toUv(spotCentre));
-  vec3 spotColor = vec3(0.2, 0.42, 0.42) * shade;
-  color = mix(color, spotColor, spot * spotLand * land * (1.0 - uRealism * 0.8));
+  // Subtle giraffe pattern on land: patches a little darker than the land,
+  // separated by a slightly lighter network.
+  vec3 world = vec3(cos(lat) * sin(lng), sin(lat), cos(lat) * cos(lng));
+  float seed;
+  float border = giraffeBorder(world * PATCH_SCALE, seed);
+  float pxPerCell = uRadius / PATCH_SCALE * max(z, 0.2);
+  float lineHalf = 0.03 + 0.6 / pxPerCell;
+  float aa = 1.0 / pxPerCell;
+  float patchMask = smoothstep(lineHalf - aa, lineHalf + aa, border);
+  vec3 patchColor = aqua * mix(0.74, 0.84, seed);
+  vec3 lineColor = min(aqua * 1.12, vec3(1.0));
+  vec3 giraffe = mix(lineColor, patchColor, patchMask) * shade;
+  color = mix(color, giraffe, land * (1.0 - uRealism * 0.9));
 
-  // Night side: dim, with warm city lights in the spots.
-  float city = dot(texture(uNight, toUv(spotCentre)).rgb, vec3(0.3, 0.5, 0.2));
-  vec3 cities = vec3(1.0, 0.8, 0.5) * smoothstep(0.25, 0.6, city) * spot * 1.2;
+  // Night side: dim, with warm city lights.
+  float city = dot(texture(uNight, uv).rgb, vec3(0.3, 0.5, 0.2));
+  vec3 cities = vec3(1.0, 0.8, 0.5) * smoothstep(0.3, 0.65, city) * land;
   color = mix(color * 0.35 + cities, color, lit);
 
   // Clear-coat gloss: highlight, broad sheen and a glass glare.
   vec3 halfVec = normalize(sun + vec3(0.0, 0.0, 1.0));
   float nh = max(dot(n, halfVec), 0.0);
-  color += vec3(1.0) * (pow(nh, 120.0) * 0.3 + pow(nh, 10.0) * 0.1);
+  color += vec3(1.0) * (pow(nh, 120.0) * 0.22 + pow(nh, 10.0) * 0.06);
   float glare = 1.0 - smoothstep(0.0, 0.55, length(p - vec2(-0.38, -0.42)));
-  color += vec3(0.85, 0.97, 1.0) * glare * glare * 0.14;
+  color += vec3(0.85, 0.97, 1.0) * glare * glare * 0.07;
 
   // Rim light.
   float fresnel = pow(1.0 - z, 2.2);

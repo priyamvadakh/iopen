@@ -180,6 +180,8 @@ class Area {
     this.hotspots = const [],
     this.walkVideoId,
     this.walkVideoCredit,
+    this.lat,
+    this.lng,
   });
 
   final String id;
@@ -196,6 +198,10 @@ class Area {
   final List<Hotspot> hotspots;
   final String? walkVideoId;
   final String? walkVideoCredit;
+
+  /// Where the area is, for its map pin; null hides it from the map.
+  final double? lat;
+  final double? lng;
 }
 
 class City {
@@ -213,6 +219,8 @@ class City {
     this.walkVideoId,
     this.walkVideoCredit,
     this.extraAreas = const [],
+    this.mainLat,
+    this.mainLng,
     this.hotspots = const [
       Hotspot('Metro', Icons.train_outlined, 0.2, 0.55),
       Hotspot('Main street', Icons.directions_walk, 0.5, 0.6),
@@ -239,6 +247,10 @@ class City {
   final String? walkVideoId;
   final String? walkVideoCredit;
 
+  /// Map position of the main [area], when it differs from the city centre.
+  final double? mainLat;
+  final double? mainLng;
+
   /// More neighbourhoods besides [area].
   final List<Area> extraAreas;
 
@@ -252,6 +264,8 @@ class City {
       hotspots: hotspots,
       walkVideoId: walkVideoId,
       walkVideoCredit: walkVideoCredit,
+      lat: mainLat,
+      lng: mainLng,
     ),
     ...extraAreas,
   ];
@@ -275,6 +289,8 @@ const cities = [
     panoramaSpan: 210,
     walkVideoId: 'XlNtZ3FojWM',
     walkVideoCredit: 'Marina Walk tour by Travel Algorithm on YouTube',
+    mainLat: 25.078,
+    mainLng: 55.134,
     // Positions match the JBR beach panorama (fractions of the image).
     hotspots: [
       Hotspot('Metro 5 min', Icons.train_outlined, 0.06, 0.42),
@@ -285,6 +301,8 @@ const cities = [
     extraAreas: [
       Area(
         id: 'downtown',
+        lat: 25.1972,
+        lng: 55.2744,
         name: 'Downtown Dubai',
         image: 'area_downtown',
         panoramaSpan: 100,
@@ -298,6 +316,8 @@ const cities = [
       ),
       Area(
         id: 'palm',
+        lat: 25.1124,
+        lng: 55.139,
         name: 'Palm Jumeirah',
         image: 'area_palm',
         panoramaSpan: 100,
@@ -311,6 +331,8 @@ const cities = [
       ),
       Area(
         id: 'businessbay',
+        lat: 25.1838,
+        lng: 55.2617,
         name: 'Business Bay',
         image: 'area_businessbay',
         panoramaSpan: 100,
@@ -321,6 +343,51 @@ const cities = [
         ],
         walkVideoId: 'tudnmvTMh6c',
         walkVideoCredit: 'Business Bay tour by CitiesTouch on YouTube',
+      ),
+      Area(
+        id: 'jumeirah',
+        lat: 25.1412,
+        lng: 55.1853,
+        name: 'Jumeirah Beach',
+        image: 'area_jumeirah',
+        panoramaSpan: 100,
+        hotspots: [
+          Hotspot('Burj Al Arab', Icons.sailing_outlined, 0.47, 0.45),
+          Hotspot('Bus stop 2 min', Icons.directions_bus_outlined, 0.1, 0.6),
+          Hotspot('Beach access', Icons.beach_access_outlined, 0.62, 0.74),
+        ],
+        walkVideoId: '36kVF1qxiwY',
+        walkVideoCredit: 'Jumeirah Beach walk by Ashraf Kathia247 on YouTube',
+      ),
+      Area(
+        id: 'creek',
+        lat: 25.2697,
+        lng: 55.3046,
+        name: 'Dubai Creek',
+        image: 'area_creek',
+        panoramaSpan: 100,
+        hotspots: [
+          Hotspot('Abra · AED 1', Icons.directions_boat_outlined, 0.67, 0.6),
+          Hotspot('Deira', Icons.location_city_outlined, 0.3, 0.42),
+          Hotspot('Gold Souk 5 min', Icons.storefront_outlined, 0.88, 0.36),
+        ],
+        walkVideoId: '27OhUAumxoI',
+        walkVideoCredit: 'Bur Dubai abra walk by Virtual Strolls on YouTube',
+      ),
+      Area(
+        id: 'fahidi',
+        lat: 25.2637,
+        lng: 55.2972,
+        name: 'Al Fahidi (Old Dubai)',
+        image: 'area_fahidi',
+        panoramaSpan: 100,
+        hotspots: [
+          Hotspot('Wind tower', Icons.account_balance_outlined, 0.52, 0.28),
+          Hotspot('Café', Icons.local_cafe_outlined, 0.22, 0.6),
+          Hotspot('Museum 3 min', Icons.museum_outlined, 0.88, 0.55),
+        ],
+        walkVideoId: '65zg4ccFX14',
+        walkVideoCredit: 'Al Fahidi walk by Walk With Haseeb on YouTube',
       ),
     ],
   ),
@@ -451,6 +518,7 @@ class Guide {
     required this.languages,
     required this.distanceKm,
     required this.color,
+    required this.joinMinutes,
   });
 
   final String name;
@@ -458,6 +526,9 @@ class Guide {
   final int reviews;
   final List<String> languages;
   final double distanceKm;
+
+  /// How quickly this Guide usually goes live after a request.
+  final int joinMinutes;
 
   /// Avatar background colour.
   final Color color;
@@ -474,6 +545,7 @@ const guidesNearby = [
     languages: ['English', 'Arabic'],
     distanceKm: 2,
     color: Color(0xFFCFE6E7),
+    joinMinutes: 4,
   ),
   Guide(
     name: 'Aisha Rahman',
@@ -482,6 +554,7 @@ const guidesNearby = [
     languages: ['English', 'Arabic', 'Hindi'],
     distanceKm: 3.4,
     color: Color(0xFFF3E3CF),
+    joinMinutes: 6,
   ),
   Guide(
     name: 'Rahul Mehta',
@@ -490,6 +563,7 @@ const guidesNearby = [
     languages: ['English', 'Hindi'],
     distanceKm: 1.2,
     color: Color(0xFFDCE3F5),
+    joinMinutes: 3,
   ),
 ];
 

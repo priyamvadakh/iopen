@@ -9,7 +9,10 @@ import '../widgets/common.dart';
 
 /// Street map of where Guides are, with search on top.
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key});
+  const MapScreen({super.key, this.focusCityId});
+
+  /// Opens zoomed into this city, e.g. `/map?city=dubai`.
+  final String? focusCityId;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -37,11 +40,21 @@ class _MapScreenState extends State<MapScreen>
   );
   City? _selected;
 
+  /// Close enough to show each neighbourhood instead of one city pin.
+  static const _areaZoom = 9.5;
+  bool _showAreas = false;
+
   @override
   void initState() {
     super.initState();
     _search.addListener(() => setState(() {}));
     _searchFocus.addListener(() => setState(() {}));
+    final focus = cityById(widget.focusCityId ?? '');
+    if (focus != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _select(focus);
+      });
+    }
   }
 
   @override
@@ -74,13 +87,26 @@ class _MapScreenState extends State<MapScreen>
     _search.clear();
     _searchFocus.unfocus();
     setState(() => _selected = city);
-    _flyTo(LatLng(city.lat, city.lng), 10.5);
+    if (_hasMappedAreas(city)) {
+      // Frame every area, nudged up so the city card doesn't cover them.
+      final areas = city.areas;
+      final lat =
+          areas.map((a) => a.lat!).reduce((x, y) => x + y) / areas.length;
+      final lng =
+          areas.map((a) => a.lng!).reduce((x, y) => x + y) / areas.length;
+      _flyTo(LatLng(lat - 0.07, lng), 10.3);
+    } else {
+      _flyTo(LatLng(city.lat, city.lng), 10.5);
+    }
   }
 
   void _zoomBy(double delta) {
     final camera = _map.camera;
     _flyTo(camera.center, (camera.zoom + delta).clamp(2.0, 17.0));
   }
+
+  static bool _hasMappedAreas(City c) =>
+      c.areas.length > 1 && c.areas.every((a) => a.lat != null);
 
   List<({City city, Area? area})> _results() {
     final q = _search.text.trim().toLowerCase();
@@ -113,6 +139,10 @@ class _MapScreenState extends State<MapScreen>
               initialZoom: _startZoom,
               minZoom: 2,
               maxZoom: 17,
+              onPositionChanged: (camera, _) {
+                final show = camera.zoom >= _areaZoom;
+                if (show != _showAreas) setState(() => _showAreas = show);
+              },
               onTap: (_, _) {
                 _searchFocus.unfocus();
                 setState(() => _selected = null);
@@ -130,16 +160,29 @@ class _MapScreenState extends State<MapScreen>
               MarkerLayer(
                 markers: [
                   for (final c in cities)
-                    Marker(
-                      point: LatLng(c.lat, c.lng),
-                      width: 52,
-                      height: 52,
-                      child: _CityPin(
-                        city: c,
-                        selected: c == _selected,
-                        onTap: () => _select(c),
+                    if (_showAreas && _hasMappedAreas(c))
+                      for (final a in c.areas)
+                        Marker(
+                          point: LatLng(a.lat!, a.lng!),
+                          width: 170,
+                          height: 40,
+                          child: _AreaPin(
+                            area: a,
+                            onTap: () =>
+                                context.push('/city/${c.id}?area=${a.id}'),
+                          ),
+                        )
+                    else
+                      Marker(
+                        point: LatLng(c.lat, c.lng),
+                        width: 52,
+                        height: 52,
+                        child: _CityPin(
+                          city: c,
+                          selected: c == _selected,
+                          onTap: () => _select(c),
+                        ),
                       ),
-                    ),
                 ],
               ),
             ],
@@ -159,8 +202,15 @@ class _MapScreenState extends State<MapScreen>
                   _Results(
                     results: results,
                     onCity: _select,
-                    onArea: (c, a) =>
-                        context.push('/city/${c.id}?area=${a.id}'),
+                    onArea: (c, a) {
+                      _search.clear();
+                      _searchFocus.unfocus();
+                      setState(() => _selected = c);
+                      _flyTo(
+                        LatLng(a.lat ?? c.lat, a.lng ?? c.lng),
+                        a.lat == null ? 10.5 : 13,
+                      );
+                    },
                   )
                 else if (!searching)
                   SizedBox(
@@ -327,6 +377,65 @@ class _Results extends StatelessWidget {
                 ],
               ),
             ),
+    );
+  }
+}
+
+/// Labelled pin for one neighbourhood; opens its live view.
+class _AreaPin extends StatelessWidget {
+  const _AreaPin({required this.area, required this.onTap});
+
+  final Area area;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Semantics(
+        button: true,
+        label: 'Open ${area.name}',
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.teal, width: 1.5),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF5BAEB4), AppColors.teal],
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.threesixty,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    area.name,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.label.copyWith(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

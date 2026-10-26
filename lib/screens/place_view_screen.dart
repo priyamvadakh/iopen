@@ -3,8 +3,10 @@ import 'package:go_router/go_router.dart';
 
 import '../app/theme.dart';
 import '../data/content.dart';
+import '../data/user_store.dart';
 import '../widgets/city_intro.dart';
 import '../widgets/common.dart';
+import '../widgets/help_sheet.dart';
 import '../widgets/panorama_viewer.dart';
 import '../widgets/zoomable_video.dart';
 
@@ -37,6 +39,15 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
   late bool _intro = widget.showIntro;
   late Area _area = widget.city.areaById(widget.areaId);
 
+  @override
+  void initState() {
+    super.initState();
+    _remember();
+  }
+
+  void _remember() =>
+      UserStore.instance.rememberView(widget.city, _area, _kind);
+
   void _toggle(InspectCheck check) => setState(() {
     if (!_selected.remove(check)) _selected.add(check);
   });
@@ -55,16 +66,25 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
     if (picked == null || !context.mounted) return;
     if (picked.city.id == widget.city.id) {
       // Same city: swap the neighbourhood in place.
-      setState(() => _area = picked.area);
+      _setArea(picked.area);
     } else {
       context.pushReplacement('/city/${picked.city.id}?intent=${_kind.name}');
     }
   }
 
-  void _setKind(InspectKind kind) => setState(() {
-    _kind = kind;
-    _selected = kind.checks.take(3).toSet();
-  });
+  void _setArea(Area area) {
+    if (area.id == _area.id) return;
+    setState(() => _area = area);
+    _remember();
+  }
+
+  void _setKind(InspectKind kind) {
+    setState(() {
+      _kind = kind;
+      _selected = kind.checks.take(3).toSet();
+    });
+    _remember();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +114,31 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
                     ],
                   ),
                 ),
+                if (city.areas.length > 1) ...[
+                  const SizedBox(height: 16),
+                  _RowLabel('Areas in ${city.name}'),
+                  SizedBox(
+                    height: 44,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: city.areas.length,
+                      separatorBuilder: (context, _) =>
+                          const SizedBox(width: 8),
+                      itemBuilder: (context, i) {
+                        final area = city.areas[i];
+                        return ChoicePill(
+                          label: area.name,
+                          icon: Icons.threesixty,
+                          selected: area.id == _area.id,
+                          onTap: () => _setArea(area),
+                        );
+                      },
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
+                const _RowLabel('What are you checking?'),
                 IntentChips(selected: kind, onTap: _setKind),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
@@ -147,18 +191,34 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.verified_user_outlined,
-                        size: 18,
-                        color: AppColors.teal,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        "Full refund if your Guide doesn't join.",
-                        style: AppText.small.copyWith(color: AppColors.ink),
-                      ),
+                      for (final (icon, text) in const [
+                        (
+                          Icons.verified_user_outlined,
+                          'Pay only after your Guide joins.',
+                        ),
+                        (
+                          Icons.event_available_outlined,
+                          'Free cancellation until then.',
+                        ),
+                      ])
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              Icon(icon, size: 18, color: AppColors.teal),
+                              const SizedBox(width: 8),
+                              Text(
+                                text,
+                                style: AppText.small.copyWith(
+                                  color: AppColors.ink,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -223,13 +283,120 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
                   Text('AED ${Pricing.base}', style: AppText.section),
                 ],
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Charged only after your Guide joins. Cancel free until then.',
+                style: AppText.small,
+              ),
               const SizedBox(height: 16),
               GlossyButton(
                 onPressed: () {
                   Navigator.pop(sheetContext);
-                  showComingSoon(context, 'Payment');
+                  _sendRequest(context, checks);
                 },
-                child: const Text('Continue to payment'),
+                child: const Text('Send request'),
+              ),
+              Center(
+                child: TextButton(
+                  onPressed: () => showHelpSheet(context),
+                  child: const Text('Questions? How it works'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Records the request and confirms it with clear next steps.
+  void _sendRequest(BuildContext context, List<InspectCheck> checks) {
+    final guide = guidesNearby.reduce(
+      (a, b) => a.joinMinutes <= b.joinMinutes ? a : b,
+    );
+    final session = BookedSession(
+      city: widget.city,
+      area: _area,
+      kind: _kind,
+      checks: checks,
+      guide: guide,
+    );
+    UserStore.instance.addSession(session);
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: AppColors.tealTint,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  size: 36,
+                  color: AppColors.teal,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text('Request sent', style: AppText.title),
+              const SizedBox(height: 6),
+              Text(
+                '${guide.name} usually joins in about '
+                '${guide.joinMinutes} minutes. We’ll notify you the moment '
+                'they’re live.',
+                textAlign: TextAlign.center,
+                style: AppText.body,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+                child: Row(
+                  children: [
+                    GuideAvatar(guide, size: 40, online: true),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _kind.placeTitle(_area.name),
+                            style: AppText.label,
+                          ),
+                          Text(
+                            '${checks.length} checks · AED ${Pricing.base} '
+                            'after they join',
+                            style: AppText.small,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              GlossyButton(
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  context.go('/sessions');
+                },
+                child: const Text('View in Sessions'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(sheetContext),
+                child: const Text('Done'),
               ),
             ],
           ),
@@ -689,10 +856,25 @@ class _GuideCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      guide.name,
-                      style: AppText.label,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            guide.name,
+                            style: AppText.label,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 3),
+                        const Tooltip(
+                          message: 'ID verified',
+                          child: Icon(
+                            Icons.verified,
+                            size: 15,
+                            color: AppColors.teal,
+                          ),
+                        ),
+                      ],
                     ),
                     Rating(guide.rating, reviews: guide.reviews),
                   ],
@@ -727,7 +909,7 @@ class _GuideCard extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Online · $km km away',
+                'Joins in ~${guide.joinMinutes} min · $km km',
                 style: AppText.small.copyWith(color: AppColors.ink),
               ),
             ],
@@ -1012,6 +1194,26 @@ class _DestinationSheetState extends State<_DestinationSheet> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RowLabel extends StatelessWidget {
+  const _RowLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: Text(
+        text,
+        style: AppText.small.copyWith(
+          fontWeight: FontWeight.w600,
+          color: AppColors.ink,
+        ),
       ),
     );
   }

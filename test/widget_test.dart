@@ -23,7 +23,7 @@ void main() {
     expect(InspectKind.fromName('boat'), isNull);
   });
 
-  test('every area has a photo and Dubai offers four areas', () {
+  test('every area has a photo and Dubai offers seven mapped areas', () {
     for (final city in cities) {
       for (final area in city.areas) {
         expect(
@@ -41,7 +41,11 @@ void main() {
       'Downtown Dubai',
       'Palm Jumeirah',
       'Business Bay',
+      'Jumeirah Beach',
+      'Dubai Creek',
+      'Al Fahidi (Old Dubai)',
     ]);
+    expect(dubai.areas.every((a) => a.lat != null && a.lng != null), isTrue);
     expect(dubai.areaById('palm').name, 'Palm Jumeirah');
     expect(dubai.areaById('nowhere').name, 'Dubai Marina');
   });

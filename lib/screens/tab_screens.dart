@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/theme.dart';
+import '../data/user_store.dart';
+import '../data/content.dart';
+import '../app/onboarding_state.dart';
 import '../widgets/common.dart';
+import '../widgets/help_sheet.dart';
 import '../widgets/glass_nav_bar.dart';
 
 /// Tab scaffold with the floating glass navigation pill. The body extends
@@ -32,6 +36,15 @@ class SessionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: UserStore.instance.sessions,
+      builder: (context, sessions, _) => sessions.isEmpty
+          ? _emptyState(context)
+          : _SessionList(sessions: sessions),
+    );
+  }
+
+  Widget _emptyState(BuildContext context) {
     return Scaffold(
       body: AquaBackground(
         child: SafeArea(
@@ -136,6 +149,152 @@ class SessionsScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SessionList extends StatelessWidget {
+  const _SessionList({required this.sessions});
+
+  final List<BookedSession> sessions;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Scaffold(
+      body: AquaBackground(
+        child: SafeArea(
+          bottom: false,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(20, 12, 20, bottom + 20),
+            children: [
+              Text('My Sessions', style: AppText.display),
+              const SizedBox(height: 4),
+              Text(
+                'We’ll notify you when your Guide goes live.',
+                style: AppText.body,
+              ),
+              const SizedBox(height: 16),
+              for (final s in sessions) ...[
+                _SessionTile(session: s),
+                const SizedBox(height: 12),
+              ],
+              TextButton.icon(
+                onPressed: () => context.push('/explore'),
+                icon: const Icon(Icons.add),
+                label: const Text('Book another guide'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SessionTile extends StatelessWidget {
+  const _SessionTile({required this.session});
+
+  final BookedSession session;
+
+  @override
+  Widget build(BuildContext context) {
+    final guide = session.guide;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: Photo(session.area.image, icon: session.kind.icon),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      session.kind.placeTitle(session.area.name),
+                      style: AppText.label,
+                    ),
+                    Text(
+                      '${session.checks.length} checks · AED '
+                      '${Pricing.base} after they join',
+                      style: AppText.small,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.tealTint,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                GuideAvatar(guide, size: 32, online: true),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${guide.name} joins in ~${guide.joinMinutes} min',
+                    style: AppText.small.copyWith(
+                      color: AppColors.ink,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.teal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Free to cancel until then', style: AppText.small),
+              ),
+              TextButton(
+                onPressed: () {
+                  UserStore.instance.cancelSession(session);
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Request cancelled. You weren’t charged.',
+                        ),
+                      ),
+                    );
+                },
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -257,7 +416,27 @@ class ProfileScreen extends StatelessWidget {
               tile(Icons.bookmark_border, 'Saved places'),
               tile(Icons.translate, 'Language'),
               tile(Icons.notifications_none, 'Notifications'),
-              tile(Icons.help_outline, 'Help & support'),
+              ListTile(
+                leading: const Icon(Icons.help_outline, color: AppColors.teal),
+                title: Text('Help & support', style: AppText.label),
+                trailing: const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.muted,
+                ),
+                onTap: () => showHelpSheet(context),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.play_circle_outline,
+                  color: AppColors.teal,
+                ),
+                title: Text('Replay intro', style: AppText.label),
+                trailing: const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.muted,
+                ),
+                onTap: () => replayOnboarding.value++,
+              ),
             ],
           ),
         ),
