@@ -490,7 +490,7 @@ abstract final class HomeHeroLayout {
 
   /// The globe nearly fills the width and sits low, its bottom tucked
   /// under the sheet; zooming in opens the whole globe.
-  static double globeRadius(Size screen) => screen.width * 0.41;
+  static double globeRadius(Size screen) => screen.width * 0.45;
 
   /// Where the hero stops being visible (the sheet's top edge).
   static double visibleBottom(double topInset) =>
@@ -501,7 +501,7 @@ abstract final class HomeHeroLayout {
   static Rect globeRect(Size screen, double topInset) {
     final r = globeRadius(screen);
     return Rect.fromCenter(
-      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.9),
+      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.82),
       width: r / 0.4,
       height: r / 0.4,
     );
