@@ -228,44 +228,36 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
       if (touring) {
         _glideTour(elapsed, math.min(dt, 0.05));
       } else {
-        _vLat = _vLng = 0;
+        _vLat = 0;
       }
     });
   }
 
-  // The tour glides from one live city to the next, west to east, easing
-  // in and out with a soft spring and resting a moment on each.
-  static final _tour = [...cities]..sort((a, b) => a.lng.compareTo(b.lng));
-  int _tourIndex = -1;
-  Duration _tourNextAt = Duration.zero;
-  double _vLat = 0, _vLng = 0;
+  // The tour turns the globe all the way round, eastwards: it eases down
+  // as each live city comes to the front, then speeds up again across the
+  // oceans, tilting gently towards the city it is passing.
+  double _vLat = 0;
 
   void _glideTour(Duration elapsed, double dt) {
-    if (_tourIndex < 0) {
-      // Start with the city already facing the viewer (Dubai on Home).
-      var best = 0;
-      for (var i = 1; i < _tour.length; i++) {
-        if (((_tour[i].lng - _lng).abs()) < ((_tour[best].lng - _lng).abs())) {
-          best = i;
-        }
+    City? nearest;
+    var gap = 360.0;
+    for (final c in cities) {
+      final d = (((c.lng - _lng + 540) % 360) - 180).abs();
+      if (d < gap) {
+        gap = d;
+        nearest = c;
       }
-      _tourIndex = best;
-      _tourNextAt = elapsed + const Duration(milliseconds: 5000);
-    } else if (elapsed >= _tourNextAt) {
-      _tourIndex = (_tourIndex + 1) % _tour.length;
-      _tourNextAt = elapsed + const Duration(milliseconds: 4200);
     }
-    final city = _tour[_tourIndex];
-    // Look a little from the north, so the city sits just below centre.
-    final targetLat = (city.lat * 0.75 + 8).clamp(-60.0, 70.0);
-    final dLng = ((city.lng - _lng + 540) % 360) - 180;
-    final dLat = targetLat - _lat;
-    // Critically damped spring: smooth start, gentle settle, no overshoot.
-    const k = 2.2;
+    final ease = Curves.easeInOut.transform((gap / 30).clamp(0.0, 1.0));
+    _lng += dt * (2.5 + 15 * ease) / _zoom;
+
+    final targetLat = gap < 30 && nearest != null
+        ? (nearest.lat * 0.75 + 8).clamp(-60.0, 70.0)
+        : 18.0;
+    // Critically damped spring: smooth, no overshoot.
+    const k = 1.2;
     final damping = 2 * math.sqrt(k);
-    _vLng += (k * dLng - damping * _vLng) * dt;
-    _vLat += (k * dLat - damping * _vLat) * dt;
-    _lng += _vLng * dt;
+    _vLat += (k * (targetLat - _lat) - damping * _vLat) * dt;
     _lat += _vLat * dt;
   }
 
