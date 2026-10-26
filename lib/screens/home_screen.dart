@@ -532,123 +532,142 @@ class _GlobeHeroState extends State<_GlobeHero> {
   Widget build(BuildContext context) {
     final onExpand = widget.onExpand;
     final top = MediaQuery.paddingOf(context).top;
-    return SizedBox(
-      height: top + HomeHeroLayout.height,
-      child: SpaceBackdrop(
-        radius: 0,
-        child: Stack(
-          children: [
-            Positioned.fromRect(
-              rect: HomeHeroLayout.globeRect(MediaQuery.sizeOf(context), top),
-              child: Globe(
-                initialLng: HomeHeroLayout.globeLng,
-                insideScrollView: true,
-                showZoomControls: false,
-                spin: _touring,
-                onZoomIn: (lat, lng) =>
-                    showFullGlobe(context, lat: lat, lng: lng),
-                onCityTap: (c) => context.push('/city/${c.id}'),
+    return ValueListenableBuilder(
+      valueListenable: globeLight,
+      builder: (context, light, _) => _hero(context, top, onExpand, light),
+    );
+  }
+
+  Widget _hero(
+    BuildContext context,
+    double top,
+    VoidCallback onExpand,
+    bool light,
+  ) {
+    final ink = light ? AppColors.ink : Colors.white;
+    final stack = Stack(
+      children: [
+        Positioned.fromRect(
+          rect: HomeHeroLayout.globeRect(MediaQuery.sizeOf(context), top),
+          child: Globe(
+            initialLng: HomeHeroLayout.globeLng,
+            insideScrollView: true,
+            showZoomControls: false,
+            spin: _touring,
+            onZoomIn: (lat, lng) => showFullGlobe(context, lat: lat, lng: lng),
+            onCityTap: (c) => context.push('/city/${c.id}'),
+          ),
+        ),
+        // The globe's box is wider than the screen, so the controls
+        // live here instead.
+        Positioned(
+          right: 12,
+          top: top + 250,
+          child: ZoomControls(
+            onZoomIn: () => showFullGlobe(context),
+            onZoomOut: null,
+            onExpand: onExpand,
+          ),
+        ),
+        Positioned(
+          left: 16,
+          bottom: HomeHeroLayout.sheetOverlap + 14,
+          child: _TourChip(touring: _touring),
+        ),
+        Positioned(
+          top: top + 10,
+          left: 20,
+          right: 20,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Hi Priya 👋',
+                  style: AppText.section.copyWith(color: ink),
+                ),
               ),
+              _StyleSwitch(light: light),
+              const SizedBox(width: 8),
+              _WalletChip(onTap: () => context.go('/wallet')),
+            ],
+          ),
+        ),
+        Positioned(
+          top: top + 50,
+          left: 20,
+          right: 20,
+          child: IgnorePointer(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'See it live.',
+                  style: AppText.display.copyWith(color: ink, fontSize: 30),
+                ),
+                Text(
+                  'Know before you go.',
+                  style: AppText.display.copyWith(
+                    color: light ? AppColors.teal : const Color(0xFF8EE3E8),
+                    fontSize: 30,
+                  ),
+                ),
+              ],
             ),
-            // The globe's box is wider than the screen, so the controls
-            // live here instead.
-            Positioned(
-              right: 12,
-              top: top + 250,
-              child: ZoomControls(
-                onZoomIn: () => showFullGlobe(context),
-                onZoomOut: null,
-                onExpand: onExpand,
-              ),
-            ),
-            Positioned(
-              left: 16,
-              bottom: HomeHeroLayout.sheetOverlap + 14,
-              child: _TourChip(touring: _touring),
-            ),
-            Positioned(
-              top: top + 10,
-              left: 20,
-              right: 20,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Hi Priya 👋',
-                      style: AppText.section.copyWith(color: Colors.white),
+          ),
+        ),
+        Positioned(
+          left: 20,
+          top: top + 138,
+          child: IgnorePointer(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: light ? 0.85 : 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: light
+                          ? AppColors.border
+                          : Colors.white.withValues(alpha: 0.25),
                     ),
                   ),
-                  _WalletChip(onTap: () => context.go('/wallet')),
-                ],
-              ),
-            ),
-            Positioned(
-              top: top + 50,
-              left: 20,
-              right: 20,
-              child: IgnorePointer(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'See it live.',
-                      style: AppText.display.copyWith(
-                        color: Colors.white,
-                        fontSize: 30,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _PulseDot(),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$totalGuidesOnline Guides online now',
+                        style: AppText.label.copyWith(fontSize: 13, color: ink),
                       ),
-                    ),
-                    Text(
-                      'Know before you go.',
-                      style: AppText.display.copyWith(
-                        color: const Color(0xFF8EE3E8),
-                        fontSize: 30,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
-            Positioned(
-              left: 20,
-              top: top + 138,
-              child: IgnorePointer(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const _PulseDot(),
-                          const SizedBox(width: 8),
-                          Text(
-                            '$totalGuidesOnline Guides online now',
-                            style: AppText.label.copyWith(
-                              fontSize: 13,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
+    );
+    return SizedBox(
+      height: top + HomeHeroLayout.height,
+      child: light
+          ? DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.white, AppColors.aqua],
+                ),
+              ),
+              child: ClipRect(child: stack),
+            )
+          : SpaceBackdrop(radius: 0, child: stack),
     );
   }
 }
@@ -1055,6 +1074,58 @@ class _TourChip extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Dark / light switch for the globe, to compare the two looks.
+class _StyleSwitch extends StatelessWidget {
+  const _StyleSwitch({required this.light});
+
+  final bool light;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget option(IconData icon, String label, bool value) {
+      final selected = light == value;
+      return Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: GestureDetector(
+          onTap: () => globeLight.value = value,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 36,
+            height: 30,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: selected ? AppColors.teal : Colors.transparent,
+            ),
+            child: Icon(
+              icon,
+              size: 17,
+              color: selected ? Colors.white : AppColors.ink,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(20),
+        border: light ? Border.all(color: AppColors.border) : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          option(Icons.dark_mode_outlined, 'Dark globe', false),
+          option(Icons.light_mode_outlined, 'Light globe', true),
+        ],
       ),
     );
   }

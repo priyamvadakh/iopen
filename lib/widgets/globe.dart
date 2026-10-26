@@ -118,6 +118,10 @@ class _StarsPainter extends CustomPainter {
   bool shouldRepaint(_StarsPainter oldDelegate) => false;
 }
 
+/// Globe style for the whole app: false = glass on dark space, true = white
+/// porcelain on a light background. Home has a switch to compare them.
+final globeLight = ValueNotifier<bool>(false);
+
 /// Interactive Earth with glowing pins where Guides are online and arcs
 /// showing live sessions. Drag to rotate, tap a pin to open the city.
 class Globe extends StatefulWidget {
@@ -372,6 +376,7 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
                     viewLng: _lng,
                     time: _time,
                     zoom: _zoom,
+                    light: globeLight.value ? 1 : 0,
                   ),
                 ),
                 if (widget.showZoomControls)
@@ -422,6 +427,7 @@ class GlobePainter extends CustomPainter {
     this.showLabels = true,
     this.showArcs = true,
     this.flat = 0,
+    this.light = 0,
     this.center,
     this.radius,
   });
@@ -445,6 +451,9 @@ class GlobePainter extends CustomPainter {
   /// 1 unrolls the globe into a full-screen flat map, 0 is the globe. Pins
   /// and arcs only show on the finished globe.
   final double flat;
+
+  /// 0 = glass on dark, 1 = white porcelain (see [globeLight]).
+  final double light;
 
   /// Overrides where the sphere sits on the canvas (and, while [flat] > 0,
   /// the map scale in pixels per radian).
@@ -504,6 +513,7 @@ class GlobePainter extends CustomPainter {
       // Blend towards satellite colours as the user zooms in.
       ((zoom - 1.4) / 1.8).clamp(0.0, 1.0),
       flat,
+      light,
     ]) {
       shader.setFloat(i++, v);
     }

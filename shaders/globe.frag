@@ -19,6 +19,7 @@ uniform float uLat;      // latitude facing the viewer, radians
 uniform float uLng;      // longitude facing the viewer, radians
 uniform float uRealism;  // 0 = brand style, 1 = mostly satellite colours
 uniform float uFlat;     // 0 = globe, 1 = flat full-screen map (onboarding)
+uniform float uLight;    // 0 = glass on dark, 1 = white porcelain globe
 uniform sampler2D uDay;
 uniform sampler2D uNight;
 
@@ -99,12 +100,17 @@ vec4 giraffeSkin(float lat, float lng, float z) {
   float lineHalf = 0.06 + 0.6 / pxPerCell;
   float aa = 1.0 / pxPerCell;
   float patchMask = smoothstep(lineHalf - aa, lineHalf + aa, border);
-  vec3 patchColor = mix(vec3(0.98, 0.72, 0.44), vec3(0.9, 0.6, 0.34), seed);
+  // Light style: slate patches on an aqua network, fully opaque.
+  vec3 patchColor = mix(
+    mix(vec3(0.98, 0.72, 0.44), vec3(0.9, 0.6, 0.34), seed),
+    mix(vec3(0.17, 0.24, 0.27), vec3(0.22, 0.3, 0.33), seed),
+    uLight
+  );
   patchColor *= mix(1.0, 0.86, smoothstep(0.1, 0.45, border));
-  vec3 lineColor = vec3(0.98, 0.93, 0.82);
+  vec3 lineColor = mix(vec3(0.98, 0.93, 0.82), vec3(0.47, 0.8, 0.76), uLight);
   return vec4(
     mix(lineColor, patchColor, patchMask),
-    mix(0.8, 0.32, patchMask)
+    mix(mix(0.8, 0.32, patchMask), 1.0, uLight)
   );
 }
 
@@ -128,14 +134,19 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float landAlpha = mix(skin.a, 1.0, uRealism);
 
   // Night side: dimmer land with warm city lights.
-  float lit = smoothstep(-0.2, 0.35, light);
+  float lit = mix(smoothstep(-0.2, 0.35, light), 1.0, uLight);
   float city = dot(texture(uNight, uv).rgb, vec3(0.3, 0.5, 0.2));
   vec3 cities = vec3(1.0, 0.85, 0.55) * smoothstep(0.3, 0.65, city);
   landColor = mix(landColor * 0.45 + cities, landColor, lit);
 
   // Sea: tinted clear glass, more solid when zoomed in.
-  float seaAlpha = mix(0.16, 0.85, uRealism);
-  vec3 seaColor = mix(vec3(0.16, 0.42, 0.46), vec3(0.08, 0.2, 0.27), uRealism);
+  // Light style: white porcelain sea, shaded softly.
+  float seaAlpha = mix(mix(0.16, 0.85, uRealism), 1.0, uLight);
+  vec3 seaColor = mix(
+    mix(vec3(0.16, 0.42, 0.46), vec3(0.08, 0.2, 0.27), uRealism),
+    vec3(0.95, 0.97, 0.97) * (0.72 + 0.32 * max(light, 0.0)),
+    uLight
+  );
   vec4 color = mix(
     vec4(seaColor * seaAlpha, seaAlpha),
     vec4(landColor * landAlpha, landAlpha),
@@ -148,9 +159,10 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float dLng = abs(fract(lngDeg / 15.0 + 0.5) - 0.5) * 15.0 * pxPerDeg *
       cos(lat);
   float grid = 1.0 - smoothstep(0.3, 1.1, min(dLat, dLng));
-  float gridAlpha = grid * mix(0.2, 0.07, land) * (1.0 - uRealism * 0.6);
-  color = color * (1.0 - gridAlpha) +
-      vec4(vec3(0.65, 0.9, 0.9) * gridAlpha, gridAlpha);
+  float gridAlpha = grid * mix(mix(0.2, 0.07, land), mix(0.3, 0.1, land),
+      uLight) * (1.0 - uRealism * 0.6);
+  vec3 gridColor = mix(vec3(0.65, 0.9, 0.9), vec3(0.55, 0.65, 0.68), uLight);
+  color = color * (1.0 - gridAlpha) + vec4(gridColor * gridAlpha, gridAlpha);
 
   // Clear-coat gloss: highlight, broad sheen and a glass glare.
   vec3 halfVec = normalize(sun + vec3(0.0, 0.0, 1.0));

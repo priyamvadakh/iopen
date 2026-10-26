@@ -41,55 +41,68 @@ class _FullGlobe extends StatelessWidget {
   Widget build(BuildContext context) {
     final padding = MediaQuery.paddingOf(context);
     void close() => Navigator.of(context).pop();
-    return Scaffold(
-      body: SpaceBackdrop(
-        radius: 0,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              top: padding.top + 56,
-              bottom: padding.bottom + 70,
-              child: Globe(
-                initialLat: lat,
-                initialLng: lng,
-                onExpand: () {
-                  close();
-                  context.go('/map');
-                },
-                onCityTap: (c) {
-                  close();
-                  context.push('/city/${c.id}');
-                },
-              ),
-            ),
-            Positioned(
-              top: padding.top + 8,
-              left: 16,
-              child: AppBackButton(onPressed: close),
-            ),
-            Positioned(
-              top: padding.top + 16,
-              left: 72,
-              right: 72,
-              child: Text(
-                'Explore the world',
-                textAlign: TextAlign.center,
-                style: AppText.section.copyWith(color: Colors.white),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: padding.bottom + 24,
-              child: Text(
-                '$totalGuidesOnline Guides online · tap a city to open it',
-                textAlign: TextAlign.center,
-                style: AppText.small.copyWith(color: Colors.white70),
-              ),
-            ),
-          ],
+    final light = globeLight.value;
+    final ink = light ? AppColors.ink : Colors.white;
+    final page = Stack(
+      children: [
+        Positioned.fill(
+          top: padding.top + 56,
+          bottom: padding.bottom + 70,
+          child: Globe(
+            initialLat: lat,
+            initialLng: lng,
+            onExpand: () {
+              close();
+              context.go('/map');
+            },
+            onCityTap: (c) {
+              close();
+              context.push('/city/${c.id}');
+            },
+          ),
         ),
-      ),
+        Positioned(
+          top: padding.top + 8,
+          left: 16,
+          child: AppBackButton(onPressed: close),
+        ),
+        Positioned(
+          top: padding.top + 16,
+          left: 72,
+          right: 72,
+          child: Text(
+            'Explore the world',
+            textAlign: TextAlign.center,
+            style: AppText.section.copyWith(color: ink),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: padding.bottom + 24,
+          child: Text(
+            '$totalGuidesOnline Guides online · tap a city to open it',
+            textAlign: TextAlign.center,
+            style: AppText.small.copyWith(
+              color: light ? AppColors.muted : Colors.white70,
+            ),
+          ),
+        ),
+      ],
+    );
+    return Scaffold(
+      body: light
+          ? DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.white, AppColors.aqua],
+                ),
+              ),
+              child: page,
+            )
+          : SpaceBackdrop(radius: 0, child: page),
     );
   }
 }
