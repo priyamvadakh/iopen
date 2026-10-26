@@ -376,7 +376,7 @@ class HotspotPin extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.92),
+              color: AppColors.surface.withValues(alpha: 0.92),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Row(

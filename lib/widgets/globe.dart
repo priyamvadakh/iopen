@@ -721,10 +721,11 @@ class GlobePainter extends CustomPainter {
           end: Alignment.bottomCenter,
           colors: lightStyle
               ? const [Color(0xFF64A396), _mint, Color(0xFF326C61)]
-              : const [Color(0xFF1C4048), Color(0xFF0A2A31), Color(0xFF061C22)],
+              : const [Color(0xFF4FA3A9), AppColors.teal, AppColors.tealDark],
         ).createShader(l.box);
       } else {
-        fill.color = Colors.white.withValues(alpha: 0.9);
+        fill.color = (lightStyle ? Colors.white : const Color(0xFF15282E))
+            .withValues(alpha: 0.9);
       }
       canvas.saveLayer(
         l.box.inflate(14),
@@ -745,7 +746,7 @@ class GlobePainter extends CustomPainter {
               ? const Color(0xFF285A51)
               : (lightStyle
                     ? const Color(0xFFC9DED8)
-                    : const Color(0xFFB8CCCC)),
+                    : const Color(0xFF0A171B)),
       );
       canvas.drawRRect(rrect, fill);
       // Gloss: a faint highlight along the top half.
@@ -759,7 +760,10 @@ class GlobePainter extends CustomPainter {
           ),
           Radius.circular(l.box.height / 2),
         ),
-        Paint()..color = Colors.white.withValues(alpha: isFocused ? 0.16 : 0.5),
+        Paint()
+          ..color = Colors.white.withValues(
+            alpha: isFocused ? 0.16 : (lightStyle ? 0.5 : 0.06),
+          ),
       );
       canvas.drawRRect(
         rrect,
@@ -768,7 +772,9 @@ class GlobePainter extends CustomPainter {
           ..strokeWidth = 1.2
           ..color = isFocused
               ? Colors.white.withValues(alpha: 0.35)
-              : (lightStyle ? const Color(0xFFD3E8E2) : Colors.white),
+              : (lightStyle
+                    ? const Color(0xFFD3E8E2)
+                    : _pinColor.withValues(alpha: 0.35)),
       );
       canvas.restore();
       tp.paint(canvas, l.box.topLeft + const Offset(15, 8));
@@ -785,7 +791,8 @@ class GlobePainter extends CustomPainter {
     final base = AppText.small.copyWith(
       fontSize: 14,
       fontWeight: FontWeight.w700,
-      color: (focused ? Colors.white : AppColors.ink).withValues(alpha: alpha),
+      color: (focused || !light ? Colors.white : const Color(0xFF10202A))
+          .withValues(alpha: alpha),
     );
     return TextPainter(
       text: TextSpan(
@@ -798,7 +805,7 @@ class GlobePainter extends CustomPainter {
               color:
                   (focused
                           ? (light ? const Color(0xFFCFEDE6) : _pinColor)
-                          : (light ? _mint : AppColors.teal))
+                          : (light ? _mint : _pinColor))
                       .withValues(alpha: alpha),
             ),
           ),

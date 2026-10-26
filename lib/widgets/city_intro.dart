@@ -233,7 +233,7 @@ class _Caption extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.94),
+        color: AppColors.surface.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
