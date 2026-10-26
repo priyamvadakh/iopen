@@ -92,6 +92,7 @@ class _CityIntroState extends State<CityIntro> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final city = widget.city, area = widget.area;
+    final light = globeLight.value;
     // Material gives the text proper styling; this sits above the page.
     return Material(
       type: MaterialType.transparency,
@@ -113,7 +114,11 @@ class _CityIntroState extends State<CityIntro> with TickerProviderStateMixin {
             return Opacity(
               opacity: fadeOut,
               child: ColoredBox(
-                color: const Color(0xFF061C22),
+                // Matches the globe style: white with the mint globe, or
+                // deep space with the dark one.
+                color: light
+                    ? const Color(0xFFF3FAF8)
+                    : const Color(0xFF061C22),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -126,6 +131,9 @@ class _CityIntroState extends State<CityIntro> with TickerProviderStateMixin {
                           options: MapOptions(
                             initialCenter: _target,
                             initialZoom: 5,
+                            backgroundColor: light
+                                ? const Color(0xFFEAF5F2)
+                                : const Color(0xFF0B3640),
                             interactionOptions: const InteractionOptions(
                               flags: InteractiveFlag.none,
                             ),
@@ -149,6 +157,7 @@ class _CityIntroState extends State<CityIntro> with TickerProviderStateMixin {
                             time: _pulse.value * 1.8,
                             showLabels: false,
                             showArcs: false,
+                            light: light ? 1 : 0,
                           ),
                         ),
                       ),
