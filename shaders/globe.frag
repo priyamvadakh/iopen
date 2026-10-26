@@ -90,14 +90,14 @@ float giraffeBorder(vec3 q, out float seed) {
   return border;
 }
 
-// Giraffe skin at a point on the sphere: see-through warm patches, a little
-// deeper in the middle, separated by a cream network. Alpha in .a.
+// Giraffe skin at a point on the sphere: flat see-through patches separated
+// by a light network. Alpha in .a.
 vec4 giraffeSkin(float lat, float lng, float z) {
   vec3 world = vec3(cos(lat) * sin(lng), sin(lat), cos(lat) * cos(lng));
   float seed;
   float border = giraffeBorder(world * PATCH_SCALE, seed);
   float pxPerCell = uRadius / PATCH_SCALE * max(z, 0.2);
-  float lineHalf = 0.06 + 0.6 / pxPerCell;
+  float lineHalf = mix(0.06, 0.035, uLight) + 0.6 / pxPerCell;
   float aa = 1.0 / pxPerCell;
   float patchMask = smoothstep(lineHalf - aa, lineHalf + aa, border);
   // Light style: soft mint patches on a white network, fully opaque.
@@ -106,8 +106,7 @@ vec4 giraffeSkin(float lat, float lng, float z) {
     mix(vec3(0.62, 0.8, 0.76), vec3(0.57, 0.76, 0.72), seed),
     uLight
   );
-  patchColor *= mix(1.0, 0.86, smoothstep(0.1, 0.45, border));
-  vec3 lineColor = mix(vec3(0.85, 0.97, 0.95), vec3(0.95, 0.99, 0.98), uLight);
+  vec3 lineColor = mix(vec3(0.85, 0.97, 0.95), vec3(0.97, 0.99, 0.99), uLight);
   return vec4(
     mix(lineColor, patchColor, patchMask),
     mix(mix(0.8, 0.32, patchMask), mix(0.95, 0.72, patchMask), uLight)
@@ -125,7 +124,7 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float light = mix(0.55, dot(n, sun), curve);
   float shade = mix(
     0.55 + 0.6 * max(light, 0.0),
-    0.86 + 0.16 * max(light, 0.0),
+    0.97 + 0.03 * max(light, 0.0),
     uLight
   );
 
@@ -174,12 +173,14 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   // Light style is extra glossy: brighter highlight, wide sheen, a curved
   // window reflection near the top-left.
   float gloss = mix(1.0, 2.0, uLight);
-  float spec = (pow(nh, 120.0) * 0.32 + pow(nh, 10.0) * 0.05) * curve * gloss;
+  // Light style keeps the sheen soft so the flat pattern reads cleanly.
+  float spec = (pow(nh, 120.0) * mix(0.32, 0.06, uLight) +
+      pow(nh, 10.0) * 0.05) * curve * gloss;
   float glare = 1.0 - smoothstep(0.0, 0.55, length(p - vec2(-0.38, -0.42)));
   spec += glare * glare * 0.08 * curve * mix(1.0, 1.3, uLight);
   float band = 1.0 - smoothstep(0.0, 0.06, abs(length(p - vec2(0.25, 0.3)) - 0.92));
   band *= (1.0 - smoothstep(-0.5, 0.1, p.x + p.y)) * uLight * curve;
-  spec += band * 0.25;
+  spec += band * 0.12;
   color += vec4(vec3(spec), spec);
 
   // Rim light: glass edges catch the light.
