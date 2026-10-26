@@ -598,7 +598,7 @@ class _GlobeHeroState extends State<_GlobeHero> {
           ),
         ),
         Positioned(
-          top: top + 10,
+          top: top + 20,
           left: 20,
           right: 20,
           child: Row(
@@ -616,7 +616,7 @@ class _GlobeHeroState extends State<_GlobeHero> {
           ),
         ),
         Positioned(
-          top: top + 62,
+          top: top + 70,
           left: 20,
           right: 20,
           child: IgnorePointer(
