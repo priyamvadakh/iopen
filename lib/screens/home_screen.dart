@@ -606,7 +606,7 @@ class _GlobeHeroState extends State<_GlobeHero> {
               Expanded(
                 child: Text(
                   'Hi Priya 👋',
-                  style: AppText.section.copyWith(color: ink),
+                  style: AppText.section.copyWith(color: ink, fontSize: 21),
                 ),
               ),
               _StyleSwitch(light: light),
@@ -616,7 +616,7 @@ class _GlobeHeroState extends State<_GlobeHero> {
           ),
         ),
         Positioned(
-          top: top + 50,
+          top: top + 62,
           left: 20,
           right: 20,
           child: IgnorePointer(
