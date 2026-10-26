@@ -2,10 +2,14 @@
 
 #include <flutter/runtime_effect.glsl>
 
+precision highp float;
+
 // iOpen globe: real continent shapes (from the NASA day texture) drawn in the
 // app icon's style — aqua land covered in giraffe spots on a navy ocean —
 // with a glossy clear coat, rim glow and warm city lights on the night side.
 // Zooming in (uRealism) blends the land towards real satellite colours.
+// uFlat unrolls the sphere into a flat map: in between, the map curves like
+// a sphere of growing curvature, so it visibly wraps into the globe.
 
 uniform vec2 uSize;
 uniform vec2 uCenter;    // sphere centre in pixels
@@ -13,6 +17,7 @@ uniform float uRadius;   // sphere radius in pixels
 uniform float uLat;      // latitude facing the viewer, radians
 uniform float uLng;      // longitude facing the viewer, radians
 uniform float uRealism;  // 0 = brand style, 1 = mostly satellite colours
+uniform float uFlat;     // 0 = globe, 1 = flat full-screen map (onboarding)
 uniform sampler2D uDay;
 uniform sampler2D uNight;
 
@@ -83,32 +88,15 @@ float giraffeBorder(vec3 q, out float seed) {
   return border;
 }
 
-void main() {
-  vec2 p = (FlutterFragCoord().xy - uCenter) / uRadius;
-  float d = length(p);
-  float edge = 1.5 / uRadius;
-
-  // Outer glow.
-  if (d > 1.0) {
-    float glow = exp(-(d - 1.0) * 10.0) * 0.65;
-    float a = glow * smoothstep(1.0, 1.0 + edge, d);
-    fragColor = vec4(RIM * a, a);
-    return;
-  }
-
-  float z = sqrt(1.0 - d * d);
-  vec3 n = vec3(p.x, -p.y, z);
-
-  float sinLat0 = sin(uLat);
-  float cosLat0 = cos(uLat);
-  float lat = asin(clamp(z * sinLat0 + n.y * cosLat0, -1.0, 1.0));
-  float lng = uLng + atan(n.x, z * cosLat0 - n.y * sinLat0);
+// Surface colour for a point at (lat, lng) whose normal in view space is n.
+vec3 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
+  float z = n.z;
   float latDeg = lat * DEG;
   float lngDeg = mod(lng * DEG + 180.0, 360.0) - 180.0;
   vec2 uv = toUv(vec2(latDeg, lngDeg));
 
   vec3 sun = normalize(SUN);
-  float light = dot(n, sun);
+  float light = mix(0.55, dot(n, sun), curve);
   float lit = smoothstep(-0.2, 0.35, light);
   float shade = 0.32 + 0.8 * max(light, 0.0);
 
@@ -143,14 +131,70 @@ void main() {
   // Clear-coat gloss: highlight, broad sheen and a glass glare.
   vec3 halfVec = normalize(sun + vec3(0.0, 0.0, 1.0));
   float nh = max(dot(n, halfVec), 0.0);
-  color += vec3(1.0) * (pow(nh, 120.0) * 0.22 + pow(nh, 10.0) * 0.06);
+  color += vec3(1.0) * (pow(nh, 120.0) * 0.22 + pow(nh, 10.0) * 0.06) * curve;
   float glare = 1.0 - smoothstep(0.0, 0.55, length(p - vec2(-0.38, -0.42)));
-  color += vec3(0.85, 0.97, 1.0) * glare * glare * 0.07;
+  color += vec3(0.85, 0.97, 1.0) * glare * glare * 0.07 * curve;
 
   // Rim light.
   float fresnel = pow(1.0 - z, 2.2);
-  color = mix(color, RIM, fresnel * 0.6);
+  return mix(color, RIM, fresnel * 0.6);
+}
 
+void main() {
+  vec2 p = (FlutterFragCoord().xy - uCenter) / uRadius;
+  float edge = 1.5 / uRadius;
+
+  if (uFlat > 0.0005) {
+    // Map of curvature c: c = 0 is a flat equirectangular map, c = 1 the
+    // front of the globe.
+    float c = max(1.0 - uFlat, 0.001);
+    float sy = -p.y * c;
+    float cy = sqrt(max(1.0 - sy * sy, 0.0));
+    float sx = p.x * c / max(cy, 0.0001);
+    float m = max(abs(sy), abs(sx));
+    if (m > 1.0) {
+      float glow = exp(-(m - 1.0) * 10.0) * 0.65 * c;
+      fragColor = vec4(RIM * glow, glow);
+      return;
+    }
+    float cx = sqrt(max(1.0 - sx * sx, 0.0));
+    // asin(s) / c, with a series near flat where dividing loses precision.
+    float latL = (c < 0.05 ? -p.y * (1.0 + sy * sy / 6.0) : asin(sy) / c) +
+        (1.0 - c) * uLat;
+    float lngL = c < 0.05
+        ? p.x / max(cy, 0.0001) * (1.0 + sx * sx / 6.0)
+        : asin(sx) / c;
+    // Past a pole the vector simply wraps over it, as on a real sphere.
+    vec3 v = vec3(cos(latL) * sin(lngL), sin(latL), cos(latL) * cos(lngL));
+    float lat0 = uLat * c;
+    float lat = asin(clamp(v.z * sin(lat0) + v.y * cos(lat0), -1.0, 1.0));
+    float lng = uLng + atan(v.x, v.z * cos(lat0) - v.y * sin(lat0));
+    vec3 n = vec3(sx * cy, sy, cy * cx);
+    vec3 color = surface(n, lat, lng, p, c);
+    float alpha = smoothstep(1.0, 1.0 - edge, m);
+    fragColor = vec4(color * alpha, alpha);
+    return;
+  }
+
+  float d = length(p);
+
+  // Outer glow.
+  if (d > 1.0) {
+    float glow = exp(-(d - 1.0) * 10.0) * 0.65;
+    float a = glow * smoothstep(1.0, 1.0 + edge, d);
+    fragColor = vec4(RIM * a, a);
+    return;
+  }
+
+  float z = sqrt(1.0 - d * d);
+  vec3 n = vec3(p.x, -p.y, z);
+
+  float sinLat0 = sin(uLat);
+  float cosLat0 = cos(uLat);
+  float lat = asin(clamp(z * sinLat0 + n.y * cosLat0, -1.0, 1.0));
+  float lng = uLng + atan(n.x, z * cosLat0 - n.y * sinLat0);
+
+  vec3 color = surface(n, lat, lng, p, 1.0);
   float alpha = smoothstep(1.0, 1.0 - edge, d);
   fragColor = vec4(color * alpha, alpha);
 }

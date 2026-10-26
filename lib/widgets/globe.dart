@@ -206,12 +206,12 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  // Finger-sized targets: a city's name pill is tappable as a whole, and
-  // the dot answers anywhere within a 48px circle around it.
+  // Finger-sized targets: a city's name pill is tappable with generous
+  // padding, and the dot answers anywhere within a 72px circle around it.
   City? _hitTest(Offset pos, Size size) {
     final g = GlobePainter.geometry(size);
     City? best;
-    var bestDist = 24.0;
+    var bestDist = 36.0;
     for (final city in cities) {
       final p = projectPoint(
         lat: city.lat,
@@ -224,7 +224,7 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
       if (p == null || p.depth < 0.1) continue;
       if (GlobePainter.hasLabel(city, p.depth)) {
         final (box, _) = GlobePainter.labelLayout(city, p.offset);
-        if (box.inflate(8).contains(pos)) return city;
+        if (box.inflate(14).contains(pos)) return city;
       }
       final dist = (p.offset - pos).distance;
       if (dist < bestDist) {
@@ -392,6 +392,9 @@ class GlobePainter extends CustomPainter {
     this.zoom = 1,
     this.showLabels = true,
     this.showArcs = true,
+    this.flat = 0,
+    this.center,
+    this.radius,
   });
 
   final GlobeAssets? assets;
@@ -410,6 +413,15 @@ class GlobePainter extends CustomPainter {
   final bool showLabels;
   final bool showArcs;
 
+  /// 1 unrolls the globe into a full-screen flat map, 0 is the globe. Pins
+  /// and arcs only show on the finished globe.
+  final double flat;
+
+  /// Overrides where the sphere sits on the canvas (and, while [flat] > 0,
+  /// the map scale in pixels per radian).
+  final Offset? center;
+  final double? radius;
+
   static ({Offset center, double radius}) geometry(Size size) => (
     center: size.center(Offset.zero),
     radius: math.min(size.width, size.height) * 0.4,
@@ -423,16 +435,24 @@ class GlobePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final g = geometry(size);
-    final center = g.center;
-    final r = g.radius * zoom;
+    final center = this.center ?? g.center;
+    final r = (radius ?? g.radius) * zoom;
 
     _paintEarth(canvas, size, center, r);
+    if (flat > 0) return;
     if (showArcs) _paintArcs(canvas, center, r);
     _paintPins(canvas, center, r);
   }
 
   void _paintEarth(Canvas canvas, Size size, Offset center, double r) {
     final a = assets, shader = this.shader;
+    if ((a == null || shader == null) && flat > 0) {
+      canvas.drawRect(
+        Offset.zero & size,
+        Paint()..color = const Color(0xFF0B3640),
+      );
+      return;
+    }
     if (a == null || shader == null) {
       // Plain lit sphere while textures load.
       canvas.drawCircle(
@@ -457,6 +477,7 @@ class GlobePainter extends CustomPainter {
       viewLng * math.pi / 180,
       // Blend towards satellite colours as the user zooms in.
       ((zoom - 1.4) / 1.8).clamp(0.0, 1.0),
+      flat,
     ]) {
       shader.setFloat(i++, v);
     }
@@ -587,7 +608,7 @@ class GlobePainter extends CustomPainter {
             ..strokeWidth = 1
             ..color = _pinColor.withValues(alpha: 0.6 * fade),
         );
-        tp.paint(canvas, box.topLeft + const Offset(10, 5));
+        tp.paint(canvas, box.topLeft + const Offset(12, 7));
       }
     }
   }
@@ -606,7 +627,7 @@ class GlobePainter extends CustomPainter {
       text: TextSpan(
         text: city.name,
         style: AppText.small.copyWith(
-          fontSize: 12,
+          fontSize: 13,
           fontWeight: FontWeight.w700,
           color: Colors.white.withValues(alpha: alpha),
         ),
@@ -616,8 +637,8 @@ class GlobePainter extends CustomPainter {
     final box = Rect.fromLTWH(
       dot.dx + 8,
       dot.dy - tp.height - 16,
-      tp.width + 20,
-      tp.height + 10,
+      tp.width + 24,
+      tp.height + 14,
     );
     return (box, tp);
   }

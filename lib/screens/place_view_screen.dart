@@ -96,7 +96,12 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _LiveViewer(key: ValueKey(_area.id), area: _area),
+                _LiveViewer(
+                  key: ValueKey(_area.id),
+                  area: _area,
+                  areas: widget.city.areas,
+                  onAreaChanged: _setArea,
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                   child: Column(
@@ -410,9 +415,16 @@ class _PlaceViewScreenState extends State<PlaceViewScreen> {
 /// Top of the place view: the drag-to-look panorama, plus a real recorded
 /// walk video where one is available.
 class _LiveViewer extends StatefulWidget {
-  const _LiveViewer({super.key, required this.area});
+  const _LiveViewer({
+    super.key,
+    required this.area,
+    required this.areas,
+    required this.onAreaChanged,
+  });
 
   final Area area;
+  final List<Area> areas;
+  final ValueChanged<Area> onAreaChanged;
 
   @override
   State<_LiveViewer> createState() => _LiveViewerState();
@@ -421,19 +433,22 @@ class _LiveViewer extends StatefulWidget {
 class _LiveViewerState extends State<_LiveViewer> {
   bool _video = false;
 
-  void _openFullScreen(BuildContext context) {
+  Future<void> _openFullScreen(BuildContext context) async {
     final area = widget.area;
-    Navigator.of(context, rootNavigator: true).push(
-      PageRouteBuilder<void>(
+    final picked = await Navigator.of(context, rootNavigator: true).push(
+      PageRouteBuilder<Area>(
         transitionDuration: const Duration(milliseconds: 220),
         pageBuilder: (context, _, _) => _FullScreenView(
           area: area,
+          areas: widget.areas,
           video: _video && area.walkVideoId != null,
         ),
         transitionsBuilder: (context, animation, _, child) =>
             FadeTransition(opacity: animation, child: child),
       ),
     );
+    // Coming back from full screen keeps the place the user switched to.
+    if (picked != null && picked.id != area.id) widget.onAreaChanged(picked);
   }
 
   @override
@@ -533,41 +548,189 @@ String _walkUrl(String videoId) =>
     'https://www.youtube-nocookie.com/embed/$videoId'
     '?autoplay=1&mute=1&playsinline=1&rel=0&start=90';
 
-/// Full-screen 360° view or walk video, with free one-finger looking.
-class _FullScreenView extends StatelessWidget {
-  const _FullScreenView({required this.area, required this.video});
+/// Full-screen 360° view or walk video, with free one-finger looking and a
+/// strip of the city's other spots to jump between without leaving.
+class _FullScreenView extends StatefulWidget {
+  const _FullScreenView({
+    required this.area,
+    required this.areas,
+    required this.video,
+  });
 
   final Area area;
+  final List<Area> areas;
   final bool video;
 
   @override
+  State<_FullScreenView> createState() => _FullScreenViewState();
+}
+
+class _FullScreenViewState extends State<_FullScreenView> {
+  late Area _area = widget.area;
+  late bool _wantVideo = widget.video;
+
+  bool get _video => _wantVideo && _area.walkVideoId != null;
+
+  void _close() => Navigator.of(context).pop(_area);
+
+  @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.paddingOf(context).top;
-    void close() => Navigator.of(context).pop();
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            top: video ? top + 56 : 0,
-            child: video
-                ? ZoomableVideo(
-                    url: _walkUrl(area.walkVideoId!),
-                    onExpand: close,
-                    expanded: true,
-                  )
-                : PanoramaViewer(
-                    image: area.image,
-                    spanDegrees: area.panoramaSpan,
-                    hotspots: area.hotspots,
-                    initialX: area.initialX,
-                    insideScrollView: false,
-                    onExpand: close,
-                    expanded: true,
+    final padding = MediaQuery.paddingOf(context);
+    final area = _area;
+    final showStrip = widget.areas.length > 1;
+    return PopScope<Area>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _close();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              top: _video ? padding.top + 56 : 0,
+              bottom: _video && showStrip ? padding.bottom + 112 : 0,
+              child: _video
+                  ? ZoomableVideo(
+                      key: ValueKey('video-${area.id}'),
+                      url: _walkUrl(area.walkVideoId!),
+                      onExpand: _close,
+                      expanded: true,
+                    )
+                  : PanoramaViewer(
+                      key: ValueKey('pano-${area.id}'),
+                      image: area.image,
+                      spanDegrees: area.panoramaSpan,
+                      hotspots: area.hotspots,
+                      initialX: area.initialX,
+                      insideScrollView: false,
+                      onExpand: _close,
+                      expanded: true,
+                    ),
+            ),
+            Positioned(
+              top: padding.top + 8,
+              left: 16,
+              child: AppBackButton(onPressed: _close),
+            ),
+            if (_area.walkVideoId != null)
+              Positioned(
+                top: padding.top + 8,
+                right: 16,
+                child: _ViewToggle(
+                  video: _video,
+                  onChanged: (v) => setState(() => _wantVideo = v),
+                ),
+              ),
+            if (showStrip)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: padding.bottom + 12,
+                child: _AreaStrip(
+                  areas: widget.areas,
+                  current: area,
+                  onSelected: (a) => setState(() => _area = a),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Thumbnails of the other spots; tapping one swaps the view in place.
+class _AreaStrip extends StatelessWidget {
+  const _AreaStrip({
+    required this.areas,
+    required this.current,
+    required this.onSelected,
+  });
+
+  final List<Area> areas;
+  final Area current;
+  final ValueChanged<Area> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: areas.length,
+        separatorBuilder: (context, _) => const SizedBox(width: 10),
+        itemBuilder: (context, i) {
+          final a = areas[i];
+          final selected = a.id == current.id;
+          return Semantics(
+            button: true,
+            selected: selected,
+            label: 'Show ${a.name}',
+            child: GestureDetector(
+              onTap: () => onSelected(a),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 120,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: selected ? AppColors.aqua : Colors.white24,
+                    width: selected ? 3 : 1,
                   ),
-          ),
-          const TopBackButton(),
-        ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Photo(a.image, icon: Icons.location_city_outlined),
+                      const Scrim(strength: 0.7),
+                      Positioned(
+                        left: 8,
+                        right: 8,
+                        bottom: 7,
+                        child: Text(
+                          a.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.label.copyWith(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      if (selected)
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.teal,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'Viewing',
+                              style: AppText.small.copyWith(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

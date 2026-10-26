@@ -166,8 +166,8 @@ class _MapScreenState extends State<MapScreen>
                       for (final a in c.areas)
                         Marker(
                           point: LatLng(a.lat!, a.lng!),
-                          width: 170,
-                          height: 40,
+                          width: 190,
+                          height: 56,
                           child: _AreaPin(
                             area: a,
                             onTap: () =>
@@ -177,8 +177,8 @@ class _MapScreenState extends State<MapScreen>
                     else
                       Marker(
                         point: LatLng(c.lat, c.lng),
-                        width: 52,
-                        height: 52,
+                        width: 72,
+                        height: 72,
                         child: _CityPin(
                           city: c,
                           selected: c == _selected,
@@ -392,14 +392,16 @@ class _AreaPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Semantics(
-        button: true,
-        label: 'Open ${area.name}',
-        child: GestureDetector(
-          onTap: onTap,
+    // The whole marker box is the touch target, not just the pill.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Center(
+        child: Semantics(
+          button: true,
+          label: 'Open ${area.name}',
           child: Container(
-            padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
+            padding: const EdgeInsets.fromLTRB(5, 5, 12, 5),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -409,8 +411,8 @@ class _AreaPin extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 22,
-                  height: 22,
+                  width: 26,
+                  height: 26,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
@@ -421,7 +423,7 @@ class _AreaPin extends StatelessWidget {
                   ),
                   child: const Icon(
                     Icons.threesixty,
-                    size: 14,
+                    size: 16,
                     color: Colors.white,
                   ),
                 ),
@@ -430,7 +432,7 @@ class _AreaPin extends StatelessWidget {
                   child: Text(
                     area.name,
                     overflow: TextOverflow.ellipsis,
-                    style: AppText.label.copyWith(fontSize: 12),
+                    style: AppText.label.copyWith(fontSize: 13),
                   ),
                 ),
               ],
@@ -456,11 +458,12 @@ class _CityPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = selected ? 48.0 : 38.0;
+    final size = selected ? 54.0 : 44.0;
     return Semantics(
       button: true,
       label: '${city.name}, ${city.guidesOnline} Guides online',
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Center(
           child: AnimatedContainer(

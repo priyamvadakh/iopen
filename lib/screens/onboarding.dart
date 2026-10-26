@@ -24,12 +24,16 @@ const _words = [
 
 // Timeline, in seconds.
 const _wordSeconds = 1.5;
-const _finaleStart = 5.3;
-const _finaleEnd = 7.4;
-const _total = 7.8;
+const _revealStart = 4.6; // the dot floods the screen with a flat map
+const _revealEnd = 5.2;
+const _morphStart = 5.7; // the map wraps itself into the globe
+const _morphEnd = 6.9;
+const _finaleEnd = 7.8; // the globe has landed on Home
+const _total = 8.2;
 
-/// "Anytime● → Anywhere● → iOpen●", then the dot grows into the globe,
-/// which spins and glides into its place at the top of Home.
+/// "Anytime● → Anywhere● → iOpen●", then the dot opens into a full-screen
+/// map, the map wraps itself into the globe, and the globe glides into its
+/// place at the top of Home.
 class OnboardingOverlay extends StatefulWidget {
   const OnboardingOverlay({super.key, required this.onDone});
 
@@ -78,7 +82,7 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
   /// Skips straight to Home with a quick fade.
   void _skip() {
     final now = _c.value * _total;
-    if (now >= _finaleEnd) return;
+    if (now >= _morphEnd) return;
     _c.animateTo(1, duration: const Duration(milliseconds: 300));
   }
 
@@ -131,68 +135,56 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
     final last = index == _words.length - 1;
     final enter = Curves.easeOut.transform((local / 0.4).clamp(0.0, 1.0));
     final exit = last
-        ? 1 - ((t - _finaleStart) / 0.3).clamp(0.0, 1.0)
+        ? 1 - ((t - _revealStart) / 0.4).clamp(0.0, 1.0)
         : ((_wordSeconds - local) / 0.25).clamp(0.0, 1.0);
     final dotPop = Curves.elasticOut.transform(
       ((local - 0.25) / 0.6).clamp(0.0, 1.0),
     );
 
-    // Finale: the dot becomes the globe and lands where Home shows it.
-    final f = ((t - _finaleStart) / (_finaleEnd - _finaleStart)).clamp(
-      0.0,
-      1.0,
-    );
-    if (f > 0 && _dotRect == null) _dotRect = _measureDot();
-    final target = HomeHeroLayout.globeRect(size, top);
-    final targetRadius = math.min(target.width, target.height) * 0.4;
+    if (t >= _revealStart && _dotRect == null) _dotRect = _measureDot();
+    final revealed = t >= _revealEnd;
+    final onMap = t >= _revealStart;
 
     final children = <Widget>[
       Positioned.fill(child: ColoredBox(color: bg)),
-      if (f > 0)
+      // What Home's hero looks like, so the globe lands on a matching scene.
+      if (revealed)
         Positioned.fill(
-          child: Opacity(
-            opacity: ((f - 0.05) / 0.3).clamp(0.0, 1.0),
-            child: Stack(
-              children: [
-                const Positioned.fill(
-                  child: ColoredBox(color: Color(0xFF061C22)),
-                ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: top + HomeHeroLayout.height,
-                  child: const SpaceBackdrop(
-                    radius: 0,
-                    child: SizedBox.expand(),
-                  ),
-                ),
-              ],
-            ),
+          child: Stack(
+            children: [
+              const Positioned.fill(
+                child: ColoredBox(color: Color(0xFF061C22)),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: top + HomeHeroLayout.height,
+                child: const SpaceBackdrop(radius: 0, child: SizedBox.expand()),
+              ),
+            ],
           ),
         ),
-      Center(
-        child: Opacity(
-          opacity: enter * exit,
-          child: Transform.translate(
-            offset: Offset(0, 12 * (1 - enter)),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  word.text,
-                  style: AppText.display.copyWith(
-                    fontSize: 42,
-                    fontWeight: FontWeight.w800,
-                    color: word.foreground,
-                    letterSpacing: 0.2,
+      if (!revealed)
+        Center(
+          child: Opacity(
+            opacity: enter * exit,
+            child: Transform.translate(
+              offset: Offset(0, 12 * (1 - enter)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    word.text,
+                    style: AppText.display.copyWith(
+                      fontSize: 42,
+                      fontWeight: FontWeight.w800,
+                      color: word.foreground,
+                      letterSpacing: 0.2,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 7),
-                Opacity(
-                  // Once the finale starts, the growing globe takes over.
-                  opacity: f > 0 ? 0 : 1,
-                  child: Transform.scale(
+                  const SizedBox(width: 7),
+                  Transform.scale(
                     scale: dotPop,
                     child: Container(
                       key: last ? _dotKey : null,
@@ -205,20 +197,21 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
-      ),
-      if (f > 0) ..._globe(size, f, t, target.center, targetRadius),
-      if (t < _finaleStart)
+      if (onMap) _earth(size, top, t),
+      if (t < _morphEnd)
         Positioned(
           top: top + 8,
           right: 12,
           child: TextButton(
             onPressed: _skip,
-            style: TextButton.styleFrom(foregroundColor: word.foreground),
+            style: TextButton.styleFrom(
+              foregroundColor: onMap ? Colors.white : word.foreground,
+            ),
             child: const Text('Skip'),
           ),
         ),
@@ -240,66 +233,84 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
     );
   }
 
-  List<Widget> _globe(
-    Size size,
-    double f,
-    double t,
-    Offset targetCenter,
-    double targetRadius,
-  ) {
+  /// The full-screen map opening out of the dot, wrapping into the globe and
+  /// landing where Home shows it. One shader draws every stage.
+  Widget _earth(Size size, double top, double t) {
+    final screenCenter = size.center(Offset.zero);
     final dot =
         _dotRect ??
-        Rect.fromCenter(
-          center: size.center(Offset.zero),
-          width: 20,
-          height: 20,
-        );
-    final grow = Curves.easeInOutCubic.transform((f / 0.35).clamp(0.0, 1.0));
-    final land = Curves.easeInOutCubic.transform(
-      ((f - 0.45) / 0.45).clamp(0.0, 1.0),
-    );
-    final bigRadius = math.min(size.width, size.height) * 0.34;
-    final r1 = ui.lerpDouble(dot.width / 2, bigRadius, grow)!;
-    final c1 = Offset.lerp(dot.center, size.center(Offset.zero), grow)!;
-    final radius = ui.lerpDouble(r1, targetRadius, land)!;
-    final center = Offset.lerp(c1, targetCenter, land)!;
-    final globeIn = ((grow - 0.3) / 0.5).clamp(0.0, 1.0);
-    // Spins fast, then settles on the exact view Home opens with.
-    final settle = Curves.easeOutCubic.transform(f);
-    final side = radius / 0.4;
+        Rect.fromCenter(center: screenCenter, width: 20, height: 20);
 
-    return [
-      Positioned(
-        left: center.dx - radius,
-        top: center.dy - radius,
-        width: radius * 2,
-        height: radius * 2,
-        child: Opacity(
-          opacity: 1 - globeIn,
-          child: const DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.teal,
-              shape: BoxShape.circle,
-            ),
+    // 1. The dot opens into the map like a lens.
+    final reveal = Curves.easeInCubic.transform(
+      ((t - _revealStart) / (_revealEnd - _revealStart)).clamp(0.0, 1.0),
+    );
+    final farthest = [
+      Offset.zero,
+      Offset(size.width, 0),
+      Offset(0, size.height),
+      Offset(size.width, size.height),
+    ].map((c) => (c - dot.center).distance).reduce(math.max);
+    final hole = ui.lerpDouble(dot.width / 2, farthest, reveal)!;
+
+    // 2. The flat map curves into a sphere and shrinks to globe size.
+    final morph = Curves.easeInOutCubic.transform(
+      ((t - _morphStart) / (_morphEnd - _morphStart)).clamp(0.0, 1.0),
+    );
+    final flatScale = size.height / 2 / 1.2; // pixels per radian
+    final bigRadius = math.min(size.width, size.height) * 0.36;
+    final r1 = flatScale * math.pow(bigRadius / flatScale, morph);
+
+    // 3. The globe glides into Home's hero.
+    final land = Curves.easeInOutCubic.transform(
+      ((t - _morphEnd) / (_finaleEnd - _morphEnd)).clamp(0.0, 1.0),
+    );
+    final target = HomeHeroLayout.globeRect(size, top);
+    final targetRadius = math.min(target.width, target.height) * 0.4;
+    final radius = ui.lerpDouble(r1, targetRadius, land)!;
+    final center = Offset.lerp(screenCenter, target.center, land)!;
+
+    // The view drifts east across the map towards the Gulf, then settles on
+    // exactly what Home opens with.
+    final drift = Curves.easeInOut.transform(
+      ((t - _revealStart) / (_finaleEnd - _revealStart)).clamp(0.0, 1.0),
+    );
+
+    return Positioned.fill(
+      child: ClipPath(
+        clipper: _HoleClipper(dot.center, hole, enabled: reveal < 1),
+        child: CustomPaint(
+          painter: GlobePainter(
+            assets: _assets,
+            shader: _shader,
+            viewLat: HomeHeroLayout.globeLat,
+            viewLng: HomeHeroLayout.globeLng - 40 * (1 - drift),
+            time: t,
+            flat: 1 - morph,
+            center: center,
+            radius: radius,
+            showArcs: land > 0.5,
           ),
         ),
       ),
-      Positioned.fromRect(
-        rect: Rect.fromCenter(center: center, width: side, height: side),
-        child: Opacity(
-          opacity: globeIn,
-          child: CustomPaint(
-            painter: GlobePainter(
-              assets: _assets,
-              shader: _shader,
-              viewLat: 5 + (HomeHeroLayout.globeLat - 5) * settle,
-              viewLng: HomeHeroLayout.globeLng + 260 * (1 - settle),
-              time: t,
-              showArcs: f > 0.7,
-            ),
-          ),
-        ),
-      ),
-    ];
+    );
   }
+}
+
+/// Circle that grows from the dot to reveal the map.
+class _HoleClipper extends CustomClipper<Path> {
+  _HoleClipper(this.center, this.radius, {required this.enabled});
+
+  final Offset center;
+  final double radius;
+  final bool enabled;
+
+  @override
+  Path getClip(Size size) => enabled
+      ? (Path()..addOval(Rect.fromCircle(center: center, radius: radius)))
+      : (Path()..addRect(Offset.zero & size));
+
+  @override
+  bool shouldReclip(_HoleClipper old) =>
+      old.center != center || old.radius != radius || old.enabled != enabled;
 }

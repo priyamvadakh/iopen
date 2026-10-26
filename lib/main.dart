@@ -34,19 +34,17 @@ class GuideApp extends StatefulWidget {
 }
 
 class _GuideAppState extends State<GuideApp> {
-  // Plays once, on a plain launch; deep links (e.g. a shared city) and
-  // returning visitors go straight in.
-  bool _onboarding =
-      !UserStore.instance.onboardingSeen &&
-      const {
-        '/',
-        '/home',
-      }.contains(WidgetsBinding.instance.platformDispatcher.defaultRouteName);
+  // Every launch (and every browser refresh) opens on the first onboarding
+  // screen, which then lands on Home.
+  bool _onboarding = true;
 
   @override
   void initState() {
     super.initState();
     replayOnboarding.addListener(_replay);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (appRouter.state.uri.path != '/home') appRouter.go('/home');
+    });
   }
 
   @override

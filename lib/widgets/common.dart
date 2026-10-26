@@ -67,7 +67,10 @@ class Scrim extends StatelessWidget {
 
 /// The one back button used everywhere: 40px white circle, dark arrow.
 class AppBackButton extends StatelessWidget {
-  const AppBackButton({super.key});
+  const AppBackButton({super.key, this.onPressed});
+
+  /// Defaults to going back, or Home when there is nowhere to go back to.
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +82,9 @@ class AppBackButton extends StatelessWidget {
         shape: const CircleBorder(side: BorderSide(color: AppColors.border)),
         child: InkWell(
           customBorder: const CircleBorder(),
-          onTap: () => context.canPop() ? context.pop() : context.go('/home'),
+          onTap:
+              onPressed ??
+              () => context.canPop() ? context.pop() : context.go('/home'),
           child: const SizedBox(
             width: 40,
             height: 40,
