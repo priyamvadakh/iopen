@@ -604,13 +604,13 @@ class _GlobeHeroState extends State<_GlobeHero> {
               children: [
                 Text(
                   'See it live.',
-                  style: AppText.display.copyWith(color: ink, fontSize: 30),
+                  style: AppText.display.copyWith(color: ink, fontSize: 26),
                 ),
                 Text(
                   'Know before you go.',
                   style: AppText.display.copyWith(
                     color: light ? AppColors.teal : const Color(0xFF8EE3E8),
-                    fontSize: 30,
+                    fontSize: 26,
                   ),
                 ),
               ],
