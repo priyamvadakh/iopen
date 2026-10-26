@@ -61,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen>
           children: [
             Text(
               'What do you want to see?',
-              style: AppText.display.copyWith(fontSize: 25),
+              style: AppText.display.copyWith(fontSize: 21),
             ),
             const SizedBox(height: 14),
             _SearchField(onTap: () => context.push('/explore')),
