@@ -467,6 +467,9 @@ class GlobePainter extends CustomPainter {
 
   static const _pinColor = Color(0xFF7FE6EE);
 
+  /// Light style's accent: a soft green-teal.
+  static const _mint = Color(0xFF3F8478);
+
   @override
   void paint(Canvas canvas, Size size) {
     final g = geometry(size);
@@ -545,6 +548,20 @@ class GlobePainter extends CustomPainter {
           altitude: math.sin(t * math.pi) * angle * 0.22,
         );
         points.add(p?.offset);
+      }
+
+      if (light > 0.5) {
+        // Light style: a quiet dashed route.
+        final dash = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..strokeCap = StrokeCap.round
+          ..color = _mint.withValues(alpha: 0.85);
+        for (var s = 0; s < points.length - 1; s += 2) {
+          final p0 = points[s], p1 = points[s + 1];
+          if (p0 != null && p1 != null) canvas.drawLine(p0, p1, dash);
+        }
+        continue;
       }
 
       // Faint full path, then a bright comet travelling along it.
@@ -627,7 +644,10 @@ class GlobePainter extends CustomPainter {
       canvas.drawCircle(
         o,
         11,
-        Paint()..color = _pinColor.withValues(alpha: 0.32 * fade),
+        Paint()
+          ..color = (light > 0.5 ? _mint : _pinColor).withValues(
+            alpha: (light > 0.5 ? 0.22 : 0.32) * fade,
+          ),
       );
       canvas.drawCircle(
         o,
@@ -643,13 +663,21 @@ class GlobePainter extends CustomPainter {
 
     for (final l in labels) {
       final isFocused = l.city == focused;
-      final tp = _labelText(l.city, focused: isFocused, alpha: l.fade);
+      final tp = _labelText(
+        l.city,
+        focused: isFocused,
+        alpha: l.fade,
+        light: light > 0.5,
+      );
       final rrect = RRect.fromRectAndRadius(l.box, const Radius.circular(12));
       canvas.drawRRect(
         rrect,
         Paint()
-          ..color = (isFocused ? const Color(0xFF0A2A31) : Colors.white)
-              .withValues(alpha: (isFocused ? 0.92 : 0.8) * l.fade),
+          ..color =
+              (isFocused
+                      ? (light > 0.5 ? _mint : const Color(0xFF0A2A31))
+                      : (light > 0.5 ? const Color(0xFFEAF6F3) : Colors.white))
+                  .withValues(alpha: (isFocused ? 0.95 : 0.88) * l.fade),
       );
       canvas.drawRRect(
         rrect,
@@ -669,6 +697,7 @@ class GlobePainter extends CustomPainter {
     City city, {
     bool focused = false,
     double alpha = 1,
+    bool light = false,
   }) {
     final base = AppText.small.copyWith(
       fontSize: 13,
@@ -683,9 +712,11 @@ class GlobePainter extends CustomPainter {
           TextSpan(
             text: '  ${city.guidesOnline}',
             style: base.copyWith(
-              color: (focused ? _pinColor : AppColors.teal).withValues(
-                alpha: alpha,
-              ),
+              color:
+                  (focused
+                          ? (light ? const Color(0xFFCFEDE6) : _pinColor)
+                          : (light ? _mint : AppColors.teal))
+                      .withValues(alpha: alpha),
             ),
           ),
         ],

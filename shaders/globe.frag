@@ -100,14 +100,14 @@ vec4 giraffeSkin(float lat, float lng, float z) {
   float lineHalf = 0.06 + 0.6 / pxPerCell;
   float aa = 1.0 / pxPerCell;
   float patchMask = smoothstep(lineHalf - aa, lineHalf + aa, border);
-  // Light style: slate patches on an aqua network, fully opaque.
+  // Light style: soft mint patches on a white network, fully opaque.
   vec3 patchColor = mix(
     mix(vec3(0.98, 0.72, 0.44), vec3(0.9, 0.6, 0.34), seed),
-    mix(vec3(0.17, 0.24, 0.27), vec3(0.22, 0.3, 0.33), seed),
+    mix(vec3(0.7, 0.85, 0.81), vec3(0.65, 0.81, 0.77), seed),
     uLight
   );
   patchColor *= mix(1.0, 0.86, smoothstep(0.1, 0.45, border));
-  vec3 lineColor = mix(vec3(0.98, 0.93, 0.82), vec3(0.47, 0.8, 0.76), uLight);
+  vec3 lineColor = mix(vec3(0.98, 0.93, 0.82), vec3(0.95, 0.99, 0.98), uLight);
   return vec4(
     mix(lineColor, patchColor, patchMask),
     mix(mix(0.8, 0.32, patchMask), 1.0, uLight)
@@ -123,7 +123,11 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
 
   vec3 sun = normalize(SUN);
   float light = mix(0.55, dot(n, sun), curve);
-  float shade = 0.55 + 0.6 * max(light, 0.0);
+  float shade = mix(
+    0.55 + 0.6 * max(light, 0.0),
+    0.86 + 0.16 * max(light, 0.0),
+    uLight
+  );
 
   // Land: giraffe skin, blending to real colours when zoomed in.
   float land = landAt(uv);
@@ -140,11 +144,11 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   landColor = mix(landColor * 0.45 + cities, landColor, lit);
 
   // Sea: tinted clear glass, more solid when zoomed in.
-  // Light style: white porcelain sea, shaded softly.
-  float seaAlpha = mix(mix(0.16, 0.85, uRealism), 1.0, uLight);
+  // Light style: pale mint frosted-glass sea, shaded softly.
+  float seaAlpha = mix(mix(0.16, 0.85, uRealism), 0.92, uLight);
   vec3 seaColor = mix(
     mix(vec3(0.16, 0.42, 0.46), vec3(0.08, 0.2, 0.27), uRealism),
-    vec3(0.95, 0.97, 0.97) * (0.72 + 0.32 * max(light, 0.0)),
+    vec3(0.86, 0.94, 0.92) * (0.88 + 0.14 * max(light, 0.0)),
     uLight
   );
   vec4 color = mix(
@@ -159,22 +163,29 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float dLng = abs(fract(lngDeg / 15.0 + 0.5) - 0.5) * 15.0 * pxPerDeg *
       cos(lat);
   float grid = 1.0 - smoothstep(0.3, 1.1, min(dLat, dLng));
-  float gridAlpha = grid * mix(mix(0.2, 0.07, land), mix(0.3, 0.1, land),
+  float gridAlpha = grid * mix(mix(0.2, 0.07, land), mix(0.3, 0.18, land),
       uLight) * (1.0 - uRealism * 0.6);
-  vec3 gridColor = mix(vec3(0.65, 0.9, 0.9), vec3(0.55, 0.65, 0.68), uLight);
+  vec3 gridColor = mix(vec3(0.65, 0.9, 0.9), vec3(0.97, 1.0, 0.99), uLight);
   color = color * (1.0 - gridAlpha) + vec4(gridColor * gridAlpha, gridAlpha);
 
   // Clear-coat gloss: highlight, broad sheen and a glass glare.
   vec3 halfVec = normalize(sun + vec3(0.0, 0.0, 1.0));
   float nh = max(dot(n, halfVec), 0.0);
-  float spec = (pow(nh, 120.0) * 0.32 + pow(nh, 10.0) * 0.05) * curve;
+  // Light style is extra glossy: brighter highlight, wide sheen, a curved
+  // window reflection near the top-left.
+  float gloss = mix(1.0, 2.0, uLight);
+  float spec = (pow(nh, 120.0) * 0.32 + pow(nh, 10.0) * 0.05) * curve * gloss;
   float glare = 1.0 - smoothstep(0.0, 0.55, length(p - vec2(-0.38, -0.42)));
-  spec += glare * glare * 0.08 * curve;
+  spec += glare * glare * 0.08 * curve * mix(1.0, 1.3, uLight);
+  float band = 1.0 - smoothstep(0.0, 0.06, abs(length(p - vec2(0.25, 0.3)) - 0.92));
+  band *= (1.0 - smoothstep(-0.5, 0.1, p.x + p.y)) * uLight * curve;
+  spec += band * 0.25;
   color += vec4(vec3(spec), spec);
 
   // Rim light: glass edges catch the light.
   float fresnel = pow(1.0 - z, 2.2) * curve;
-  color = mix(color, vec4(RIM, 1.0), fresnel * 0.55);
+  vec3 rim = mix(RIM, vec3(0.62, 0.8, 0.76), uLight);
+  color = mix(color, vec4(rim, 1.0), fresnel * 0.55);
   return color;
 }
 
