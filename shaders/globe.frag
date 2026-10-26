@@ -102,15 +102,15 @@ vec4 giraffeSkin(float lat, float lng, float z) {
   float patchMask = smoothstep(lineHalf - aa, lineHalf + aa, border);
   // Light style: soft mint patches on a white network, fully opaque.
   vec3 patchColor = mix(
-    mix(vec3(0.98, 0.72, 0.44), vec3(0.9, 0.6, 0.34), seed),
-    mix(vec3(0.7, 0.85, 0.81), vec3(0.65, 0.81, 0.77), seed),
+    mix(vec3(0.42, 0.7, 0.68), vec3(0.36, 0.62, 0.6), seed),
+    mix(vec3(0.62, 0.8, 0.76), vec3(0.57, 0.76, 0.72), seed),
     uLight
   );
   patchColor *= mix(1.0, 0.86, smoothstep(0.1, 0.45, border));
-  vec3 lineColor = mix(vec3(0.98, 0.93, 0.82), vec3(0.95, 0.99, 0.98), uLight);
+  vec3 lineColor = mix(vec3(0.85, 0.97, 0.95), vec3(0.95, 0.99, 0.98), uLight);
   return vec4(
     mix(lineColor, patchColor, patchMask),
-    mix(mix(0.8, 0.32, patchMask), 1.0, uLight)
+    mix(mix(0.8, 0.32, patchMask), mix(0.95, 0.72, patchMask), uLight)
   );
 }
 
@@ -133,19 +133,19 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float land = landAt(uv);
   vec4 skin = giraffeSkin(lat, lng, z);
   vec3 day = texture(uDay, uv).rgb * 1.15;
-  vec3 landColor = mix(skin.rgb, day, uRealism * 0.85) * shade;
+  vec3 landColor = mix(skin.rgb, day, uRealism * 0.85 * (1.0 - uLight)) * shade;
   // The skin is see-through glass; zoomed in it turns solid for detail.
-  float landAlpha = mix(skin.a, 1.0, uRealism);
+  float landAlpha = mix(skin.a, 1.0, uRealism * (1.0 - uLight));
 
   // Night side: dimmer land with warm city lights.
   float lit = mix(smoothstep(-0.2, 0.35, light), 1.0, uLight);
   float city = dot(texture(uNight, uv).rgb, vec3(0.3, 0.5, 0.2));
-  vec3 cities = vec3(1.0, 0.85, 0.55) * smoothstep(0.3, 0.65, city);
+  vec3 cities = vec3(0.8, 1.0, 0.97) * smoothstep(0.3, 0.65, city);
   landColor = mix(landColor * 0.45 + cities, landColor, lit);
 
   // Sea: tinted clear glass, more solid when zoomed in.
   // Light style: pale mint frosted-glass sea, shaded softly.
-  float seaAlpha = mix(mix(0.16, 0.85, uRealism), 0.92, uLight);
+  float seaAlpha = mix(mix(0.16, 0.85, uRealism), 0.62, uLight);
   vec3 seaColor = mix(
     mix(vec3(0.16, 0.42, 0.46), vec3(0.08, 0.2, 0.27), uRealism),
     vec3(0.86, 0.94, 0.92) * (0.88 + 0.14 * max(light, 0.0)),
@@ -198,8 +198,9 @@ vec4 backSide(vec3 n) {
   float lng = uLng + atan(b.x, b.z * cosLat0 - b.y * sinLat0);
   float lngDeg = mod(lng * DEG + 180.0, 360.0) - 180.0;
   float land = landAt(toUv(vec2(lat * DEG, lngDeg)));
-  float a = land * 0.22 * (1.0 - uRealism);
-  return vec4(vec3(0.85, 0.7, 0.5) * a, a);
+  float a = land * mix(0.22, 0.4, uLight) * (1.0 - uRealism);
+  vec3 tint = mix(vec3(0.6, 0.85, 0.82), vec3(0.6, 0.78, 0.74), uLight);
+  return vec4(tint * a, a);
 }
 
 void main() {
@@ -216,7 +217,7 @@ void main() {
     float m = max(abs(sy), abs(sx));
     if (m > 1.0) {
       float glow = exp(-(m - 1.0) * 10.0) * 0.65 * c;
-      fragColor = vec4(RIM * glow, glow);
+      fragColor = vec4(mix(RIM, vec3(0.72, 0.86, 0.83), uLight) * glow, glow);
       return;
     }
     float cx = sqrt(max(1.0 - sx * sx, 0.0));
@@ -243,7 +244,7 @@ void main() {
   if (d > 1.0) {
     float glow = exp(-(d - 1.0) * 10.0) * 0.65;
     float a = glow * smoothstep(1.0, 1.0 + edge, d);
-    fragColor = vec4(RIM * a, a);
+    fragColor = vec4(mix(RIM, vec3(0.72, 0.86, 0.83), uLight) * a, a);
     return;
   }
 

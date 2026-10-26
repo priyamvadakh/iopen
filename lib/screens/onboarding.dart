@@ -162,19 +162,15 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
                 height: top + HomeHeroLayout.height,
                 child: const SpaceBackdrop(radius: 0, child: SizedBox.expand()),
               ),
-              // With the light style, the scene turns white as the globe
-              // lands, matching Home.
+              // With the light style the whole scene is white, matching Home.
               if (globeLight.value)
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: _landing(t),
-                    child: const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.white, Color(0xFFF3FAF8)],
-                        ),
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.white, Color(0xFFF3FAF8)],
                       ),
                     ),
                   ),
@@ -227,7 +223,9 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
           child: TextButton(
             onPressed: _skip,
             style: TextButton.styleFrom(
-              foregroundColor: onMap ? Colors.white : word.foreground,
+              foregroundColor: onMap
+                  ? (globeLight.value ? AppColors.ink : Colors.white)
+                  : word.foreground,
             ),
             child: const Text('Skip'),
           ),
@@ -318,7 +316,7 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
             center: center,
             radius: radius,
             showArcs: land > 0.5,
-            light: globeLight.value ? land : 0,
+            light: globeLight.value ? 1 : 0,
           ),
         ),
       ),
