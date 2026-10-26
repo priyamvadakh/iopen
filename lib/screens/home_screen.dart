@@ -169,13 +169,16 @@ class _HomeScreenState extends State<HomeScreen>
               offset: const Offset(0, -HomeHeroLayout.sheetOverlap),
               child: Container(
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.white, Color(0x00FFFFFF)],
-                    stops: [0, 0.4],
-                  ),
+                  color: Color(0xFFFBFDFD),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  // A light lift off the globe.
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x1A1F4D45),
+                      blurRadius: 24,
+                      offset: Offset(0, -6),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,7 +493,7 @@ abstract final class HomeHeroLayout {
 
   /// The globe nearly fills the width and sits low, its bottom tucked
   /// under the sheet; zooming in opens the whole globe.
-  static double globeRadius(Size screen) => screen.width * 0.45;
+  static double globeRadius(Size screen) => screen.width * 0.48;
 
   /// Where the hero stops being visible (the sheet's top edge).
   static double visibleBottom(double topInset) =>
@@ -501,7 +504,7 @@ abstract final class HomeHeroLayout {
   static Rect globeRect(Size screen, double topInset) {
     final r = globeRadius(screen);
     return Rect.fromCenter(
-      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.82),
+      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.86),
       width: r / 0.4,
       height: r / 0.4,
     );
@@ -574,7 +577,16 @@ class _GlobeHeroState extends State<_GlobeHero> {
           left: 0,
           right: 0,
           bottom: HomeHeroLayout.sheetOverlap + 14,
-          child: Center(child: _TourChip(touring: _touring)),
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _GuidesChip(),
+                const SizedBox(width: 8),
+                _TourChip(touring: _touring),
+              ],
+            ),
+          ),
         ),
         Positioned(
           top: top + 10,
@@ -611,43 +623,6 @@ class _GlobeHeroState extends State<_GlobeHero> {
                   style: AppText.display.copyWith(
                     color: light ? AppColors.teal : const Color(0xFF8EE3E8),
                     fontSize: 26,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          top: top + 138,
-          child: IgnorePointer(
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: light ? 0.85 : 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: light
-                          ? AppColors.border
-                          : Colors.white.withValues(alpha: 0.25),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const _PulseDot(),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$totalGuidesOnline Guides online now',
-                        style: AppText.label.copyWith(fontSize: 13, color: ink),
-                      ),
-                    ],
                   ),
                 ),
               ],
@@ -1127,6 +1102,34 @@ class _StyleSwitch extends StatelessWidget {
         children: [
           option(Icons.dark_mode_outlined, 'Dark globe', false),
           option(Icons.light_mode_outlined, 'Light globe', true),
+        ],
+      ),
+    );
+  }
+}
+
+/// "● 126 Guides", in the same glass style as the tour chip.
+class _GuidesChip extends StatelessWidget {
+  const _GuidesChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _PulseDot(),
+          const SizedBox(width: 8),
+          Text(
+            '$totalGuidesOnline Guides',
+            style: AppText.label.copyWith(fontSize: 13),
+          ),
         ],
       ),
     );

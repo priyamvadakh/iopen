@@ -727,8 +727,25 @@ class GlobePainter extends CustomPainter {
         fill.color = Colors.white.withValues(alpha: 0.9);
       }
       canvas.saveLayer(
-        l.box.inflate(2),
+        l.box.inflate(14),
         Paint()..color = Color.fromRGBO(0, 0, 0, l.fade),
+      );
+      // Standing up off the globe: a soft shadow below, then a slightly
+      // darker base edge that gives the pill some thickness.
+      canvas.drawRRect(
+        rrect.shift(const Offset(0, 4)),
+        Paint()
+          ..color = const Color(0xFF1F4D45).withValues(alpha: 0.22)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+      );
+      canvas.drawRRect(
+        rrect.shift(const Offset(0, 2)),
+        Paint()
+          ..color = isFocused
+              ? const Color(0xFF285A51)
+              : (lightStyle
+                    ? const Color(0xFFC9DED8)
+                    : const Color(0xFFB8CCCC)),
       );
       canvas.drawRRect(rrect, fill);
       // Gloss: a faint highlight along the top half.
