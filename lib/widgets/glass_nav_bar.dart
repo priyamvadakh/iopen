@@ -40,7 +40,8 @@ class GlassNavBar extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(40),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            // Heavy frost: strong blur under a milky, slightly mint tint.
+            filter: ImageFilter.blur(sigmaX: 34, sigmaY: 34),
             child: Container(
               height: 78,
               decoration: BoxDecoration(
@@ -49,14 +50,22 @@ class GlassNavBar extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.white.withValues(alpha: 0.78),
-                    const Color(0xFFD3EFF1).withValues(alpha: 0.82),
+                    Colors.white.withValues(alpha: 0.7),
+                    const Color(0xFFE6F5F3).withValues(alpha: 0.62),
+                    const Color(0xFFD3EFF1).withValues(alpha: 0.7),
                   ],
                 ),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  width: 1.2,
+                  color: Colors.white.withValues(alpha: 0.95),
+                  width: 1.4,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.teal.withValues(alpha: 0.06),
+                    blurRadius: 24,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
