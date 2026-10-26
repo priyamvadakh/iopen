@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/theme.dart';
-import '../data/content.dart';
 import '../widgets/common.dart';
 import '../widgets/glass_nav_bar.dart';
-import '../widgets/globe.dart';
 
 /// Tab scaffold with the floating glass navigation pill. The body extends
 /// behind the pill, and the pill's height is added to the bottom padding so
@@ -136,65 +134,6 @@ class SessionsScreen extends StatelessWidget {
                 const Spacer(flex: 2),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class MapScreen extends StatelessWidget {
-  const MapScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: AquaBackground(
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Guides worldwide', style: AppText.display),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$totalGuidesOnline online now · drag the globe',
-                      style: AppText.body,
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SpaceBackdrop(
-                    child: Globe(
-                      onCityTap: (c) => context.push('/city/${c.id}'),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 44,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: cities.length,
-                  separatorBuilder: (context, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) => ChoicePill(
-                    label: '${cities[i].name} · ${cities[i].guidesOnline}',
-                    icon: Icons.place_outlined,
-                    selected: false,
-                    onTap: () => context.push('/city/${cities[i].id}'),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
           ),
         ),
       ),

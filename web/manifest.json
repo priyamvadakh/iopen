@@ -1,11 +1,11 @@
 {
-    "name": "shop_app",
-    "short_name": "shop_app",
+    "name": "iOpen",
+    "short_name": "iOpen",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1C2B3F",
+    "theme_color": "#2E7F87",
+    "description": "Anytime. Anywhere. See any place live with a local Guide before you go.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

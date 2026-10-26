@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../app/onboarding_state.dart';
 import '../app/theme.dart';
 import '../data/content.dart';
 import '../widgets/common.dart';
+import '../widgets/giraffe.dart';
 import '../widgets/globe.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,10 +23,29 @@ class _HomeScreenState extends State<HomeScreen>
   late final _entrance = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1100),
-  )..forward();
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    // Sections rise in as the onboarding globe lands.
+    if (onboardingActive.value) {
+      onboardingActive.addListener(_onOnboarding);
+    } else {
+      _entrance.forward();
+    }
+  }
+
+  void _onOnboarding() {
+    if (!onboardingActive.value) {
+      onboardingActive.removeListener(_onOnboarding);
+      _entrance.forward();
+    }
+  }
 
   @override
   void dispose() {
+    onboardingActive.removeListener(_onOnboarding);
     _entrance.dispose();
     super.dispose();
   }
@@ -444,6 +465,23 @@ class _GlossyArrow extends StatelessWidget {
   }
 }
 
+/// Geometry of the Home globe hero, shared with the onboarding landing.
+abstract final class HomeHeroLayout {
+  static const height = 470.0;
+  static const globeTop = 118.0;
+  static const globeBottomInset = 84.0;
+  static const globeLat = 20.0;
+  static const globeLng = 52.0;
+
+  /// The globe's box in screen coordinates (page scrolled to the top).
+  static Rect globeRect(Size screen, double topInset) => Rect.fromLTRB(
+    0,
+    topInset + globeTop,
+    screen.width,
+    topInset + height - globeBottomInset,
+  );
+}
+
 /// Full-width globe at the top of Home, with the greeting and headline.
 class _GlobeHero extends StatelessWidget {
   const _GlobeHero({required this.onExpand});
@@ -454,7 +492,7 @@ class _GlobeHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return SizedBox(
-      height: top + 470,
+      height: top + HomeHeroLayout.height,
       child: SpaceBackdrop(
         radius: 0,
         child: Stack(
@@ -462,9 +500,10 @@ class _GlobeHero extends StatelessWidget {
             Positioned(
               left: 0,
               right: 0,
-              top: top + 118,
-              bottom: 84,
+              top: top + HomeHeroLayout.globeTop,
+              bottom: HomeHeroLayout.globeBottomInset,
               child: Globe(
+                initialLng: HomeHeroLayout.globeLng,
                 insideScrollView: true,
                 onExpand: onExpand,
                 onCityTap: (c) => context.push('/city/${c.id}'),
@@ -476,6 +515,8 @@ class _GlobeHero extends StatelessWidget {
               right: 20,
               child: Row(
                 children: [
+                  const GiraffeIcon(size: 32),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Hi Priya 👋',

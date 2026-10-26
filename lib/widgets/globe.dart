@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../app/onboarding_state.dart';
 import '../app/theme.dart';
 import '../data/content.dart';
 import 'common.dart';
@@ -188,7 +189,9 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
     setState(() {
       _time = elapsed.inMicroseconds / 1e6;
       _zoom += (_targetZoom - _zoom) * math.min(1, dt * 10);
-      if (!_dragging && elapsed > _resumeAt) _lng += dt * 5 / _zoom;
+      if (!_dragging && elapsed > _resumeAt && !onboardingActive.value) {
+        _lng += dt * 5 / _zoom;
+      }
     });
   }
 

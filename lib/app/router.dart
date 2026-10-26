@@ -5,6 +5,7 @@ import '../data/content.dart';
 import '../screens/explore_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/inspect_screen.dart';
+import '../screens/map_screen.dart';
 import '../screens/place_view_screen.dart';
 import '../screens/tab_screens.dart';
 

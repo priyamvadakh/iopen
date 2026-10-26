@@ -1,4 +1,4 @@
-# Remote Guide
+# iOpen
 
 Flutter app where travellers pay a local Guide to inspect a place, car,
 property or hotel through live video before spending time or money.

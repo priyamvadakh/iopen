@@ -53,3 +53,7 @@ The Dubai "Walk video" tab embeds [Dubai Marina, Marina Walk Walking Tour](https
 
 - `assets/textures/earth_day.jpg`: [Whole world - land and oceans](https://commons.wikimedia.org/wiki/File:Whole_world_-_land_and_oceans.jpg), NASA Visible Earth, public domain.
 - `assets/textures/earth_night.jpg`: [Earth's City Lights by DMSP](https://commons.wikimedia.org/wiki/File:Earthlights_dmsp.jpg), NASA, public domain.
+
+## Map
+
+Map tiles © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, shown with a colour tint.
