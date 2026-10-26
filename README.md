@@ -51,3 +51,14 @@ and publishes the site to GitHub Pages.
 Firebase packages are installed but not configured. To connect a project, run
 `flutterfire configure`; the app initialises Firebase automatically once
 `lib/firebase_options.dart` is generated.
+
+## Vercel
+
+Live: https://remote-guide-eight.vercel.app
+
+Vercel serves the prebuilt web app. To redeploy after changes:
+
+```sh
+flutter build web --release
+npx vercel deploy build/web --prod --yes --project remote-guide
+```
