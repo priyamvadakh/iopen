@@ -1,0 +1,443 @@
+import 'package:flutter/material.dart';
+
+/// Sample content for the UI. Replace with Firestore data once the backend
+/// is connected.
+
+class InspectCheck {
+  const InspectCheck(this.label, this.icon, this.image);
+
+  final String label;
+  final IconData icon;
+
+  /// File name in assets/images without the extension.
+  final String image;
+}
+
+enum InspectKind {
+  place(
+    label: 'Place',
+    icon: Icons.place_outlined,
+    hero: 'loc_streets',
+    title: 'Visiting a Location?',
+    subtitle: 'Check the area, vibe and even the weather with a local Guide.',
+    checksTitle: 'What photos don’t show',
+    checksSubtitle: 'Know the area before you go.',
+    infoTitle: 'Explore any place, anywhere',
+    infoBody: 'A local Guide walks the streets with you in live video.',
+    placeSubtitle: 'See the streets and the vibe live with a local Guide.',
+    checks: [
+      InspectCheck('Streets & vibe', Icons.signpost_outlined, 'loc_streets'),
+      InspectCheck('Crowds', Icons.groups_outlined, 'loc_crowds'),
+      InspectCheck('Transport', Icons.tram_outlined, 'loc_transport'),
+      InspectCheck('Food spots', Icons.restaurant_outlined, 'loc_food'),
+      InspectCheck('At night', Icons.nightlight_outlined, 'loc_safety'),
+      InspectCheck('Weather now', Icons.wb_sunny_outlined, 'loc_weather'),
+    ],
+  ),
+  car(
+    label: 'Car',
+    icon: Icons.directions_car_outlined,
+    hero: 'hero_car',
+    title: 'Buying a Car?',
+    subtitle:
+        'See what the seller doesn’t show with a local Guide in live video.',
+    checksTitle: 'What sellers don’t show',
+    checksSubtitle: 'Check important details before you buy.',
+    infoTitle: 'Inspect any car, anywhere',
+    infoBody: 'A local Guide shows you the real condition in live video.',
+    placeSubtitle: 'See the car up close, live, before you pay the seller.',
+    checks: [
+      InspectCheck('Damaged parts', Icons.car_crash_outlined, 'car_damaged'),
+      InspectCheck('Engine', Icons.oil_barrel_outlined, 'car_engine'),
+      InspectCheck('Tyre wear', Icons.tire_repair, 'car_tires'),
+      InspectCheck(
+        'Interior',
+        Icons.airline_seat_recline_normal,
+        'car_interior',
+      ),
+      InspectCheck('Undercarriage', Icons.build_outlined, 'car_undercarriage'),
+      InspectCheck('Mileage', Icons.speed, 'car_mileage'),
+    ],
+  ),
+  property(
+    label: 'Property',
+    icon: Icons.apartment_outlined,
+    hero: 'hero_property',
+    title: 'Buying or Renting a Property?',
+    subtitle: 'Walk through the home and its street with a local Guide.',
+    checksTitle: 'What listings don’t show',
+    checksSubtitle: 'Check the details before you sign.',
+    infoTitle: 'Inspect any home, anywhere',
+    infoBody: 'A local Guide shows you the real condition in live video.',
+    placeSubtitle: 'Walk the home and street live with a local Guide.',
+    checks: [
+      InspectCheck(
+        'Walls & ceilings',
+        Icons.format_paint_outlined,
+        'prop_walls',
+      ),
+      InspectCheck('Plumbing', Icons.plumbing, 'prop_plumbing'),
+      InspectCheck(
+        'Light & electrics',
+        Icons.electrical_services,
+        'prop_light',
+      ),
+      InspectCheck('Windows & view', Icons.window_outlined, 'prop_windows'),
+      InspectCheck(
+        'Neighbourhood',
+        Icons.location_city_outlined,
+        'prop_neighbourhood',
+      ),
+      InspectCheck(
+        'Noise & parking',
+        Icons.local_parking_outlined,
+        'prop_parking',
+      ),
+    ],
+  ),
+  hotel(
+    label: 'Hotel',
+    icon: Icons.hotel_outlined,
+    hero: 'hero_hotel',
+    title: 'Booking a Hotel?',
+    subtitle: 'See the room and its surroundings live before you book.',
+    checksTitle: 'What hotels don’t show',
+    checksSubtitle: 'Check the stay matches the photos.',
+    infoTitle: 'Inspect any hotel, anywhere',
+    infoBody: 'A local Guide shows you the real stay in live video.',
+    placeSubtitle: 'See the room and the area live before you book.',
+    checks: [
+      InspectCheck('Room size', Icons.square_foot, 'hotel_room'),
+      InspectCheck('Bathroom', Icons.bathtub_outlined, 'hotel_bathroom'),
+      InspectCheck('Bed & linen', Icons.bed_outlined, 'hotel_bed'),
+      InspectCheck('The view', Icons.landscape_outlined, 'hotel_view'),
+      InspectCheck('Pool & facilities', Icons.pool, 'hotel_pool'),
+      InspectCheck(
+        'Surroundings',
+        Icons.beach_access_outlined,
+        'hotel_surroundings',
+      ),
+    ],
+  );
+
+  const InspectKind({
+    required this.label,
+    required this.icon,
+    required this.hero,
+    required this.title,
+    required this.subtitle,
+    required this.checksTitle,
+    required this.checksSubtitle,
+    required this.infoTitle,
+    required this.infoBody,
+    required this.placeSubtitle,
+    required this.checks,
+  });
+
+  final String label;
+  final IconData icon;
+  final String hero;
+  final String title;
+  final String subtitle;
+  final String checksTitle;
+  final String checksSubtitle;
+  final String infoTitle;
+  final String infoBody;
+  final String placeSubtitle;
+  final List<InspectCheck> checks;
+
+  String placeTitle(String area) => switch (this) {
+    place => 'Walk around $area',
+    car => 'Car check in $area',
+    property => 'Property in $area',
+    hotel => 'Hotel in $area',
+  };
+
+  static InspectKind? fromName(String? name) =>
+      name == null ? null : InspectKind.values.asNameMap()[name];
+}
+
+class Hotspot {
+  const Hotspot(this.label, this.icon, this.x, this.y);
+
+  final String label;
+  final IconData icon;
+
+  /// Position as a fraction of the panorama's width and height.
+  final double x;
+  final double y;
+}
+
+class City {
+  const City({
+    required this.id,
+    required this.name,
+    required this.country,
+    required this.image,
+    required this.lat,
+    required this.lng,
+    required this.guidesOnline,
+    required this.area,
+    this.panorama,
+    this.hotspots = const [
+      Hotspot('Metro', Icons.train_outlined, 0.2, 0.55),
+      Hotspot('Main street', Icons.directions_walk, 0.5, 0.6),
+      Hotspot('Café', Icons.local_cafe_outlined, 0.78, 0.52),
+    ],
+  });
+
+  final String id;
+  final String name;
+  final String country;
+  final String image;
+  final double lat;
+  final double lng;
+  final int guidesOnline;
+
+  /// Neighbourhood shown in the place view title.
+  final String area;
+  final String? panorama;
+  final List<Hotspot> hotspots;
+}
+
+const cities = [
+  City(
+    id: 'dubai',
+    name: 'Dubai',
+    country: 'UAE',
+    image: 'dubai_marina',
+    lat: 25.2,
+    lng: 55.27,
+    guidesOnline: 34,
+    area: 'Dubai Marina',
+    panorama: 'dubai_pano',
+    hotspots: [
+      Hotspot('Metro 5 min', Icons.train_outlined, 0.16, 0.42),
+      Hotspot('Marina Walk', Icons.directions_walk, 0.47, 0.62),
+      Hotspot('Supermarket', Icons.shopping_basket_outlined, 0.74, 0.4),
+      Hotspot('Beach 8 min', Icons.beach_access_outlined, 0.92, 0.55),
+    ],
+  ),
+  City(
+    id: 'riyadh',
+    name: 'Riyadh',
+    country: 'Saudi Arabia',
+    image: 'country_saudi',
+    lat: 24.71,
+    lng: 46.68,
+    guidesOnline: 18,
+    area: 'Olaya',
+  ),
+  City(
+    id: 'doha',
+    name: 'Doha',
+    country: 'Qatar',
+    image: 'country_qatar',
+    lat: 25.29,
+    lng: 51.53,
+    guidesOnline: 12,
+    area: 'West Bay',
+  ),
+  City(
+    id: 'tokyo',
+    name: 'Tokyo',
+    country: 'Japan',
+    image: 'country_japan',
+    lat: 35.68,
+    lng: 139.69,
+    guidesOnline: 21,
+    area: 'Shibuya',
+  ),
+  City(
+    id: 'amman',
+    name: 'Amman',
+    country: 'Jordan',
+    image: 'country_jordan',
+    lat: 31.95,
+    lng: 35.93,
+    guidesOnline: 6,
+    area: 'Jabal Amman',
+  ),
+  City(
+    id: 'beirut',
+    name: 'Beirut',
+    country: 'Lebanon',
+    image: 'country_lebanon',
+    lat: 33.89,
+    lng: 35.5,
+    guidesOnline: 5,
+    area: 'Hamra',
+  ),
+  City(
+    id: 'baghdad',
+    name: 'Baghdad',
+    country: 'Iraq',
+    image: 'country_iraq',
+    lat: 33.31,
+    lng: 44.36,
+    guidesOnline: 3,
+    area: 'Karrada',
+  ),
+  City(
+    id: 'bangkok',
+    name: 'Bangkok',
+    country: 'Thailand',
+    image: 'country_thailand',
+    lat: 13.75,
+    lng: 100.5,
+    guidesOnline: 14,
+    area: 'Sukhumvit',
+  ),
+  City(
+    id: 'singapore',
+    name: 'Singapore',
+    country: 'Singapore',
+    image: 'country_singapore',
+    lat: 1.29,
+    lng: 103.85,
+    guidesOnline: 13,
+    area: 'Marina Bay',
+  ),
+];
+
+City? cityById(String id) {
+  for (final c in cities) {
+    if (c.id == id) return c;
+  }
+  return null;
+}
+
+int get totalGuidesOnline => cities.fold(0, (n, c) => n + c.guidesOnline);
+
+const popularCityIds = ['dubai', 'riyadh', 'doha', 'tokyo'];
+
+class Region {
+  const Region(this.name, this.subtitle, this.cityIds);
+
+  final String name;
+  final String subtitle;
+  final List<String> cityIds;
+}
+
+const regions = [
+  Region('Middle East', 'Culture, history and remarkable places.', [
+    'amman',
+    'beirut',
+    'baghdad',
+  ]),
+  Region('Gulf', 'Modern cities and coastal experiences.', [
+    'dubai',
+    'riyadh',
+    'doha',
+  ]),
+  Region('Asia', 'Vibrant destinations and unforgettable moments.', [
+    'tokyo',
+    'bangkok',
+    'singapore',
+  ]),
+];
+
+class Guide {
+  const Guide({
+    required this.name,
+    required this.rating,
+    required this.reviews,
+    required this.languages,
+    required this.distanceKm,
+    required this.color,
+  });
+
+  final String name;
+  final double rating;
+  final int reviews;
+  final List<String> languages;
+  final double distanceKm;
+
+  /// Avatar background colour.
+  final Color color;
+
+  String get initials =>
+      name.split(' ').map((p) => p[0]).take(2).join().toUpperCase();
+}
+
+const guidesNearby = [
+  Guide(
+    name: 'Omar Haddad',
+    rating: 4.9,
+    reviews: 212,
+    languages: ['English', 'Arabic'],
+    distanceKm: 2,
+    color: Color(0xFFCFE6E7),
+  ),
+  Guide(
+    name: 'Aisha Rahman',
+    rating: 4.8,
+    reviews: 167,
+    languages: ['English', 'Arabic', 'Hindi'],
+    distanceKm: 3.4,
+    color: Color(0xFFF3E3CF),
+  ),
+  Guide(
+    name: 'Rahul Mehta',
+    rating: 4.8,
+    reviews: 98,
+    languages: ['English', 'Hindi'],
+    distanceKm: 1.2,
+    color: Color(0xFFDCE3F5),
+  ),
+];
+
+class RecentSession {
+  const RecentSession({
+    required this.place,
+    required this.kind,
+    required this.minutes,
+    required this.image,
+    required this.guide,
+  });
+
+  final String place;
+  final InspectKind kind;
+  final int minutes;
+  final String image;
+  final Guide guide;
+}
+
+final recentSessions = [
+  RecentSession(
+    place: 'Apartment, Dubai Marina',
+    kind: InspectKind.property,
+    minutes: 18,
+    image: 'dubai_marina',
+    guide: guidesNearby[0],
+  ),
+  RecentSession(
+    place: 'Used BMW, Riyadh',
+    kind: InspectKind.car,
+    minutes: 22,
+    image: 'car_damaged',
+    guide: guidesNearby[2],
+  ),
+  RecentSession(
+    place: 'Hotel room, Bangkok',
+    kind: InspectKind.hotel,
+    minutes: 15,
+    image: 'hotel_room',
+    guide: guidesNearby[1],
+  ),
+  RecentSession(
+    place: 'Night market, Singapore',
+    kind: InspectKind.place,
+    minutes: 26,
+    image: 'loc_crowds',
+    guide: guidesNearby[0],
+  ),
+];
+
+/// Pricing shown before the payment step, in AED.
+abstract final class Pricing {
+  static const base = 49;
+  static const baseMinutes = 20;
+  static const extra = 20;
+  static const extraMinutes = 10;
+}
