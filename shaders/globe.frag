@@ -186,7 +186,7 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   // Rim light: glass edges catch the light.
   float fresnel = pow(1.0 - z, 2.2) * curve;
   vec3 rim = mix(RIM, vec3(0.62, 0.8, 0.76), uLight);
-  color = mix(color, vec4(rim, 1.0), fresnel * 0.55);
+  color = mix(color, vec4(rim, 1.0), fresnel * mix(0.55, 0.3, uLight));
   return color;
 }
 
@@ -217,7 +217,7 @@ void main() {
     float sx = p.x * c / max(cy, 0.0001);
     float m = max(abs(sy), abs(sx));
     if (m > 1.0) {
-      float glow = exp(-(m - 1.0) * 10.0) * 0.65 * c;
+      float glow = exp(-(m - 1.0) * 10.0) * 0.65 * c * (1.0 - uLight);
       fragColor = vec4(mix(RIM, vec3(0.72, 0.86, 0.83), uLight) * glow, glow);
       return;
     }
@@ -243,7 +243,8 @@ void main() {
 
   // Outer glow.
   if (d > 1.0) {
-    float glow = exp(-(d - 1.0) * 10.0) * 0.65;
+    // No glow around the light globe, just its outline.
+    float glow = exp(-(d - 1.0) * 10.0) * 0.65 * (1.0 - uLight);
     float a = glow * smoothstep(1.0, 1.0 + edge, d);
     fragColor = vec4(mix(RIM, vec3(0.72, 0.86, 0.83), uLight) * a, a);
     return;
@@ -259,6 +260,11 @@ void main() {
 
   vec4 front = surface(n, lat, lng, p, 1.0);
   vec4 color = front + backSide(n) * (1.0 - front.a);
+
+  // Light style: a thin crisp green outline around the glass.
+  float edgePx = (1.0 - d) * uRadius;
+  float outline = (1.0 - smoothstep(1.0, 2.2, edgePx)) * uLight;
+  color = mix(color, vec4(0.48, 0.7, 0.64, 1.0), outline);
   float alpha = smoothstep(1.0, 1.0 - edge, d);
   fragColor = color * alpha;
 }
