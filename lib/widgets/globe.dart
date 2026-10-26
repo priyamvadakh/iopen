@@ -119,8 +119,8 @@ class _StarsPainter extends CustomPainter {
 }
 
 /// Globe style for the whole app: false = glass on dark space, true = white
-/// porcelain on a light background. Home has a switch to compare them.
-final globeLight = ValueNotifier<bool>(false);
+/// mint glass on white (the default). Home has a switch to compare them.
+final globeLight = ValueNotifier<bool>(true);
 
 /// Interactive Earth with glowing pins where Guides are online and arcs
 /// showing live sessions. Drag to rotate, tap a pin to open the city.

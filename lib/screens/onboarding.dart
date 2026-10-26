@@ -162,6 +162,23 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
                 height: top + HomeHeroLayout.height,
                 child: const SpaceBackdrop(radius: 0, child: SizedBox.expand()),
               ),
+              // With the light style, the scene turns white as the globe
+              // lands, matching Home.
+              if (globeLight.value)
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: _landing(t),
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.white, Color(0xFFF3FAF8)],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -233,6 +250,10 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
     );
   }
 
+  double _landing(double t) => Curves.easeInOutCubic.transform(
+    ((t - _morphEnd) / (_finaleEnd - _morphEnd)).clamp(0.0, 1.0),
+  );
+
   /// The full-screen map opening out of the dot, wrapping into the globe and
   /// landing where Home shows it. One shader draws every stage.
   Widget _earth(Size size, double top, double t) {
@@ -262,9 +283,7 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
     final r1 = flatScale * math.pow(bigRadius / flatScale, morph);
 
     // 3. The globe glides into Home's hero.
-    final land = Curves.easeInOutCubic.transform(
-      ((t - _morphEnd) / (_finaleEnd - _morphEnd)).clamp(0.0, 1.0),
-    );
+    final land = _landing(t);
     final target = HomeHeroLayout.globeRect(size, top);
     final targetRadius = math.min(target.width, target.height) * 0.4;
     final radius = ui.lerpDouble(r1, targetRadius, land)!;
@@ -299,6 +318,7 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
             center: center,
             radius: radius,
             showArcs: land > 0.5,
+            light: globeLight.value ? land : 0,
           ),
         ),
       ),

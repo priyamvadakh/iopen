@@ -97,7 +97,7 @@ class _FullGlobe extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.white, AppColors.aqua],
+                  colors: [Colors.white, Color(0xFFF3FAF8)],
                 ),
               ),
               child: page,
