@@ -103,7 +103,7 @@ vec4 giraffeSkin(float lat, float lng, float z) {
   // Light style: soft mint patches on a white network, fully opaque.
   vec3 patchColor = mix(
     mix(vec3(0.42, 0.7, 0.68), vec3(0.36, 0.62, 0.6), seed),
-    mix(vec3(0.62, 0.8, 0.76), vec3(0.57, 0.76, 0.72), seed),
+    mix(vec3(0.74, 0.88, 0.85), vec3(0.5, 0.71, 0.67), seed),
     uLight
   );
   vec3 lineColor = mix(vec3(0.85, 0.97, 0.95), vec3(0.97, 0.99, 0.99), uLight);
