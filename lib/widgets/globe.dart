@@ -206,10 +206,12 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  // Finger-sized targets: a city's name pill is tappable as a whole, and
+  // the dot answers anywhere within a 48px circle around it.
   City? _hitTest(Offset pos, Size size) {
     final g = GlobePainter.geometry(size);
     City? best;
-    var bestDist = 26.0;
+    var bestDist = 24.0;
     for (final city in cities) {
       final p = projectPoint(
         lat: city.lat,
@@ -219,7 +221,11 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
         center: g.center,
         radius: g.radius * _zoom,
       );
-      if (p == null) continue;
+      if (p == null || p.depth < 0.1) continue;
+      if (GlobePainter.hasLabel(city, p.depth)) {
+        final (box, _) = GlobePainter.labelLayout(city, p.offset);
+        if (box.inflate(8).contains(pos)) return city;
+      }
       final dist = (p.offset - pos).distance;
       if (dist < bestDist) {
         bestDist = dist;
@@ -565,40 +571,55 @@ class GlobePainter extends CustomPainter {
         Paint()..color = AppColors.teal.withValues(alpha: fade),
       );
 
-      if (showLabels && _labelled.contains(city.id) && p.depth > 0.4) {
+      if (showLabels && hasLabel(city, p.depth)) {
         // Dark pill behind white text keeps names readable on any land.
-        final tp = TextPainter(
-          text: TextSpan(
-            text: city.name,
-            style: AppText.small.copyWith(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: Colors.white.withValues(alpha: fade),
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        final box = Rect.fromLTWH(
-          o.dx + 8,
-          o.dy - tp.height - 10,
-          tp.width + 12,
-          tp.height + 6,
-        );
+        final (box, tp) = labelLayout(city, o, alpha: fade);
+        final rrect = RRect.fromRectAndRadius(box, const Radius.circular(12));
         canvas.drawRRect(
-          RRect.fromRectAndRadius(box, const Radius.circular(9)),
+          rrect,
           Paint()
             ..color = const Color(0xFF0A2A31).withValues(alpha: 0.82 * fade),
         );
         canvas.drawRRect(
-          RRect.fromRectAndRadius(box, const Radius.circular(9)),
+          rrect,
           Paint()
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1
             ..color = _pinColor.withValues(alpha: 0.6 * fade),
         );
-        tp.paint(canvas, box.topLeft + const Offset(6, 3));
+        tp.paint(canvas, box.topLeft + const Offset(10, 5));
       }
     }
+  }
+
+  static bool hasLabel(City city, double depth) =>
+      _labelled.contains(city.id) && depth > 0.4;
+
+  /// Where a city's name pill sits next to its dot, shared by painting and
+  /// tap handling so the whole pill is a touch target.
+  static (Rect, TextPainter) labelLayout(
+    City city,
+    Offset dot, {
+    double alpha = 1,
+  }) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: city.name,
+        style: AppText.small.copyWith(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Colors.white.withValues(alpha: alpha),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final box = Rect.fromLTWH(
+      dot.dx + 8,
+      dot.dy - tp.height - 16,
+      tp.width + 20,
+      tp.height + 10,
+    );
+    return (box, tp);
   }
 
   static (double, double, double) _toVector(double lat, double lng) {
