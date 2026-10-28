@@ -15,8 +15,10 @@ class InspectCheck {
 
 enum InspectKind {
   place(
+    card: 'cat_place',
+    cardSubtitle: 'Check the area, shops and environment.',
     label: 'Place',
-    icon: Icons.place_outlined,
+    icon: Icons.shopping_bag_outlined,
     hero: 'loc_streets',
     title: 'Visiting a Location?',
     subtitle: 'Check the area, vibe and even the weather with a local Guide.',
@@ -35,9 +37,11 @@ enum InspectKind {
     ],
   ),
   car(
+    card: 'cat_car',
+    cardSubtitle: 'See what the seller doesn’t show.',
     label: 'Car',
     icon: Icons.directions_car_outlined,
-    hero: 'hero_car',
+    hero: 'hero_car_live',
     title: 'Buying a Car?',
     subtitle:
         'See what the seller doesn’t show with a local Guide in live video.',
@@ -47,19 +51,29 @@ enum InspectKind {
     infoBody: 'A local Guide shows you the real condition in live video.',
     placeSubtitle: 'See the car up close, live, before you pay the seller.',
     checks: [
-      InspectCheck('Damaged parts', Icons.car_crash_outlined, 'car_damaged'),
-      InspectCheck('Engine', Icons.oil_barrel_outlined, 'car_engine'),
-      InspectCheck('Tyre wear', Icons.tire_repair, 'car_tires'),
       InspectCheck(
-        'Interior',
-        Icons.airline_seat_recline_normal,
-        'car_interior',
+        'Damaged Parts',
+        Icons.car_crash_outlined,
+        'car_damaged_live',
       ),
-      InspectCheck('Undercarriage', Icons.build_outlined, 'car_undercarriage'),
-      InspectCheck('Mileage', Icons.speed, 'car_mileage'),
+      InspectCheck('Engine Condition', Icons.oil_barrel_outlined, 'car_engine'),
+      InspectCheck('Tire Wear', Icons.tire_repair, 'car_tires'),
+      InspectCheck(
+        'Interior Condition',
+        Icons.airline_seat_recline_normal,
+        'car_interior_live',
+      ),
+      InspectCheck(
+        'Undercarriage',
+        Icons.build_outlined,
+        'car_undercarriage_live',
+      ),
+      InspectCheck('Mileage Check', Icons.speed, 'car_mileage_live'),
     ],
   ),
   property(
+    card: 'cat_property',
+    cardSubtitle: 'Check the property and surroundings.',
     label: 'Property',
     icon: Icons.apartment_outlined,
     hero: 'hero_property',
@@ -96,6 +110,8 @@ enum InspectKind {
     ],
   ),
   hotel(
+    card: 'cat_hotel',
+    cardSubtitle: 'See the real conditions before you book.',
     label: 'Hotel',
     icon: Icons.hotel_outlined,
     hero: 'hero_hotel',
@@ -118,9 +134,99 @@ enum InspectKind {
         'hotel_surroundings',
       ),
     ],
+  ),
+  restaurant(
+    card: 'cat_restaurant',
+    cardSubtitle: 'See the place, menu and atmosphere.',
+    label: 'Restaurant',
+    icon: Icons.restaurant,
+    hero: 'cat_restaurant',
+    title: 'Exploring a Restaurant?',
+    subtitle: 'See the tables, the menu and the mood live before you go.',
+    checksTitle: 'What reviews don’t show',
+    checksSubtitle: 'Check the place before you book a table.',
+    infoTitle: 'Check any restaurant, anywhere',
+    infoBody: 'A local Guide shows you the real place in live video.',
+    placeSubtitle: 'See the place and the menu live with a local Guide.',
+    checks: [
+      InspectCheck('Seating', Icons.chair_outlined, 'cat_restaurant'),
+      InspectCheck('Menu & prices', Icons.menu_book_outlined, 'loc_food'),
+      InspectCheck('How busy', Icons.groups_outlined, 'loc_crowds'),
+      InspectCheck('The view', Icons.landscape_outlined, 'hotel_view'),
+      InspectCheck('Getting there', Icons.tram_outlined, 'loc_transport'),
+      InspectCheck('At night', Icons.nightlight_outlined, 'loc_safety'),
+    ],
+  ),
+  venue(
+    card: 'cat_venue',
+    cardSubtitle: 'See the location and facilities live.',
+    label: 'Venue',
+    icon: Icons.location_on_outlined,
+    hero: 'cat_venue',
+    title: 'Checking a Venue?',
+    subtitle: 'See the stage, the seats and the way in before the event.',
+    checksTitle: 'What tickets don’t show',
+    checksSubtitle: 'Check the venue before the big day.',
+    infoTitle: 'Check any venue, anywhere',
+    infoBody: 'A local Guide shows you the real venue in live video.',
+    placeSubtitle: 'See the venue and its facilities live.',
+    checks: [
+      InspectCheck('Stage view', Icons.theater_comedy_outlined, 'cat_venue'),
+      InspectCheck('Crowds', Icons.groups_outlined, 'loc_crowds'),
+      InspectCheck('Entrances', Icons.door_front_door_outlined, 'loc_streets'),
+      InspectCheck('Food & drink', Icons.restaurant_outlined, 'loc_food'),
+      InspectCheck('Parking', Icons.local_parking_outlined, 'prop_parking'),
+      InspectCheck('Transport', Icons.tram_outlined, 'loc_transport'),
+    ],
+  ),
+  tourist(
+    card: 'cat_tourist',
+    cardSubtitle: 'See the place before you go.',
+    label: 'Tourist spot',
+    icon: Icons.travel_explore,
+    hero: 'cat_tourist',
+    title: 'Exploring a Tourist Spot?',
+    subtitle: 'See the queues, the crowds and the view live before you go.',
+    checksTitle: 'What brochures don’t show',
+    checksSubtitle: 'Know what to expect before you travel.',
+    infoTitle: 'See any landmark, anywhere',
+    infoBody: 'A local Guide shows you the real place in live video.',
+    placeSubtitle: 'See the landmark live with a local Guide.',
+    checks: [
+      InspectCheck('The view', Icons.landscape_outlined, 'cat_tourist'),
+      InspectCheck('Queues', Icons.groups_outlined, 'loc_crowds'),
+      InspectCheck('Weather now', Icons.wb_sunny_outlined, 'loc_weather'),
+      InspectCheck('Getting there', Icons.tram_outlined, 'loc_transport'),
+      InspectCheck('Food nearby', Icons.restaurant_outlined, 'loc_food'),
+      InspectCheck('Streets around', Icons.signpost_outlined, 'loc_streets'),
+    ],
+  ),
+  mall(
+    card: 'cat_mall',
+    cardSubtitle: 'Check stores, products and availability.',
+    label: 'Mall',
+    icon: Icons.local_mall_outlined,
+    hero: 'cat_mall',
+    title: 'Shopping in a Mall?',
+    subtitle: 'Check the shops, the stock and the prices live before you go.',
+    checksTitle: 'What websites don’t show',
+    checksSubtitle: 'Check it’s in stock before you make the trip.',
+    infoTitle: 'Shop any mall, anywhere',
+    infoBody: 'A local Guide shows you the real shelves in live video.',
+    placeSubtitle: 'Walk the mall live with a local Guide.',
+    checks: [
+      InspectCheck('Stores open', Icons.storefront_outlined, 'cat_mall'),
+      InspectCheck('Products', Icons.shopping_bag_outlined, 'loc_streets'),
+      InspectCheck('How busy', Icons.groups_outlined, 'loc_crowds'),
+      InspectCheck('Food court', Icons.restaurant_outlined, 'loc_food'),
+      InspectCheck('Parking', Icons.local_parking_outlined, 'prop_parking'),
+      InspectCheck('Transport', Icons.tram_outlined, 'loc_transport'),
+    ],
   );
 
   const InspectKind({
+    required this.card,
+    required this.cardSubtitle,
     required this.label,
     required this.icon,
     required this.hero,
@@ -134,6 +240,11 @@ enum InspectKind {
     required this.checks,
   });
 
+  /// Photo for the category cards on Home and "See Before You Decide".
+  final String card;
+
+  /// One short line under the title on those cards.
+  final String cardSubtitle;
   final String label;
   final IconData icon;
   final String hero;
@@ -151,7 +262,23 @@ enum InspectKind {
     car => 'Car check in $area',
     property => 'Property in $area',
     hotel => 'Hotel in $area',
+    restaurant => 'Restaurant in $area',
+    venue => 'Venue in $area',
+    tourist => 'Sights in $area',
+    mall => 'Shopping in $area',
   };
+
+  /// Order of the "See Before You Decide" cards.
+  static const decideOrder = [
+    car,
+    property,
+    hotel,
+    place,
+    restaurant,
+    venue,
+    tourist,
+    mall,
+  ];
 
   static InspectKind? fromName(String? name) =>
       name == null ? null : InspectKind.values.asNameMap()[name];
@@ -221,6 +348,7 @@ class City {
     this.extraAreas = const [],
     this.mainLat,
     this.mainLng,
+    this.cover,
     this.hotspots = const [
       Hotspot('Metro', Icons.train_outlined, 0.2, 0.55),
       Hotspot('Main street', Icons.directions_walk, 0.5, 0.6),
@@ -232,9 +360,14 @@ class City {
   final String name;
   final String country;
   final String image;
+
+  /// Postcard photo for country cards and the Home city bubbles.
+  final String? cover;
   final double lat;
   final double lng;
   final int guidesOnline;
+
+  String get coverImage => cover ?? image;
 
   /// Neighbourhood shown in the place view title.
   final String area;
@@ -278,6 +411,7 @@ class City {
 const cities = [
   City(
     id: 'dubai',
+    cover: 'cover_uae',
     name: 'Dubai',
     country: 'UAE',
     image: 'dubai_marina',
@@ -393,6 +527,7 @@ const cities = [
   ),
   City(
     id: 'riyadh',
+    cover: 'cover_saudi',
     name: 'Riyadh',
     country: 'Saudi Arabia',
     image: 'country_saudi',
@@ -403,6 +538,7 @@ const cities = [
   ),
   City(
     id: 'doha',
+    cover: 'cover_qatar',
     name: 'Doha',
     country: 'Qatar',
     image: 'country_qatar',
@@ -413,9 +549,10 @@ const cities = [
   ),
   City(
     id: 'tokyo',
+    cover: 'cover_japan',
     name: 'Tokyo',
     country: 'Japan',
-    image: 'country_japan',
+    image: 'cover_japan',
     lat: 35.68,
     lng: 139.69,
     guidesOnline: 21,
@@ -423,9 +560,10 @@ const cities = [
   ),
   City(
     id: 'amman',
+    cover: 'cover_jordan',
     name: 'Amman',
     country: 'Jordan',
-    image: 'country_jordan',
+    image: 'cover_jordan',
     lat: 31.95,
     lng: 35.93,
     guidesOnline: 6,
@@ -433,6 +571,7 @@ const cities = [
   ),
   City(
     id: 'beirut',
+    cover: 'cover_lebanon',
     name: 'Beirut',
     country: 'Lebanon',
     image: 'country_lebanon',
@@ -443,6 +582,7 @@ const cities = [
   ),
   City(
     id: 'baghdad',
+    cover: 'cover_iraq',
     name: 'Baghdad',
     country: 'Iraq',
     image: 'country_iraq',
@@ -453,6 +593,7 @@ const cities = [
   ),
   City(
     id: 'bangkok',
+    cover: 'cover_thailand',
     name: 'Bangkok',
     country: 'Thailand',
     image: 'country_thailand',
@@ -463,6 +604,7 @@ const cities = [
   ),
   City(
     id: 'singapore',
+    cover: 'cover_singapore',
     name: 'Singapore',
     country: 'Singapore',
     image: 'country_singapore',
@@ -470,6 +612,76 @@ const cities = [
     lng: 103.85,
     guidesOnline: 13,
     area: 'Marina Bay',
+  ),
+  City(
+    id: 'paris',
+    name: 'Paris',
+    country: 'France',
+    image: 'cover_france',
+    lat: 48.86,
+    lng: 2.35,
+    guidesOnline: 11,
+    area: 'Le Marais',
+  ),
+  City(
+    id: 'rome',
+    name: 'Rome',
+    country: 'Italy',
+    image: 'cover_italy',
+    lat: 41.9,
+    lng: 12.5,
+    guidesOnline: 7,
+    area: 'Trastevere',
+  ),
+  City(
+    id: 'london',
+    name: 'London',
+    country: 'United Kingdom',
+    image: 'cover_uk',
+    lat: 51.51,
+    lng: -0.13,
+    guidesOnline: 12,
+    area: 'Covent Garden',
+  ),
+  City(
+    id: 'newyork',
+    name: 'New York',
+    country: 'USA',
+    image: 'cover_usa',
+    lat: 40.71,
+    lng: -74.01,
+    guidesOnline: 15,
+    area: 'Midtown',
+  ),
+  City(
+    id: 'toronto',
+    name: 'Toronto',
+    country: 'Canada',
+    image: 'cover_canada',
+    lat: 43.65,
+    lng: -79.38,
+    guidesOnline: 6,
+    area: 'Downtown',
+  ),
+  City(
+    id: 'rio',
+    name: 'Rio de Janeiro',
+    country: 'Brazil',
+    image: 'cover_brazil',
+    lat: -22.91,
+    lng: -43.17,
+    guidesOnline: 5,
+    area: 'Copacabana',
+  ),
+  City(
+    id: 'istanbul',
+    name: 'Istanbul',
+    country: 'Türkiye',
+    image: 'bubble_istanbul',
+    lat: 41.01,
+    lng: 28.98,
+    guidesOnline: 9,
+    area: 'Sultanahmet',
   ),
 ];
 
@@ -508,6 +720,26 @@ const regions = [
     'bangkok',
     'singapore',
   ]),
+  Region('Europe', 'History, art and breathtaking landscapes.', [
+    'paris',
+    'rome',
+    'london',
+  ]),
+  Region('Americas', 'Iconic cities and diverse cultures.', [
+    'newyork',
+    'toronto',
+    'rio',
+  ]),
+];
+
+/// The city bubbles along the Home globe, left to right.
+const homeBubbleCityIds = [
+  'newyork',
+  'london',
+  'paris',
+  'dubai',
+  'istanbul',
+  'tokyo',
 ];
 
 class Guide {
@@ -621,3 +853,87 @@ abstract final class Pricing {
   static const extra = 20;
   static const extraMinutes = 10;
 }
+
+/// A photo pin on a country map; opens [areaId] in [cityId] when set.
+class Landmark {
+  const Landmark(this.name, this.image, this.lat, this.lng, {this.areaId});
+
+  final String name;
+  final String image;
+  final double lat;
+  final double lng;
+  final String? areaId;
+}
+
+class MapLabel {
+  const MapLabel(this.name, this.lat, this.lng);
+
+  final String name;
+  final double lat;
+  final double lng;
+}
+
+class Trending {
+  const Trending(this.name, this.searches, {this.areaId, this.rising = true});
+
+  final String name;
+  final String searches;
+  final String? areaId;
+  final bool rising;
+}
+
+/// The country view behind a city: its map, landmarks and what's trending.
+class CountryMap {
+  const CountryMap({
+    required this.lat,
+    required this.lng,
+    required this.zoom,
+    this.landmarks = const [],
+    this.labels = const [],
+    this.trending = const [],
+  });
+
+  final double lat;
+  final double lng;
+  final double zoom;
+  final List<Landmark> landmarks;
+  final List<MapLabel> labels;
+  final List<Trending> trending;
+}
+
+const countryMaps = {
+  'dubai': CountryMap(
+    lat: 24.76,
+    lng: 54.87,
+    zoom: 8.9,
+    landmarks: [
+      Landmark(
+        'Atlantis, The Palm',
+        'pin_atlantis',
+        25.1305,
+        55.1171,
+        areaId: 'palm',
+      ),
+      Landmark(
+        'Burj Khalifa',
+        'pin_burj',
+        25.1972,
+        55.2744,
+        areaId: 'downtown',
+      ),
+      Landmark('Sheikh Zayed Grand Mosque', 'pin_mosque', 24.4128, 54.475),
+    ],
+    labels: [
+      MapLabel('Ajman', 25.405, 55.513),
+      MapLabel('Sharjah', 25.346, 55.42),
+      MapLabel('Dubai', 25.17, 55.3),
+      MapLabel('Abu Dhabi', 24.36, 54.43),
+      MapLabel('Al Ain', 24.2075, 55.7447),
+    ],
+    trending: [
+      Trending('Burj Khalifa', '12K searches', areaId: 'downtown'),
+      Trending('Dubai Marina', '9.8K searches', areaId: 'main'),
+      Trending('Palm Jumeirah', '8.2K searches', areaId: 'palm', rising: false),
+    ],
+  ),
+};

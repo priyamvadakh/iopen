@@ -6,7 +6,7 @@ import 'package:shop_app/widgets/globe.dart';
 
 void main() {
   test('online Guides add up to the number shown on Home', () {
-    expect(totalGuidesOnline, 126);
+    expect(totalGuidesOnline, 191);
   });
 
   test('every city in a region and in Popular now exists', () {

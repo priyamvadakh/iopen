@@ -20,6 +20,7 @@ uniform float uLng;      // longitude facing the viewer, radians
 uniform float uRealism;  // 0 = brand style, 1 = mostly satellite colours
 uniform float uFlat;     // 0 = globe, 1 = flat full-screen map (onboarding)
 uniform float uLight;    // 0 = glass on dark, 1 = white porcelain globe
+uniform float uCrystal;  // 1 = teal crystal globe (Home design)
 uniform sampler2D uDay;
 uniform sampler2D uNight;
 
@@ -191,6 +192,53 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   return color;
 }
 
+// Teal crystal globe: deep teal glass sea, frosted aqua continents, a white
+// hairline grid, strong gloss and a bright aqua rim.
+vec4 crystalSurface(vec3 n, float lat, float lng, vec2 p, float curve) {
+  float z = n.z;
+  float latDeg = lat * DEG;
+  float lngDeg = mod(lng * DEG + 180.0, 360.0) - 180.0;
+  vec2 uv = toUv(vec2(latDeg, lngDeg));
+  vec3 sun = normalize(SUN);
+  float light = mix(0.6, dot(n, sun), curve);
+  float lit = 0.5 + 0.5 * light;
+
+  float land = landAt(uv);
+  vec3 sea = mix(vec3(0.02, 0.3, 0.37), vec3(0.17, 0.62, 0.68), lit);
+  vec3 ground = mix(vec3(0.5, 0.83, 0.86), vec3(0.84, 0.97, 0.98), lit);
+  vec4 color = mix(vec4(sea * 0.92, 0.92), vec4(ground * 0.97, 0.97), land);
+
+  // Faint white grid every 15°.
+  float pxPerDeg = uRadius / DEG * max(z, 0.15);
+  float dLat = abs(fract(latDeg / 15.0 + 0.5) - 0.5) * 15.0 * pxPerDeg;
+  float dLng = abs(fract(lngDeg / 15.0 + 0.5) - 0.5) * 15.0 * pxPerDeg *
+      cos(lat);
+  float grid = (1.0 - smoothstep(0.2, 0.9, min(dLat, dLng))) * 0.16;
+  color = color * (1.0 - grid) + vec4(vec3(grid), grid);
+
+  // Gloss, like polished glass: a crisp specular dot, a curved window
+  // reflection hugging the top edge and a glossy sheen across the sea.
+  vec3 halfVec = normalize(sun + vec3(0.0, 0.0, 1.0));
+  float nh = max(dot(n, halfVec), 0.0);
+  float spec = (pow(nh, 400.0) * 0.5 + pow(nh, 40.0) * 0.04) * curve;
+  float d = length(p);
+  float topEdge = smoothstep(0.05, -0.55, p.y);
+  float window = smoothstep(0.8, 0.9, d) * (1.0 - smoothstep(0.93, 0.975, d));
+  // Reflections only once the map has wrapped into a sphere.
+  float round3 = curve * curve * curve;
+  spec += window * topEdge * 0.5 * round3;
+  // A second, thinner reflection just inside it.
+  float inner = smoothstep(0.7, 0.73, d) * (1.0 - smoothstep(0.74, 0.77, d));
+  spec += inner * topEdge * smoothstep(0.2, -0.4, p.x) * 0.22 * round3;
+  spec += (1.0 - land) * pow(nh, 6.0) * 0.1 * curve;
+  color += vec4(vec3(spec), spec);
+
+  // Bright aqua rim where the glass curves away.
+  float fresnel = pow(1.0 - z, 2.0) * curve;
+  color = mix(color, vec4(0.78, 1.0, 1.0, 1.0), fresnel * 0.7);
+  return color;
+}
+
 // The far side's continents seen through the glass (mirrored, dimmer).
 vec4 backSide(vec3 n) {
   vec3 b = vec3(n.x, n.y, -n.z);
@@ -236,7 +284,10 @@ void main() {
     float lng = uLng + atan(v.x, v.z * cos(lat0) - v.y * sin(lat0));
     vec3 n = vec3(sx * cy, sy, cy * cx);
     float alpha = smoothstep(1.0, 1.0 - edge, m);
-    fragColor = surface(n, lat, lng, p, c) * alpha;
+    vec4 flatColor = uCrystal > 0.5
+        ? crystalSurface(n, lat, lng, p, c)
+        : surface(n, lat, lng, p, c);
+    fragColor = flatColor * alpha;
     return;
   }
 
@@ -246,8 +297,12 @@ void main() {
   if (d > 1.0) {
     // No glow around the light globe, just its outline.
     float glow = exp(-(d - 1.0) * 10.0) * 0.65 * (1.0 - uLight);
+    vec3 glowColor = mix(RIM, vec3(0.72, 0.86, 0.83), uLight);
+    // Crystal: a wide soft aqua halo.
+    glow = mix(glow, exp(-(d - 1.0) * 7.0) * 0.55, uCrystal);
+    glowColor = mix(glowColor, vec3(0.45, 0.88, 0.92), uCrystal);
     float a = glow * smoothstep(1.0, 1.0 + edge, d);
-    fragColor = vec4(mix(RIM, vec3(0.72, 0.86, 0.83), uLight) * a, a);
+    fragColor = vec4(glowColor * a, a);
     return;
   }
 
@@ -259,12 +314,15 @@ void main() {
   float lat = asin(clamp(z * sinLat0 + n.y * cosLat0, -1.0, 1.0));
   float lng = uLng + atan(n.x, z * cosLat0 - n.y * sinLat0);
 
-  vec4 front = surface(n, lat, lng, p, 1.0);
+  vec4 front = uCrystal > 0.5
+      ? crystalSurface(n, lat, lng, p, 1.0)
+      : surface(n, lat, lng, p, 1.0);
   vec4 color = front + backSide(n) * (1.0 - front.a);
 
   // Light style: a thin crisp green outline around the glass.
   float edgePx = (1.0 - d) * uRadius;
-  float outline = (1.0 - smoothstep(1.0, 2.2, edgePx)) * uLight;
+  float outline = (1.0 - smoothstep(1.0, 2.2, edgePx)) * uLight *
+      (1.0 - uCrystal);
   color = mix(color, vec4(0.48, 0.7, 0.64, 1.0), outline);
   float alpha = smoothstep(1.0, 1.0 - edge, d);
   fragColor = color * alpha;

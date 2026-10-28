@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,13 +7,33 @@ import 'package:go_router/go_router.dart';
 import '../app/onboarding_state.dart';
 import '../app/theme.dart';
 import '../data/content.dart';
-import '../data/user_store.dart';
 import '../widgets/common.dart';
+import '../widgets/giraffe.dart';
 import '../widgets/globe.dart';
 import 'globe_screen.dart';
 
+/// The three Home layouts shown side by side at /variations.html.
+enum HomeVariant {
+  /// The PDF's cards, flipping over a hinge like a flip deck.
+  coverflow,
+
+  /// A fanned hand of cards.
+  fan,
+
+  /// The globe whole, in the middle of the page, with bento tiles below.
+  bento,
+
+  /// A "Detecting spots" location scanner in the middle, tiles below.
+  scan;
+
+  static HomeVariant fromName(String? name) =>
+      values.asNameMap()[name] ?? coverflow;
+}
+
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.variant = HomeVariant.coverflow});
+
+  final HomeVariant variant;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -23,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen>
   // Drives the staggered fade-in of each section.
   late final _entrance = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1100),
+    duration: const Duration(milliseconds: 1800),
   );
 
   @override
@@ -53,162 +74,760 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final middle =
+        widget.variant == HomeVariant.bento ||
+        widget.variant == HomeVariant.scan;
+    // The flip book, with the country globe pinned under it.
+    final flip = widget.variant == HomeVariant.coverflow;
+    // These two open on a light header instead of the photo slider.
+    final scan = widget.variant == HomeVariant.scan;
+    final compact = flip || scan;
+    final search = GlassSearchField(
+      hint: 'Search for it…',
+      onTap: () => context.push('/explore'),
+    );
     final sections = <Widget>[
       Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'What do you want to see?',
-              style: AppText.display.copyWith(fontSize: 21),
-            ),
-            const SizedBox(height: 14),
-            _SearchField(onTap: () => context.push('/explore')),
-          ],
+        padding: EdgeInsets.fromLTRB(
+          16,
+          compact ? 14 : 10,
+          16,
+          compact ? 18 : 0,
         ),
+        child: search,
       ),
-      // Picks up where the user left off.
-      ValueListenableBuilder(
-        valueListenable: UserStore.instance.lastViewed,
-        builder: (context, last, _) => last == null
-            ? const SizedBox.shrink()
-            : Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: _ContinueCard(last: last),
-              ),
-      ),
-      const Padding(
-        padding: EdgeInsets.only(top: 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: SectionHeader(
-                'See before you decide',
-                subtitle: 'Avoid surprises. Inspect with a local Guide live.',
-              ),
-            ),
-            SizedBox(height: 6),
-            _DecideCarousel(),
-          ],
+      if (middle && !scan)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+          child: SectionHeader(
+            'Explore by Country',
+            subtitle: 'Find a Guide in the country you want to inspect.',
+            onSeeAll: () => context.push('/explore'),
+          ),
         ),
-      ),
-      const Padding(
-        padding: EdgeInsets.fromLTRB(20, 18, 20, 0),
-        child: _HowItWorks(),
-      ),
-      Padding(
-        padding: const EdgeInsets.only(top: 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: SectionHeader(
-                'Recent live sessions',
-                subtitle: 'What other travellers saw this week.',
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 214,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                itemCount: recentSessions.length,
-                separatorBuilder: (context, _) => const SizedBox(width: 12),
-                itemBuilder: (context, i) =>
-                    _SessionCard(session: recentSessions[i]),
-              ),
-            ),
-          ],
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-        child: Column(
-          children: [
-            SectionHeader(
-              'Popular now',
-              onSeeAll: () => context.push('/explore'),
-            ),
-            const SizedBox(height: 8),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              padding: EdgeInsets.zero,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.05,
+      // The scanner holds everything itself, so it has no tiles below.
+      if (scan)
+        const SizedBox()
+      else if (middle)
+        // Under the middle globe, the header and tiles share one glass card.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+          child: Glass(
+            radius: 26,
+            padding: const EdgeInsets.only(top: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final id in popularCityIds)
-                  CityCard(
-                    city: cityById(id)!,
-                    onTap: () => context.push('/city/$id'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: SectionHeader(
+                    'See Before You Decide',
+                    subtitle:
+                        'Avoid surprises. Inspect with a local Guide through '
+                        'a live video.',
+                    onSeeAll: () => context.push('/decide'),
                   ),
+                ),
+                const _DecideBento(
+                  padding: EdgeInsets.fromLTRB(10, 12, 10, 10),
+                ),
               ],
             ),
-          ],
-        ),
-      ),
-    ];
-
-    return Scaffold(
-      body: AquaBackground(
-        child: ListView(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.paddingOf(context).bottom + 20,
           ),
-          children: [
-            _GlobeHero(onExpand: () => context.go('/map')),
-            // The content sheet overlaps the hero with rounded corners.
-            Transform.translate(
-              offset: const Offset(0, -HomeHeroLayout.sheetOverlap),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.dark
-                      ? AppColors.background
-                      : const Color(0xFFFBFDFD),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
-                  // A soft neutral lift plus a very faint brand-teal glow.
-                  boxShadow: [
-                    const BoxShadow(
-                      color: Color(0x1210202A),
-                      blurRadius: 18,
-                      offset: Offset(0, -4),
-                    ),
-                    BoxShadow(
-                      color: AppColors.teal.withValues(alpha: 0.07),
-                      blurRadius: 40,
-                      spreadRadius: 2,
-                      offset: const Offset(0, -10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (var i = 0; i < sections.length; i++)
-                      _Reveal(
-                        animation: _entrance,
-                        index: i,
-                        child: sections[i],
-                      ),
-                  ],
+        )
+      else
+        Padding(
+          padding: EdgeInsets.only(top: flip ? 2 : 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                child: SectionHeader(
+                  'See Before You Decide',
+                  subtitle:
+                      'Avoid surprises. Inspect with a local Guide through '
+                      'a live video.',
+                  onSeeAll: () => context.push('/decide'),
                 ),
               ),
+              SizedBox(height: flip ? 14 : 4),
+              _DecideCarousel(fan: widget.variant == HomeVariant.fan),
+            ],
+          ),
+        ),
+    ];
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return Scaffold(
+      body: _PageBackground(
+        white: flip,
+        child: Stack(
+          children: [
+            // A faint giraffe-skin pattern behind the scanner layout.
+            if (scan)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: GiraffePatternPainter(
+                        // A white network, like the globe's.
+                        color: Colors.white.withValues(
+                          alpha: AppColors.dark ? 0.06 : 0.75,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ListView(
+              // Room for the pinned globe section below.
+              padding: EdgeInsets.only(
+                bottom:
+                    bottomInset +
+                    (middle
+                        ? 100
+                        : _CountryGlobe.pinnedHeight + _PinnedCountries.lift),
+              ),
+              children: [
+                if (compact)
+                  _CompactHero(combined: compact)
+                else
+                  const _PhotoHero(),
+                // The content sheet overlaps the hero with rounded corners.
+                Transform.translate(
+                  offset: Offset(0, compact ? 0 : -HomeHeroLayout.sheetOverlap),
+                  child: Container(
+                    // The flip book sits straight on the page, no sheet.
+                    decoration: compact
+                        ? null
+                        : BoxDecoration(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(30),
+                            ),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: AppColors.dark
+                                  ? [AppColors.background, AppColors.background]
+                                  : const [
+                                      Color(0xFFF7FDFD),
+                                      Color(0xFFE6F6F7),
+                                    ],
+                            ),
+                            border: Border(
+                              top: BorderSide(color: Glass.rim, width: 1.4),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF3CC7D0)
+                                    .withValues(alpha: 0.18),
+                                blurRadius: 24,
+                                offset: const Offset(0, -6),
+                              ),
+                            ],
+                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var i = 0; i < sections.length; i++) ...[
+                          _Reveal(
+                            animation: _entrance,
+                            index: i,
+                            child: sections[i],
+                          ),
+                          // Not faded in: the intro's globe lands right on it.
+                          if (middle && i == (scan ? 0 : 1))
+                            widget.variant == HomeVariant.scan
+                                ? const _LocationScanner()
+                                : const _MiddleGlobe(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
+            // Pinned to the bottom so the globe is always on screen; the
+            // page scrolls under it. Not faded in: the intro's globe lands
+            // right on it.
+            if (!middle)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _PinnedCountries(
+                  reveal: _entrance,
+                  bottomInset: bottomInset,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
+}
+
+/// "Explore by Country" header over the globe, on a backdrop that fades in
+/// from the page above so cards scroll softly under it.
+class _PinnedCountries extends StatelessWidget {
+  const _PinnedCountries({required this.reveal, required this.bottomInset});
+
+  /// Raises the globe so its cap shows above the floating tab bar.
+  static const lift = 34.0;
+
+  final Animation<double> reveal;
+  final double bottomInset;
+
+  @override
+  Widget build(BuildContext context) {
+    final page = AppColors.dark
+        ? AppColors.background
+        : const Color(0xFFE6F6F7);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [page.withValues(alpha: 0), page, page],
+          stops: const [0, 0.06, 1],
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FadeTransition(
+            opacity: CurvedAnimation(
+              parent: reveal,
+              curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+              child: SectionHeader(
+                'Explore by Country',
+                subtitle: 'Find a Guide in the country you want to inspect.',
+                onSeeAll: () => context.push('/explore'),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: _CountryGlobe.height + lift + bottomInset,
+            child: _CountryGlobe(reveal: reveal),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The whole crystal globe in the middle of Home, with the city bubbles
+/// on a glass orbit over its top half.
+class _MiddleGlobe extends StatefulWidget {
+  const _MiddleGlobe();
+
+  @override
+  State<_MiddleGlobe> createState() => _MiddleGlobeState();
+}
+
+class _MiddleGlobeState extends State<_MiddleGlobe> {
+  // Shorter than the globe, so the card below rides up over its bottom.
+  static const _height = 276.0;
+  static const _radius = 132.0;
+
+  final _globeKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // Tells the onboarding where to land its globe.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final box = _globeKey.currentContext?.findRenderObject() as RenderBox?;
+      if (!mounted || box == null || !box.hasSize) return;
+      homeGlobeRect.value = box.localToGlobal(Offset.zero) & box.size;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _height,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Sits just under the section title.
+          final center = Offset(constraints.maxWidth / 2, _radius + 34);
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                key: _globeKey,
+                left: center.dx - _radius / 0.4 / 2,
+                top: center.dy - _radius / 0.4 / 2,
+                width: _radius / 0.4,
+                height: _radius / 0.4,
+                child: RepaintBoundary(
+                  // The first demo's idea: city photo pins on the globe as
+                  // it tours the live cities. Drag to spin it, tap a city to
+                  // open it, pinch or scroll-zoom for the full globe.
+                  child: Globe(
+                    initialLat: HomeHeroLayout.globeLat,
+                    initialLng: HomeHeroLayout.globeLng,
+                    insideScrollView: true,
+                    showZoomControls: false,
+                    crystal: true,
+                    photoPins: true,
+                    onCityTap: (c) => context.push('/country/${c.id}'),
+                    onZoomIn: (lat, lng) =>
+                        showFullGlobe(context, lat: lat, lng: lng),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// "Detecting spots…": landmark photos glide through a scan frame while a
+/// glowing line sweeps across it, naming each place as it's scanned.
+class _LocationScanner extends StatefulWidget {
+  const _LocationScanner();
+
+  @override
+  State<_LocationScanner> createState() => _LocationScannerState();
+}
+
+class _LocationScannerState extends State<_LocationScanner>
+    with SingleTickerProviderStateMixin {
+  /// Same filter as the flip book: everything, countries, or one kind of
+  /// check followed by every country for it.
+  String? _filter;
+
+  List<_FlipPage> get _pages {
+    final kind = InspectKind.fromName(_filter);
+    final countries = _DecideCarouselState._countries;
+    if (kind != null) {
+      return [
+        _FlipPage(kind: kind),
+        for (final c in countries) _FlipPage(kind: kind, city: c),
+      ];
+    }
+    return [
+      if (_filter != 'countries')
+        for (final k in _DecideCarouselState._kinds) _FlipPage(kind: k),
+      for (final c in countries) _FlipPage(city: c),
+    ];
+  }
+
+  /// Position along the pages, in pages: whole numbers are a page resting
+  /// in the frame, and the fraction above it plays the glide then the
+  /// scan. Steps on its own every few seconds; holding a press pauses it.
+  late final _c = AnimationController.unbounded(vsync: this, value: 0)
+    ..animateTo(_rest(0), duration: _scanTime, curve: Curves.linear);
+
+  static const _scanTime = Duration(milliseconds: 1500);
+
+  /// Where page [i] has finished gliding in and being scanned.
+  static double _rest(int i) => i + 0.999;
+
+  int get _at => _c.value.floor();
+
+  /// True while a mouse button or finger is held down on the scanner.
+  bool _held = false;
+  Timer? _auto;
+  Duration _idleSince = Duration.zero;
+  final _clock = Stopwatch()..start();
+
+  @override
+  void initState() {
+    super.initState();
+    // Moves on to the next page after it has rested for a few seconds.
+    _auto = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (_held || _c.isAnimating) {
+        _idleSince = _clock.elapsed;
+        return;
+      }
+      if (_clock.elapsed - _idleSince > const Duration(milliseconds: 2800)) {
+        _idleSince = _clock.elapsed;
+        _step(1);
+      }
+    });
+  }
+
+  void _hold(bool down) {
+    setState(() => _held = down);
+    if (down) {
+      _c.stop();
+    } else if (_c.value != _rest(_at)) {
+      // Finishes the glide and scan it was in the middle of.
+      _c.animateTo(
+        _rest(_at),
+        duration: const Duration(milliseconds: 1200),
+        curve: Curves.linear,
+      );
+    }
+  }
+
+  /// Glides [by] pages and scans the one that lands in the frame.
+  void _step(int by) {
+    _c.animateTo(
+      _rest(_at + by),
+      duration: const Duration(milliseconds: 2200),
+      curve: Curves.linear,
+    );
+  }
+
+  void _setFilter(String? f) {
+    setState(() => _filter = f);
+    _c
+      ..value = 0
+      ..animateTo(_rest(0), duration: _scanTime, curve: Curves.linear);
+  }
+
+  @override
+  void dispose() {
+    _auto?.cancel();
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = _pages;
+    final mq = MediaQuery.of(context);
+    // Fills the room under the search bar, like the flip book.
+    final room = (mq.size.height - mq.padding.top - mq.padding.bottom - 360)
+        .clamp(330.0, 470.0);
+    return Column(
+      children: [
+        // Press and hold anywhere on the scanner to pause it.
+        Listener(
+          onPointerDown: (_) => _hold(true),
+          onPointerUp: (_) => _hold(false),
+          onPointerCancel: (_) => _hold(false),
+          child: SizedBox(
+            height: room,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final w = constraints.maxWidth;
+                const frame = 196.0;
+                const spacing = 168.0;
+                // Caption (56) + gap (20) + frame, centred in the room.
+                const block = 56 + 20 + frame;
+                final blockTop = (constraints.maxHeight - block) / 2;
+                // Frame and its caption, centred together in the room.
+                // Caption first, the frame just below it.
+                final center = Offset(w / 2, blockTop + 76 + frame / 2);
+                return AnimatedBuilder(
+                  animation: _c,
+                  builder: (context, _) {
+                    final t = _c.value;
+                    // Glide, then pause with the place centred in the frame.
+                    final step = t.floor();
+                    final eased =
+                        step +
+                        Curves.easeInOutCubic.transform(
+                          ((t - step) / 0.45).clamp(0.0, 1.0),
+                        );
+                    final current = pages[eased.round() % pages.length];
+                    final within = (t - step - 0.45) / 0.55;
+                    // The scan line sweeps the frame while the place rests in it.
+                    final scanX = within < 0
+                        ? -1.0
+                        : math.sin(
+                            within.clamp(0.0, 1.0) * math.pi * 2 - math.pi / 2,
+                          );
+                    final scanned = within > 0.55;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // Soft glow behind the frame.
+                        Positioned(
+                          left: center.dx - 160,
+                          top: center.dy - 160,
+                          width: 320,
+                          height: 320,
+                          child: IgnorePointer(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: RadialGradient(
+                                  colors: [
+                                    const Color(0xFF7FD8FF)
+                                        .withValues(alpha: 0.28),
+                                    const Color(0xFF7FD8FF)
+                                        .withValues(alpha: 0),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        for (var k = -2; k <= 2; k++)
+                          _place(pages, k, eased, center, spacing),
+                        Positioned(
+                          left: center.dx - frame / 2,
+                          top: center.dy - frame / 2,
+                          width: frame,
+                          height: frame,
+                          child: const IgnorePointer(
+                            child: CustomPaint(painter: _BracketPainter()),
+                          ),
+                        ),
+                        // The glowing scan line, gone once the page has been read.
+                        if (within >= 0 && within < 0.97)
+                          Positioned(
+                            left: center.dx + scanX * frame * 0.42 - 3,
+                            top: center.dy - frame * 0.62,
+                            width: 6,
+                            height: frame * 1.24,
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(3),
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Color(0x335B8CFF),
+                                      Color(0xFF5B8CFF),
+                                      Color(0xFF3CC7D0),
+                                      Color(0x333CC7D0),
+                                    ],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF5B8CFF)
+                                          .withValues(alpha: 0.55),
+                                      blurRadius: 22,
+                                      spreadRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          top: blockTop,
+                          child: Column(
+                            children: [
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 250),
+                                child: Text(
+                                  scanned
+                                      ? current.found
+                                      : 'Detecting spots${'.' * (1 + (t * 3).floor() % 3)}',
+                                  key: ValueKey(
+                                    scanned ? current.route : 'scan',
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppText.title.copyWith(fontSize: 21),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                scanned
+                                    ? current.foundDetail
+                                    : 'Scanning for local Guides near you…',
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppText.small.copyWith(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Tap or click a side photo (or its arrow) to scan it next.
+                        for (final by in [-1, 1])
+                          Positioned(
+                            left: center.dx + by * spacing - 60,
+                            top: center.dy - 60,
+                            width: 120,
+                            height: 120,
+                            child: Semantics(
+                              button: true,
+                              label: by < 0 ? 'Scan previous' : 'Scan next',
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => _step(by),
+                                ),
+                              ),
+                            ),
+                          ),
+                        for (final by in [-1, 1])
+                          Positioned(
+                            left: by < 0 ? 10 : null,
+                            right: by > 0 ? 10 : null,
+                            top: center.dy + frame / 2 + 6,
+                            child: GlassIconButton(
+                              icon: by < 0
+                                  ? Icons.chevron_left_rounded
+                                  : Icons.chevron_right_rounded,
+                              label: by < 0 ? 'Scan previous' : 'Scan next',
+                              size: 38,
+                              onPressed: () => _step(by),
+                            ),
+                          ),
+                        // Tapping the frame opens the place being scanned.
+                        Positioned(
+                          left: center.dx - frame / 2,
+                          top: center.dy - frame / 2,
+                          width: frame,
+                          height: frame,
+                          child: Semantics(
+                            button: true,
+                            label: 'Open ${current.label}',
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => context.push(current.route),
+                              onHorizontalDragEnd: (d) {
+                                final v = d.primaryVelocity ?? 0;
+                                if (v.abs() > 100) _step(v < 0 ? 1 : -1);
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+        const _Headline(combined: true),
+        const SizedBox(height: 18),
+        _FilterDial(selected: _filter, onSelected: _setFilter),
+        const SizedBox(height: 18),
+      ],
+    );
+  }
+
+  /// The place [k] steps from the one in the frame; grows as it nears it.
+  Widget _place(
+    List<_FlipPage> pages,
+    int k,
+    double eased,
+    Offset center,
+    double spacing,
+  ) {
+    final index = (eased.floor() + k) % pages.length;
+    final offset = k - (eased - eased.floor());
+    final d = offset.abs();
+    final size = 150 - math.min(1.0, d) * 50;
+    final page = pages[index];
+    return Positioned(
+      left: center.dx + offset * spacing - size / 2,
+      top: center.dy - size / 2,
+      width: size,
+      height: size,
+      child: Opacity(
+        opacity: (1 - math.max(0.0, d - 1) * 0.9).clamp(0.0, 1.0).toDouble(),
+        child: Container(
+          // A bright glass rim and aqua glow around each photo.
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(size * 0.28 + 3),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Color(0xFFA9ECF0), Colors.white],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF3CC7D0).withValues(alpha: 0.35),
+                blurRadius: 16,
+              ),
+              BoxShadow(
+                color: const Color(0xFF0F1B3D).withValues(alpha: 0.16),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(size * 0.28),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Photo(page.image, icon: Icons.location_city_outlined),
+                // Glossy top, like a little glass tile.
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x8CFFFFFF),
+                        Color(0x14FFFFFF),
+                        Color(0x00FFFFFF),
+                      ],
+                      stops: [0, 0.38, 0.5],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Four soft rounded corner brackets of a camera viewfinder.
+class _BracketPainter extends CustomPainter {
+  const _BracketPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round
+      ..color = (AppColors.dark ? Colors.white : const Color(0xFF0F1B3D))
+          .withValues(alpha: 0.12);
+    final w = size.width, h = size.height;
+    const arm = 30.0, r = 18.0;
+    for (final (x, y, sx, sy) in [
+      (0.0, 0.0, 1.0, 1.0),
+      (w, 0.0, -1.0, 1.0),
+      (0.0, h, 1.0, -1.0),
+      (w, h, -1.0, -1.0),
+    ]) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(x, y + sy * arm)
+          ..lineTo(x, y + sy * r)
+          ..quadraticBezierTo(x, y, x + sx * r, y)
+          ..lineTo(x + sx * arm, y),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BracketPainter oldDelegate) => false;
+}
+
+/// The flip book sits on plain white; the others on the crystal aqua.
+class _PageBackground extends StatelessWidget {
+  const _PageBackground({required this.white, required this.child});
+
+  final bool white;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => white && !AppColors.dark
+      ? ColoredBox(color: Colors.white, child: child)
+      : CrystalBackground(child: child);
 }
 
 /// Fades and slides a section in, slightly after the one above it.
@@ -243,6 +862,275 @@ class _Reveal extends StatelessWidget {
   }
 }
 
+/// Geometry shared with the onboarding landing.
+abstract final class HomeHeroLayout {
+  /// Hero height below the status bar.
+  static const height = 176.0;
+
+  /// How far the content sheet rides up over the hero.
+  static const sheetOverlap = 24.0;
+  static const globeLat = 26.0;
+  static const globeLng = 55.3; // facing Dubai
+
+  /// Only the globe's top shows on Home, so it tilts back to put Europe,
+  /// the Gulf and Africa across that cap.
+  static const capLat = -22.0;
+  static const capLng = 38.0;
+
+  /// Used until Home has measured where its globe really is.
+  static Rect fallbackGlobeRect(Size screen) {
+    final r = screen.width * 0.62;
+    return Rect.fromCenter(
+      center: Offset(screen.width / 2, screen.height - 150 + r),
+      width: r / 0.4,
+      height: r / 0.4,
+    );
+  }
+}
+
+/// Full-bleed photo carousel with the greeting, headline and wallet.
+class _PhotoHero extends StatefulWidget {
+  const _PhotoHero();
+
+  @override
+  State<_PhotoHero> createState() => _PhotoHeroState();
+}
+
+class _PhotoHeroState extends State<_PhotoHero> {
+  static const _slides = [
+    (InspectKind.car, Alignment(0.3, -0.2)),
+    (InspectKind.property, Alignment.center),
+    (InspectKind.hotel, Alignment.center),
+    (InspectKind.place, Alignment.center),
+  ];
+
+  final _controller = PageController();
+  Timer? _timer;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!_controller.hasClients) return;
+      _controller.animateToPage(
+        (_page + 1) % _slides.length,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // At least a status bar's worth on top, so the headline never clips
+    // on screens without one (the side-by-side variations).
+    final top = math.max(MediaQuery.paddingOf(context).top, 24.0);
+    return SizedBox(
+      height: top + HomeHeroLayout.height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          PageView.builder(
+            controller: _controller,
+            itemCount: _slides.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (context, i) => GestureDetector(
+              onTap: () => context.push('/inspect/${_slides[i].$1.name}'),
+              child: Photo(
+                _slides[i].$1.hero,
+                icon: _slides[i].$1.icon,
+                alignment: _slides[i].$2,
+              ),
+            ),
+          ),
+          // One smooth wash: light at the top for the status bar and
+          // greeting, deep teal under the headline.
+          const IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x80072A33),
+                    Color(0x33072A33),
+                    Color(0xB3072A33),
+                    Color(0xF2062A33),
+                  ],
+                  stops: [0, 0.3, 0.65, 1],
+                ),
+              ),
+            ),
+          ),
+          // Greeting and wallet share one row.
+          Positioned(
+            top: top + 8,
+            left: 20,
+            right: 16,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Hi Priyamvada! 👋',
+                    style: AppText.label.copyWith(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                _WalletChip(onTap: () => context.go('/wallet')),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: HomeHeroLayout.sheetOverlap + 14,
+            child: IgnorePointer(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'See it live.',
+                    style: AppText.display.copyWith(
+                      color: Colors.white,
+                      fontSize: 23,
+                      height: 1.1,
+                    ),
+                  ),
+                  Text(
+                    'Know before you go.',
+                    style: AppText.display.copyWith(
+                      color: const Color(0xFF6FF0F2),
+                      fontSize: 23,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Send a local Guide to inspect any place,\n'
+                    'before you spend your time or money.',
+                    style: AppText.body.copyWith(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 12.5,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Slide dots, tucked into the bottom-right corner.
+          Positioned(
+            right: 18,
+            bottom: HomeHeroLayout.sheetOverlap + 16,
+            child: Row(
+              children: [
+                for (var i = 0; i < _slides.length; i++)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    margin: const EdgeInsets.only(left: 5),
+                    width: i == _page ? 16 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(3),
+                      color: i == _page
+                          ? const Color(0xFF5EE6EC)
+                          : Colors.white.withValues(alpha: 0.7),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Light header without the photo slider: greeting and wallet, then the
+/// headline, so the flip book gets the room.
+class _CompactHero extends StatelessWidget {
+  const _CompactHero({this.combined = false});
+
+  /// One headline that also says what the cards are for, instead of a
+  /// separate "See Before You Decide" title.
+  final bool combined;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = math.max(MediaQuery.paddingOf(context).top, 28.0);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, top + 10, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Hi Priyamvada! 👋',
+                  style: AppText.label.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              _WalletChip(onTap: () => context.go('/wallet')),
+            ],
+          ),
+          // The combined headline lives above the filter dial instead.
+          if (!combined) ...[
+            const SizedBox(height: 26),
+            const _Headline(combined: false),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// "See it live. Know before you go.", or the combined two-line, centred
+/// "See it live before you / decide or go."
+class _Headline extends StatelessWidget {
+  const _Headline({required this.combined});
+
+  final bool combined;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Text.rich(
+        TextSpan(
+          text: combined ? 'See it live before you\n' : 'See it live. ',
+          children: [
+            TextSpan(
+              text: combined ? 'decide or go.' : 'Know before you go.',
+              style: TextStyle(
+                color: AppColors.dark
+                    ? const Color(0xFF8EE3E8)
+                    : AppColors.tealDark,
+              ),
+            ),
+          ],
+        ),
+        style: AppText.display.copyWith(fontSize: 23, height: 1.15),
+        textAlign: combined ? TextAlign.center : TextAlign.start,
+      ),
+    );
+  }
+}
+
 class _WalletChip extends StatelessWidget {
   const _WalletChip({required this.onTap});
 
@@ -250,60 +1138,28 @@ class _WalletChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface.withValues(alpha: 0.92),
-      shape: const StadiumBorder(),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
+    return Semantics(
+      button: true,
+      label: 'Wallet, AED 120.00',
+      child: GestureDetector(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Glass(
+          radius: 14,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
                 Icons.account_balance_wallet_outlined,
-                size: 16,
+                size: 19,
                 color: AppColors.teal,
               ),
-              const SizedBox(width: 6),
-              Text('AED 50', style: AppText.label.copyWith(fontSize: 13)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SearchField extends StatelessWidget {
-  const _SearchField({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
-        side: BorderSide(color: AppColors.border),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(30),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-          child: Row(
-            children: [
-              Icon(Icons.search, color: AppColors.muted, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Search a city, address or listing',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.body,
+              const SizedBox(width: 8),
+              Text(
+                'AED 120.00',
+                style: AppText.label.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -314,22 +1170,379 @@ class _SearchField extends StatelessWidget {
   }
 }
 
-/// 3D tilted card carousel ("See Before You Decide" in the reference).
+/// Cover-flow of "See Before You Decide" cards: the centre card faces you,
+/// the ones either side turn away.
 class _DecideCarousel extends StatefulWidget {
-  const _DecideCarousel();
+  const _DecideCarousel({required this.fan});
+
+  /// A fanned hand of cards; otherwise the PDF's cover-flow.
+  final bool fan;
 
   @override
   State<_DecideCarousel> createState() => _DecideCarouselState();
 }
 
+/// One page of the flip book: a kind of check, a country, or a country
+/// for one kind of check.
+class _FlipPage {
+  const _FlipPage({this.kind, this.city});
+
+  final InspectKind? kind;
+  final City? city;
+
+  String get label => city == null
+      ? kind!.title
+      : kind == null
+      ? '${city!.country}, ${city!.name}'
+      : '${kind!.label} check in ${city!.country}';
+
+  String get image => city?.coverImage ?? kind!.card;
+
+  /// What the scanner says once it has read this page.
+  String get found => city == null
+      ? kind!.title
+      : kind == null
+      ? '${city!.name} · ${city!.guidesOnline} Guides live'
+      : '${kind!.label} check in ${city!.country}';
+
+  String get foundDetail => city == null
+      ? kind!.cardSubtitle
+      : kind == null
+      ? 'Tap to explore ${city!.country} live.'
+      : '${city!.guidesOnline} Guides ready in ${city!.name}.';
+
+  String get route => city == null
+      ? '/inspect/${kind!.name}'
+      : kind == null
+      ? '/country/${city!.id}'
+      : '/country/${city!.id}?intent=${kind!.name}';
+}
+
 class _DecideCarouselState extends State<_DecideCarousel> {
+  /// Not fanned: the cards flip vertically over a hinge.
+  bool get _flip => !widget.fan;
+  Timer? _auto;
+
+  static final _countries = [
+    for (final r in regions)
+      for (final id in r.cityIds) cityById(id)!,
+  ];
+
+  /// Every kind of check, then every country.
+  static final _pages = [
+    for (final k in _kinds) _FlipPage(kind: k),
+    for (final c in _countries) _FlipPage(city: c),
+  ];
+
+  int get _count => _flip ? _pages.length : _kinds.length;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_flip) {
+      // Flips to the next card on its own, round and round.
+      _auto = Timer.periodic(const Duration(milliseconds: 3200), (_) {
+        if (!_controller.hasClients) return;
+        final page = (_controller.page ?? 0).round();
+        _controller.animateToPage(
+          (page + 1) % _count,
+          duration: const Duration(milliseconds: 700),
+          curve: Curves.easeInOutCubic,
+        );
+      });
+    }
+  }
+
   static const _kinds = [
+    InspectKind.mall,
     InspectKind.place,
     InspectKind.car,
     InspectKind.property,
     InspectKind.hotel,
+    InspectKind.restaurant,
+    InspectKind.venue,
+    InspectKind.tourist,
   ];
-  final _controller = PageController(viewportFraction: 0.58, initialPage: 1);
+  static final _start = _kinds.indexOf(InspectKind.car);
+  late final PageController _controller = PageController(
+    // One swipe of this width moves the deck by one card.
+    viewportFraction: widget.fan ? 0.42 : 0.37,
+    initialPage: _flip ? 0 : _start,
+  );
+
+  @override
+  void dispose() {
+    _auto?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Page height, sized in [build] so the book fills the room between
+  /// the dial and the search bar; the spine runs just under the top page.
+  double _pageH = 216;
+  double get _spineY => _pageH + 8;
+
+  /// Flip book: every page hinges on one spine across the middle. Pages
+  /// still to come stand above it, leaning back a little more each; the
+  /// page being turned swings over the spine, and turned pages hang below
+  /// it showing their backs, upside down.
+  Widget _flipCard(int i, double delta, double w) {
+    final d = delta.abs();
+    if (d > 3.2) return const Positioned(left: 0, top: 0, child: SizedBox());
+    // 0 stands the page up above the spine; pi hangs it straight down.
+    final double angle;
+    if (delta >= 0) {
+      angle = -0.12 - math.min(delta, 2.5) * 0.16;
+    } else if (delta > -1) {
+      angle = -0.12 + Curves.easeInOut.transform(-delta) * (math.pi - 0.02);
+    } else {
+      angle = math.pi - 0.14 - math.min(d - 1, 2) * 0.14;
+    }
+    // Darkest when edge-on to the light, half way over.
+    final shade =
+        (math.sin(angle.clamp(0.0, math.pi)) * 0.4 +
+                (delta > 0 ? math.min(delta, 2.0) * 0.08 : 0))
+            .clamp(0.0, 0.5);
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: _spineY - _pageH,
+      height: _pageH,
+      child: Center(
+        child: SizedBox(
+          width: w,
+          height: _pageH,
+          child: Opacity(
+            opacity: (1 - math.max(0.0, d - 2.4)).clamp(0.0, 1.0).toDouble(),
+            child: Transform(
+              alignment: Alignment.bottomCenter,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.0013)
+                ..rotateX(angle),
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                  const Color(0xFF0F1B3D).withValues(alpha: shade),
+                  BlendMode.srcATop,
+                ),
+                // Past half way the page shows its other side, drawn the
+                // right way up rather than mirrored.
+                child: angle > math.pi / 2
+                    ? Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.rotationX(math.pi),
+                        child: _FlipPageCard(page: _pages[i]),
+                      )
+                    : _FlipPageCard(page: _pages[i]),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _step(int by) {
+    final page = (_controller.page ?? _start.toDouble()).round() + by;
+    _controller.animateToPage(
+      page.clamp(0, _count - 1),
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  /// A hand of cards: each one turns about a pivot far below the deck,
+  /// so neighbours fan out on an arc and tuck in behind the front card.
+  Widget _placed(int i, double delta, double itemWidth, double height) {
+    final d = delta.abs();
+    final angle = delta.clamp(-3.0, 3.0) * 0.21;
+    final scale = 1 - math.min(1.0, d) * 0.1 - math.max(0.0, d - 1) * 0.05;
+    // Pivot sits well below the cards, in the card's own coordinates.
+    final pivotY = height * 1.9;
+    final transform = Matrix4.identity()
+      ..translateByDouble(itemWidth / 2, pivotY, 0, 1)
+      ..rotateZ(angle)
+      ..translateByDouble(-itemWidth / 2, -pivotY, 0, 1)
+      ..translateByDouble(itemWidth / 2, height / 2, 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1)
+      ..translateByDouble(-itemWidth / 2, -height / 2, 0, 1);
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: SizedBox(
+          width: itemWidth,
+          height: height,
+          child: Opacity(
+            opacity: (1 - math.max(0.0, d - 2) * 0.8).clamp(0.0, 1.0),
+            child: Transform(
+              transform: transform,
+              child: _DecideCard(
+                kind: _kinds[i],
+                active: d < 0.5,
+                // Photos drift against the turn, like looking through glass.
+                parallax: delta.clamp(-1.5, 1.5),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    // Fills what's left between the search bar and the pinned country
+    // globe: header 150, search 74, gaps 8 + 18, book frame 18.
+    final globe = _CountryGlobe.pinnedHeight + _PinnedCountries.lift;
+    _pageH =
+        ((mq.size.height - mq.padding.top - mq.padding.bottom - 268 - globe) /
+                2)
+            .clamp(110.0, 220.0);
+    final deck = _deck(context);
+    if (!_flip) return deck;
+    // Pulled up under the search bar.
+    return Transform.translate(offset: const Offset(0, -12), child: deck);
+  }
+
+  Widget _deck(BuildContext context) {
+    return SizedBox(
+      height: widget.fan ? 220 : _pageH * 2 + 18,
+      child: Stack(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth =
+                  constraints.maxWidth * (widget.fan ? 0.5 : 0.37);
+              return AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  final page =
+                      _controller.hasClients &&
+                          _controller.position.haveDimensions
+                      ? _controller.page!
+                      : (_flip ? 0.0 : _start.toDouble());
+                  // Farthest first, so the centre card paints on top.
+                  final order = List.generate(_count, (i) => i)
+                    ..sort(
+                      (a, b) => (b - page).abs().compareTo((a - page).abs()),
+                    );
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      for (final i in order)
+                        widget.fan
+                            ? _placed(i, i - page, itemWidth, 200)
+                            : _flipCard(
+                                i,
+                                i - page,
+                                constraints.maxWidth * 0.76,
+                              ),
+                      // The spine the pages turn on.
+                      if (_flip)
+                        Positioned(
+                          left: constraints.maxWidth * 0.04,
+                          right: constraints.maxWidth * 0.04,
+                          top: _spineY - 2,
+                          height: 4,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(2),
+                              color: Colors.white.withValues(alpha: 0.9),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF3CC7D0)
+                                      .withValues(alpha: 0.5),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+          // Invisible pages on top take the swipes and taps.
+          PageView.builder(
+            controller: _controller,
+            // The flip deck turns with up and down swipes.
+            scrollDirection: _flip ? Axis.vertical : Axis.horizontal,
+            itemCount: _count,
+            itemBuilder: (context, i) => Semantics(
+              button: true,
+              label: _flip ? _pages[i].label : _kinds[i].title,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => context.push(
+                  _flip ? _pages[i].route : '/inspect/${_kinds[i].name}',
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 12,
+            top: widget.fan ? 90 : _spineY - 19,
+            child: GlassIconButton(
+              icon: _flip
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.chevron_left_rounded,
+              label: 'Previous',
+              size: 38,
+              onPressed: () => _step(-1),
+            ),
+          ),
+          Positioned(
+            right: 12,
+            top: widget.fan ? 90 : _spineY - 19,
+            child: GlassIconButton(
+              icon: _flip
+                  ? Icons.keyboard_arrow_down_rounded
+                  : Icons.chevron_right_rounded,
+              label: 'Next',
+              size: 38,
+              onPressed: () => _step(1),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Camera-style mode dial over the flip book. Filters sit on a gentle
+/// arc; swipe or tap one into the glowing glass lens in the middle to pick
+/// it, and the ones further out shrink and fade.
+class _FilterDial extends StatefulWidget {
+  const _FilterDial({required this.selected, required this.onSelected});
+
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  State<_FilterDial> createState() => _FilterDialState();
+}
+
+class _FilterDialState extends State<_FilterDial> {
+  static final _options = <(String?, String, IconData)>[
+    (null, 'All', Icons.auto_awesome_outlined),
+    ('countries', 'Countries', Icons.public),
+    for (final k in InspectKind.decideOrder) (k.name, k.label, k.icon),
+  ];
+
+  /// The dial loops round, so every filter (All too) has others on both
+  /// sides; it starts far into the loop with the selected one centred.
+  static const _loops = 1000;
+  late final _controller = PageController(
+    viewportFraction: 0.3,
+    initialPage:
+        _options.length * _loops ~/ 2 +
+        _options.indexWhere((o) => o.$1 == widget.selected),
+  );
 
   @override
   void dispose() {
@@ -340,39 +1553,259 @@ class _DecideCarouselState extends State<_DecideCarousel> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 290,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          final page =
-              _controller.hasClients && _controller.position.haveDimensions
-              ? _controller.page!
-              : 1.0;
-          return PageView.builder(
-            controller: _controller,
-            itemCount: _kinds.length,
-            itemBuilder: (context, i) {
-              final delta = i - page;
-              final shrink = 1 - math.min(1, delta.abs()) * 0.14;
-              final transform = Matrix4.identity()
-                ..setEntry(3, 2, 0.0014)
-                ..rotateY(-delta * 0.5)
-                ..scaleByDouble(shrink, shrink, 1, 1);
-              return Transform(
-                alignment: Alignment.center,
-                transform: transform,
-                child: Opacity(
-                  opacity: 1 - math.min(1, delta.abs()) * 0.3,
-                  child: _DecideCard(
-                    kind: _kinds[i],
-                    active: delta.abs() < 0.5,
-                    onTap: () => context.push('/inspect/${_kinds[i].name}'),
+      height: 72,
+      child: Stack(
+        children: [
+          // The lens: a glossy glass pill the chosen filter sits in.
+          const Positioned.fill(
+            top: 16,
+            child: Center(
+              child: IgnorePointer(child: GlossyPill(width: 120, height: 42)),
+            ),
+          ),
+          // Tick marks along the dial's rim.
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 10,
+            child: IgnorePointer(child: CustomPaint(painter: _DialTicks())),
+          ),
+          // The filters sit below the ticks, with room between.
+          Positioned.fill(
+            top: 16,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                final page =
+                    _controller.hasClients &&
+                        _controller.position.haveDimensions
+                    ? _controller.page!
+                    : _controller.initialPage.toDouble();
+                return PageView.builder(
+                  controller: _controller,
+                  itemCount: _options.length * _loops,
+                  onPageChanged: (i) =>
+                      widget.onSelected(_options[i % _options.length].$1),
+                  itemBuilder: (context, i) {
+                    final (_, label, icon) = _options[i % _options.length];
+                    final d = (i - page).abs();
+                    final on = d < 0.5;
+                    final t = math.min(1.0, d);
+                    return Semantics(
+                      button: true,
+                      selected: on,
+                      label: '$label filter',
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _controller.animateToPage(
+                          i,
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeOutCubic,
+                        ),
+                        // Dips along the arc and shrinks away from the lens.
+                        child: Transform.translate(
+                          offset: Offset(0, -math.min(d, 2.5) * 3),
+                          child: Transform.scale(
+                            scale: 1.08 - t * 0.24,
+                            child: Opacity(
+                              opacity: (1 - math.max(0.0, d - 0.6) * 0.45)
+                                  .clamp(0.25, 1.0)
+                                  .toDouble(),
+                              child: Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      icon,
+                                      size: 17,
+                                      color: Color.lerp(
+                                        Colors.white,
+                                        AppColors.muted,
+                                        t,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Flexible(
+                                      child: Text(
+                                        label,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppText.label.copyWith(
+                                          fontSize: 14,
+                                          fontWeight: on
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                          color: Color.lerp(
+                                            Colors.white,
+                                            AppColors.muted,
+                                            t,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Fine ticks along the top of the dial, brightest over the lens.
+class _DialTicks extends CustomPainter {
+  const _DialTicks();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final mid = size.width / 2;
+    for (var x = 12.0; x < size.width - 12; x += 9) {
+      final near = 1 - ((x - mid).abs() / mid).clamp(0.0, 1.0);
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, 3 + near * 4),
+        Paint()
+          ..strokeWidth = 1.2
+          ..strokeCap = StrokeCap.round
+          ..color = AppColors.teal.withValues(alpha: 0.12 + near * 0.45),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DialTicks oldDelegate) => false;
+}
+
+/// A flip-book page: a check type, or a country with its live Guides.
+class _FlipPageCard extends StatelessWidget {
+  const _FlipPageCard({required this.page});
+
+  final _FlipPage page;
+
+  @override
+  Widget build(BuildContext context) {
+    final city = page.city;
+    if (city == null) {
+      return _BentoTile(
+        kind: page.kind!,
+        big: true,
+        onTap: () => context.push(page.route),
+      );
+    }
+    final kind = page.kind;
+    return Glass(
+      radius: 20,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(19),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Photo(city.coverImage, icon: Icons.location_city_outlined),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x55FFFFFF),
+                    Color(0x00FFFFFF),
+                    Color(0x00072A33),
+                    Color(0xB3072A33),
+                  ],
+                  stops: [0, 0.3, 0.5, 1],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              left: 10,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xFF0F1B3D).withValues(alpha: 0.55),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.6),
                   ),
                 ),
-              );
-            },
-          );
-        },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const _PulseDot(),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${city.guidesOnline} Guides live',
+                      style: AppText.small.copyWith(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _IconBadge(icon: kind?.icon ?? Icons.public, size: 36),
+            ),
+            Positioned(
+              left: 12,
+              right: 10,
+              bottom: 10,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          kind == null
+                              ? city.country
+                              : '${kind.label} check in ${city.country}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.label.copyWith(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            height: 1.15,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          kind == null
+                              ? '${city.name} · see it live with a Guide'
+                              : 'Guides in ${city.name}, ready now',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.small.copyWith(
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const GlossyArrow(size: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -382,89 +1815,122 @@ class _DecideCard extends StatelessWidget {
   const _DecideCard({
     required this.kind,
     required this.active,
-    required this.onTap,
+    this.parallax = 0,
   });
 
   final InspectKind kind;
   final bool active;
-  final VoidCallback onTap;
+
+  /// How far the card has turned away, in cards; shifts the photo.
+  final double parallax;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-      child: Material(
-        color: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-          side: BorderSide(color: AppColors.border),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                height: 140,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Photo(kind.hero, icon: kind.icon),
-                    Positioned(
-                      left: 12,
-                      bottom: 10,
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+      child: ExcludeSemantics(
+        child: DecoratedBox(
+          // Solid backing so cards behind don't show through the glass.
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Glass(
+            radius: 18,
+            glow: active ? 1.4 : 0.7,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(17),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 112,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      fit: StackFit.expand,
+                      children: [
+                        ClipPath(
+                          clipper: const WaveClipper(depth: 14),
+                          child: Photo(
+                            kind.card,
+                            icon: kind.icon,
+                            alignment: Alignment(-parallax * 0.7, 0),
+                          ),
                         ),
-                        child: Icon(kind.icon, size: 20, color: AppColors.teal),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 10, 10, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        kind.title,
-                        style: AppText.label.copyWith(fontSize: 16),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Expanded(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                kind.subtitle,
-                                style: AppText.small,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                        // Glass sheen across the top of the photo.
+                        const IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment(0.2, 0.2),
+                                colors: [Color(0x55FFFFFF), Color(0x00FFFFFF)],
                               ),
                             ),
-                            AnimatedOpacity(
-                              opacity: active ? 1 : 0,
-                              duration: const Duration(milliseconds: 200),
-                              child: const _GlossyArrow(),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: AnimatedOpacity(
+                            opacity: active ? 1 : 0,
+                            duration: const Duration(milliseconds: 250),
+                            child: const _LiveChip(),
+                          ),
+                        ),
+                        Positioned(
+                          left: 10,
+                          bottom: -16,
+                          child: _IconBadge(icon: kind.icon, size: 36),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 20, 8, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            kind.title,
+                            style: AppText.label.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Expanded(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    kind.cardSubtitle,
+                                    style: AppText.small.copyWith(
+                                      fontSize: 11.5,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                AnimatedOpacity(
+                                  opacity: active ? 1 : 0,
+                                  duration: const Duration(milliseconds: 200),
+                                  child: const GlossyArrow(size: 30),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -472,195 +1938,318 @@ class _DecideCard extends StatelessWidget {
   }
 }
 
-class _GlossyArrow extends StatelessWidget {
-  const _GlossyArrow();
+/// Bento grid: one tall feature tile beside two stacked tiles, then a
+/// wide tile, each a glossy photo with its title on frosted glass.
+class _DecideBento extends StatefulWidget {
+  const _DecideBento({
+    this.padding = const EdgeInsets.fromLTRB(16, 10, 16, 14),
+  });
+
+  final EdgeInsets padding;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF5BAEB4), AppColors.teal, AppColors.tealDark],
-        ),
-      ),
-      child: const Icon(Icons.chevron_right, color: Colors.white, size: 22),
-    );
-  }
+  State<_DecideBento> createState() => _DecideBentoState();
 }
 
-/// Geometry of the Home globe hero, shared with the onboarding landing.
-abstract final class HomeHeroLayout {
-  static const height = 520.0;
+/// The tiles turn in like book pages, one after another; then every few
+/// seconds one tile turns its page to show another kind of check.
+class _DecideBentoState extends State<_DecideBento>
+    with SingleTickerProviderStateMixin {
+  static const _slots = 5;
 
-  /// How far the content sheet rides up over the hero.
-  static const sheetOverlap = 28.0;
-  static const globeLat = 26.0;
-  static const globeLng = 55.3; // facing Dubai
+  /// Which kind each slot shows, as an index into [InspectKind.decideOrder].
+  final _shown = [0, 1, 2, 3, 4];
+  int _nextKind = _slots;
+  int _nextSlot = 1;
+  Timer? _timer;
 
-  /// The globe nearly fills the width and sits low, its bottom tucked
-  /// under the sheet; zooming in opens the whole globe.
-  static double globeRadius(Size screen) => screen.width * 0.48;
-
-  /// Where the hero stops being visible (the sheet's top edge).
-  static double visibleBottom(double topInset) =>
-      topInset + height - sheetOverlap;
-
-  /// The globe's paint box in screen coordinates (page scrolled to the top);
-  /// GlobePainter draws a radius of 0.4 × its shorter side.
-  static Rect globeRect(Size screen, double topInset) {
-    final r = globeRadius(screen);
-    return Rect.fromCenter(
-      center: Offset(screen.width / 2, visibleBottom(topInset) - r * 0.86),
-      width: r / 0.4,
-      height: r / 0.4,
-    );
-  }
-}
-
-/// Full-width globe at the top of Home, with the greeting and headline.
-class _GlobeHero extends StatefulWidget {
-  const _GlobeHero({required this.onExpand});
-
-  final VoidCallback onExpand;
+  late final _entrance = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1500),
+  );
 
   @override
-  State<_GlobeHero> createState() => _GlobeHeroState();
-}
-
-class _GlobeHeroState extends State<_GlobeHero> {
-  /// Whether the globe keeps turning through the live cities.
-  final _touring = ValueNotifier(true);
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (mounted) _entrance.forward();
+    });
+    _timer = Timer.periodic(const Duration(milliseconds: 3400), (_) {
+      if (!mounted) return;
+      setState(() {
+        _shown[_nextSlot] = _nextKind % InspectKind.decideOrder.length;
+        // Skip kinds already on screen.
+        do {
+          _nextKind++;
+        } while (_shown.contains(_nextKind % InspectKind.decideOrder.length));
+        _nextSlot = (_nextSlot + 1) % _slots;
+      });
+    });
+  }
 
   @override
   void dispose() {
-    _touring.dispose();
+    _timer?.cancel();
+    _entrance.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final onExpand = widget.onExpand;
-    final top = MediaQuery.paddingOf(context).top;
-    return ValueListenableBuilder(
-      valueListenable: globeLight,
-      builder: (context, light, _) => _hero(context, top, onExpand, light),
-    );
-  }
+    Widget tile(int slot, {bool big = false}) {
+      final kind = InspectKind.decideOrder[_shown[slot]];
+      // Page turning in from its left edge, slightly after the one before.
+      final turnIn = CurvedAnimation(
+        parent: _entrance,
+        curve: Interval(
+          slot * 0.13,
+          slot * 0.13 + 0.48,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+      return AnimatedBuilder(
+        animation: turnIn,
+        builder: (context, child) => Opacity(
+          opacity: turnIn.value < 0.02 ? 0 : 1,
+          child: Transform(
+            alignment: Alignment.centerLeft,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0015)
+              ..rotateY((1 - turnIn.value) * math.pi / 2),
+            child: child,
+          ),
+        ),
+        child: _PageTurn(
+          child: _BentoTile(
+            key: ValueKey(kind),
+            kind: kind,
+            big: big,
+            onTap: () => context.push('/inspect/${kind.name}'),
+          ),
+        ),
+      );
+    }
 
-  Widget _hero(
-    BuildContext context,
-    double top,
-    VoidCallback onExpand,
-    bool light,
-  ) {
-    final ink = light ? AppColors.ink : Colors.white;
-    final stack = Stack(
-      children: [
-        Positioned.fromRect(
-          rect: HomeHeroLayout.globeRect(MediaQuery.sizeOf(context), top),
-          child: Globe(
-            initialLat: HomeHeroLayout.globeLat,
-            initialLng: HomeHeroLayout.globeLng,
-            insideScrollView: true,
-            showZoomControls: false,
-            spin: _touring,
-            onZoomIn: (lat, lng) => showFullGlobe(context, lat: lat, lng: lng),
-            onCityTap: (c) => context.push('/city/${c.id}'),
-          ),
-        ),
-        // The globe's box is wider than the screen, so the controls
-        // live here instead.
-        Positioned(
-          right: 12,
-          top: top + 250,
-          child: ZoomControls(
-            onZoomIn: () => showFullGlobe(context),
-            onZoomOut: null,
-            onExpand: onExpand,
-          ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: HomeHeroLayout.sheetOverlap + 14,
-          child: Center(
+    return Padding(
+      padding: widget.padding,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 196,
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _GuidesChip(),
-                const SizedBox(width: 8),
-                _TourChip(touring: _touring),
+                Expanded(child: tile(0, big: true)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: tile(1)),
+                      const SizedBox(height: 10),
+                      Expanded(child: tile(2)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        ),
-        Positioned(
-          top: top + 20,
-          left: 20,
-          right: 20,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Hi Priya 👋',
-                  style: AppText.section.copyWith(color: ink, fontSize: 21),
-                ),
-              ),
-              _StyleSwitch(light: light),
-              const SizedBox(width: 8),
-              _WalletChip(onTap: () => context.go('/wallet')),
-            ],
-          ),
-        ),
-        Positioned(
-          top: top + 70,
-          left: 20,
-          right: 20,
-          child: IgnorePointer(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 110,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'See it live.',
-                  style: AppText.display.copyWith(color: ink, fontSize: 26),
+                Expanded(flex: 3, child: tile(3)),
+                const SizedBox(width: 10),
+                Expanded(flex: 2, child: tile(4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// When its child changes, the old one lifts away from its left edge like
+/// a turning page, uncovering the new one underneath.
+class _PageTurn extends StatelessWidget {
+  const _PageTurn({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 750),
+      switchInCurve: Curves.linear,
+      switchOutCurve: Curves.easeInOutCubic,
+      // The page being turned sits on top of the new one.
+      layoutBuilder: (current, previous) =>
+          Stack(fit: StackFit.expand, children: [?current, ...previous]),
+      transitionBuilder: (child, animation) {
+        if (child.key == this.child.key) return child;
+        return AnimatedBuilder(
+          animation: animation,
+          child: child,
+          builder: (context, child) {
+            final turn = 1 - animation.value;
+            return Transform(
+              alignment: Alignment.centerLeft,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.0015)
+                ..rotateY(-turn * math.pi / 2),
+              // Darkens as it turns away from the light.
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withValues(alpha: turn * 0.35),
+                  BlendMode.srcATop,
                 ),
-                Text(
-                  'Know before you go.',
-                  style: AppText.display.copyWith(
-                    color: light ? AppColors.teal : const Color(0xFF8EE3E8),
-                    fontSize: 26,
+                child: child,
+              ),
+            );
+          },
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+class _BentoTile extends StatelessWidget {
+  const _BentoTile({
+    super.key,
+    required this.kind,
+    required this.onTap,
+    this.big = false,
+  });
+
+  final InspectKind kind;
+  final VoidCallback onTap;
+  final bool big;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: kind.title,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Glass(
+          radius: 20,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(19),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Photo(kind.card, icon: kind.icon),
+                // Glass sheen across the top, deeper teal along the bottom.
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x55FFFFFF),
+                        Color(0x00FFFFFF),
+                        Color(0x00072A33),
+                        Color(0xB3072A33),
+                      ],
+                      stops: [0, 0.3, 0.5, 1],
+                    ),
+                  ),
+                ),
+                if (big)
+                  const Positioned(top: 10, left: 10, child: _LiveChip()),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _IconBadge(icon: kind.icon, size: big ? 38 : 30),
+                ),
+                Positioned(
+                  left: 12,
+                  right: 10,
+                  bottom: 10,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              kind.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.label.copyWith(
+                                color: Colors.white,
+                                fontSize: big ? 17 : 13.5,
+                                fontWeight: FontWeight.w700,
+                                height: 1.15,
+                              ),
+                            ),
+                            if (big) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                kind.cardSubtitle,
+                                maxLines: 2,
+                                style: AppText.small.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (big) const GlossyArrow(size: 32),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
         ),
-      ],
-    );
-    return SizedBox(
-      height: top + HomeHeroLayout.height,
-      child: light
-          ? DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.white, Color(0xFFF3FAF8)],
-                ),
-              ),
-              child: ClipRect(child: stack),
-            )
-          : SpaceBackdrop(radius: 0, child: stack),
+      ),
     );
   }
 }
 
-/// Green "online" dot with a soft ripple.
+/// Glossy "● LIVE" chip on the card in front.
+class _LiveChip extends StatelessWidget {
+  const _LiveChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFF0F1B3D).withValues(alpha: 0.55),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _PulseDot(),
+          const SizedBox(width: 4),
+          Text(
+            'LIVE',
+            style: AppText.small.copyWith(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Green dot with a soft ripple.
 class _PulseDot extends StatefulWidget {
   const _PulseDot();
 
@@ -684,16 +2273,16 @@ class _PulseDotState extends State<_PulseDot>
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 14,
-      height: 14,
+      width: 12,
+      height: 12,
       child: AnimatedBuilder(
         animation: _c,
         builder: (context, _) => Stack(
           alignment: Alignment.center,
           children: [
             Container(
-              width: 6 + 8 * _c.value,
-              height: 6 + 8 * _c.value,
+              width: 5 + 7 * _c.value,
+              height: 5 + 7 * _c.value,
               decoration: BoxDecoration(
                 color: const Color(0xFF4ADE80)
                     .withValues(alpha: 0.5 * (1 - _c.value)),
@@ -701,8 +2290,8 @@ class _PulseDotState extends State<_PulseDot>
               ),
             ),
             Container(
-              width: 8,
-              height: 8,
+              width: 6,
+              height: 6,
               decoration: const BoxDecoration(
                 color: Color(0xFF4ADE80),
                 shape: BoxShape.circle,
@@ -715,433 +2304,419 @@ class _PulseDotState extends State<_PulseDot>
   }
 }
 
-class _ContinueCard extends StatelessWidget {
-  const _ContinueCard({required this.last});
+/// White glass circle holding a teal category icon.
+class _IconBadge extends StatelessWidget {
+  const _IconBadge({required this.icon, required this.size});
 
-  final LastViewed last;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        side: BorderSide(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push(
-          '/city/${last.city.id}?area=${last.area.id}&intent=${last.kind.name}',
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: Photo(last.area.image, icon: last.kind.icon),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Continue exploring',
-                      style: AppText.small.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.teal,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      last.kind.placeTitle(last.area.name),
-                      style: AppText.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      '${last.city.guidesOnline} Guides online in '
-                      '${last.city.name}',
-                      style: AppText.small,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, color: AppColors.muted),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Sets expectations up front: what happens, how fast, and when you pay.
-class _HowItWorks extends StatelessWidget {
-  const _HowItWorks();
-
-  @override
-  Widget build(BuildContext context) {
-    const steps = [
-      (Icons.place_outlined, 'Pick a place', 'Choose what to check'),
-      (Icons.videocam_outlined, 'Guide goes live', 'Usually within 5 min'),
-      (Icons.verified_user_outlined, 'Pay after', 'Only once they join'),
-    ];
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text('How it works', style: AppText.label)),
-              const Icon(Icons.star_rounded, size: 16, color: AppColors.star),
-              const SizedBox(width: 2),
-              Text(
-                '4.8 · 2,300 sessions',
-                style: AppText.small.copyWith(fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var i = 0; i < steps.length; i++)
-                Expanded(
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.tealTint,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          steps[i].$1,
-                          size: 20,
-                          color: AppColors.teal,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${i + 1}. ${steps[i].$2}',
-                        textAlign: TextAlign.center,
-                        style: AppText.small.copyWith(
-                          color: AppColors.ink,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        steps[i].$3,
-                        textAlign: TextAlign.center,
-                        style: AppText.small.copyWith(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SessionCard extends StatelessWidget {
-  const _SessionCard({required this.session});
-
-  final RecentSession session;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 220,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: SizedBox(
-              height: 130,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Photo(session.image, icon: session.kind.icon),
-                  const Scrim(strength: 0.45),
-                  const Center(child: _PlayBadge(size: 40)),
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: _DarkChip('${session.minutes} min'),
-                  ),
-                  Positioned(
-                    left: 8,
-                    top: 8,
-                    child: _DarkChip(session.kind.label),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            session.place,
-            style: AppText.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              GuideAvatar(session.guide, size: 24),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  session.guide.name,
-                  style: AppText.small,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Rating(session.guide.rating),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayBadge extends StatelessWidget {
-  const _PlayBadge({required this.size});
-
+  final IconData icon;
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        Icons.play_arrow_rounded,
-        color: AppColors.teal,
-        size: size * 0.6,
+    return Glass(
+      shape: BoxShape.circle,
+      glow: 0.8,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Icon(icon, size: size * 0.52, color: AppColors.teal),
       ),
     );
   }
 }
 
-class _DarkChip extends StatelessWidget {
-  const _DarkChip(this.text);
+/// "Explore by Country": city bubbles strung along a glass arc, over the
+/// top of a teal crystal globe.
+class _CountryGlobe extends StatefulWidget {
+  const _CountryGlobe({required this.reveal});
 
-  final String text;
+  /// Bubbles, then the globe's cap down to the screen edge, under the
+  /// floating tab bar.
+  static const height = 178.0;
+
+  /// The whole pinned block, header included.
+  static const pinnedHeight = height + 70;
+
+  /// The bubbles and arc fade in with the rest of Home; the globe doesn't.
+  final Animation<double> reveal;
+
+  @override
+  State<_CountryGlobe> createState() => _CountryGlobeState();
+}
+
+class _CountryGlobeState extends State<_CountryGlobe> {
+  /// Bubble centres as (fraction of width, offset from the top), with
+  /// their diameters, matching the arc in the design.
+  static const _spots = [
+    (0.1, 82.0, 50.0),
+    (0.23, 58.0, 50.0),
+    (0.365, 44.0, 50.0),
+    (0.5, 38.0, 64.0),
+    (0.635, 44.0, 50.0),
+    (0.77, 62.0, 50.0),
+    (0.9, 80.0, 42.0),
+  ];
+
+  /// Where the globe's top edge sits, just under the bubble names.
+  static const _capTop = 100.0;
+
+  final _globeKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _publishRect());
+  }
+
+  /// Tells the onboarding where to land its globe.
+  void _publishRect() {
+    final box = _globeKey.currentContext?.findRenderObject() as RenderBox?;
+    if (!mounted || box == null || !box.hasSize) return;
+    homeGlobeRect.value = box.localToGlobal(Offset.zero) & box.size;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.ink.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text,
-        style: AppText.small.copyWith(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
+    final arcIn = CurvedAnimation(
+      parent: widget.reveal,
+      curve: const Interval(0.2, 0.7, curve: Curves.easeInOutCubic),
+    );
+    return SizedBox.expand(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          final r = w * 0.74;
+          final globeCenter = Offset(w / 2, _capTop + r);
+          final centers = [for (final s in _spots) Offset(w * s.$1, s.$2)];
+          return Stack(
+            // The globe runs on below the section, as in the design.
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                key: _globeKey,
+                left: globeCenter.dx - r / 0.4 / 2,
+                top: globeCenter.dy - r / 0.4 / 2,
+                width: r / 0.4,
+                height: r / 0.4,
+                // Drag to spin it; tap a city to open it.
+                child: RepaintBoundary(
+                  child: Globe(
+                    initialLat: HomeHeroLayout.capLat,
+                    initialLng: HomeHeroLayout.capLng,
+                    insideScrollView: true,
+                    showZoomControls: false,
+                    showLabels: false,
+                    crystal: true,
+                    onCityTap: (c) => context.push('/country/${c.id}'),
+                    onZoomIn: (lat, lng) =>
+                        showFullGlobe(context, lat: lat, lng: lng),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _ArcPainter(
+                      centers,
+                      globeCenter: globeCenter,
+                      // The glass arc peaks just above the Dubai bubble.
+                      arcRadius: globeCenter.dy - 8,
+                      progress: arcIn,
+                    ),
+                  ),
+                ),
+              ),
+              for (var i = 0; i < _spots.length; i++)
+                Positioned(
+                  left: centers[i].dx - 44,
+                  top: centers[i].dy - _spots[i].$3 / 2,
+                  width: 88,
+                  child: _PopIn(
+                    // Dubai first, then outwards along the arc.
+                    animation: CurvedAnimation(
+                      parent: widget.reveal,
+                      curve: Interval(
+                        0.3 + (i - 3).abs() * 0.12,
+                        0.62 + (i - 3).abs() * 0.12,
+                      ),
+                    ),
+                    child: i < homeBubbleCityIds.length
+                        ? _CityBubble(
+                            city: cityById(homeBubbleCityIds[i])!,
+                            size: _spots[i].$3,
+                            focused: homeBubbleCityIds[i] == 'dubai',
+                          )
+                        : _MoreBubble(size: _spots[i].$3),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-/// Photo card with the city and country always visible.
-class CityCard extends StatelessWidget {
-  const CityCard({super.key, required this.city, required this.onTap});
+/// Faint dotted string through the bubbles.
+class _ArcPainter extends CustomPainter {
+  _ArcPainter(
+    this.points, {
+    required this.globeCenter,
+    required this.arcRadius,
+    required this.progress,
+  }) : super(repaint: progress);
+
+  final List<Offset> points;
+  final Offset globeCenter;
+  final double arcRadius;
+
+  /// 0 → 1 draws the arc out from its peak and fades the band in.
+  final Animation<double> progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = progress.value;
+    if (t <= 0) return;
+    // Frosted glass band between the arc and the globe, then its bright
+    // rim with a soft glow.
+    final band = Rect.fromCircle(center: globeCenter, radius: arcRadius);
+    canvas.drawCircle(
+      globeCenter,
+      arcRadius,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Colors.white.withValues(alpha: 0),
+            Colors.white.withValues(alpha: 0),
+            Colors.white.withValues(alpha: (AppColors.dark ? 0.06 : 0.45) * t),
+          ],
+          stops: const [0, 0.82, 1],
+        ).createShader(band),
+    );
+    // The rim grows out both ways from the top of the arc.
+    const half = math.pi * 0.42;
+    final sweep = half * 2 * t;
+    final start = -math.pi / 2 - sweep / 2;
+    canvas.drawArc(
+      band,
+      start,
+      sweep,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 10
+        ..color = const Color(0xFF8FEAEE).withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+    );
+    canvas.drawArc(
+      band,
+      start,
+      sweep,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..strokeCap = StrokeCap.round
+        ..color = Colors.white.withValues(alpha: AppColors.dark ? 0.4 : 0.95),
+    );
+
+    final line = Paint()
+      ..color = AppColors.teal.withValues(alpha: 0.28 * t)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    final dot = Paint()..color = AppColors.teal.withValues(alpha: 0.55 * t);
+    for (var i = 0; i < points.length - 1; i++) {
+      final a = points[i], b = points[i + 1];
+      // Dip slightly below the straight line so the string sags.
+      final mid = Offset.lerp(a, b, 0.5)! + const Offset(0, 14);
+      final path = Path()
+        ..moveTo(a.dx, a.dy + 10)
+        ..quadraticBezierTo(mid.dx, mid.dy + 10, b.dx, b.dy + 10);
+      canvas.drawPath(path, line);
+      canvas.drawCircle(Offset(mid.dx, mid.dy + 4), 2, dot);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ArcPainter old) =>
+      old.points != points ||
+      old.arcRadius != arcRadius ||
+      old.progress != progress;
+}
+
+/// Fades a bubble in while it rises and swells softly into place.
+class _PopIn extends StatelessWidget {
+  const _PopIn({required this.animation, required this.child});
+
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      child: child,
+      builder: (context, child) {
+        final t = animation.value;
+        final scale = 0.7 + 0.3 * Curves.easeOutBack.transform(t);
+        return Opacity(
+          opacity: Curves.easeOut.transform(t),
+          child: Transform.translate(
+            offset: Offset(0, 14 * (1 - Curves.easeOutCubic.transform(t))),
+            child: Transform.scale(
+              scale: scale,
+              alignment: Alignment.topCenter,
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CityBubble extends StatelessWidget {
+  const _CityBubble({
+    required this.city,
+    required this.size,
+    required this.focused,
+  });
 
   final City city;
-  final VoidCallback onTap;
+  final double size;
+  final bool focused;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
       label: '${city.name}, ${city.country}',
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        child: Material(
-          child: InkWell(
-            onTap: onTap,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Photo(city.image, icon: Icons.location_city_outlined),
-                const Scrim(),
-                Positioned(
-                  left: 12,
-                  right: 12,
-                  bottom: 10,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        city.name,
-                        style: AppText.label.copyWith(
-                          color: Colors.white,
-                          fontSize: 17,
+      child: GestureDetector(
+        onTap: () => context.push('/country/${city.id}'),
+        child: Column(
+          children: [
+            Container(
+              width: size,
+              height: size,
+              padding: const EdgeInsets.all(3.5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.white, Color(0xFFA9ECF0), Colors.white],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF3CC7D0)
+                        .withValues(alpha: focused ? 0.6 : 0.35),
+                    blurRadius: focused ? 20 : 12,
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF0F1B3D).withValues(alpha: 0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Photo(city.coverImage, icon: Icons.location_city_outlined),
+                    // Glass dome: a bright sheen over the top of the photo.
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x8CFFFFFF),
+                            Color(0x14FFFFFF),
+                            Color(0x00FFFFFF),
+                          ],
+                          stops: [0, 0.38, 0.5],
                         ),
                       ),
-                      Text(
-                        '${city.country} · ${city.guidesOnline} online',
-                        style: AppText.small.copyWith(color: Colors.white),
+                    ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment(0, 1.1),
+                          radius: 0.9,
+                          colors: [Color(0x00FFFFFF), Color(0x33BFF3F5)],
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: 4),
+            Text(
+              city.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.small.copyWith(
+                color: AppColors.ink,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+            if (focused)
+              Container(
+                margin: const EdgeInsets.only(top: 3),
+                width: 16,
+                height: 5,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(3),
+                  color: const Color(0xFF5EE6EC),
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Glass chip that pauses or resumes the globe's tour of live cities.
-class _TourChip extends StatelessWidget {
-  const _TourChip({required this.touring});
+class _MoreBubble extends StatelessWidget {
+  const _MoreBubble({required this.size});
 
-  final ValueNotifier<bool> touring;
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-      valueListenable: touring,
-      builder: (context, on, _) => Semantics(
-        button: true,
-        toggled: on,
-        child: GestureDetector(
-          onTap: () => touring.value = !on,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.88),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: AppColors.surface),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  on ? Icons.near_me_outlined : Icons.pause_circle_outline,
-                  size: 17,
-                  color: AppColors.ink,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  on ? 'Touring live cities' : 'Paused · tap to tour',
-                  style: AppText.label.copyWith(fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Dark / light switch for the globe, to compare the two looks.
-class _StyleSwitch extends StatelessWidget {
-  const _StyleSwitch({required this.light});
-
-  final bool light;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    Widget option(IconData icon, String label, bool value) {
-      final selected = light == value;
-      return Semantics(
-        button: true,
-        selected: selected,
-        label: label,
-        child: GestureDetector(
-          onTap: () => globeLight.value = value,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 36,
-            height: 30,
-            decoration: BoxDecoration(
+    return Semantics(
+      button: true,
+      label: 'More countries',
+      child: GestureDetector(
+        onTap: () => context.push('/explore'),
+        child: Column(
+          children: [
+            Glass(
               shape: BoxShape.circle,
-              color: selected ? AppColors.teal : Colors.transparent,
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: Icon(
+                  Icons.public,
+                  size: size * 0.55,
+                  color: AppColors.teal,
+                ),
+              ),
             ),
-            child: Icon(
-              icon,
-              size: 17,
-              color: selected ? Colors.white : AppColors.ink,
+            const SizedBox(height: 4),
+            Text(
+              'More',
+              style: AppText.small.copyWith(
+                color: AppColors.ink,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
             ),
-          ),
+          ],
         ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(20),
-        border: light ? Border.all(color: AppColors.border) : null,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          option(Icons.dark_mode_outlined, 'Dark globe', false),
-          option(Icons.light_mode_outlined, 'Light globe', true),
-        ],
-      ),
-    );
-  }
-}
-
-/// "● 126 Guides", in the same glass style as the tour chip.
-class _GuidesChip extends StatelessWidget {
-  const _GuidesChip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.surface),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const _PulseDot(),
-          const SizedBox(width: 8),
-          Text(
-            '$totalGuidesOnline Guides',
-            style: AppText.label.copyWith(fontSize: 13),
-          ),
-        ],
       ),
     );
   }

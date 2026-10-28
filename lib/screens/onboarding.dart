@@ -59,7 +59,9 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
   void initState() {
     super.initState();
     onboardingActive.value = true;
-    _c.forward().whenComplete(_finish);
+    // Opens straight on the map wrapping into the globe; the word intro
+    // (Anytime, Anywhere, iOpen) is skipped.
+    _c.forward(from: _revealEnd / _total).whenComplete(_finish);
     if (_assets == null) {
       GlobeAssets.load().then((a) {
         if (mounted) {
@@ -277,14 +279,23 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
       ((t - _morphStart) / (_morphEnd - _morphStart)).clamp(0.0, 1.0),
     );
     final flatScale = size.height / 2 / 1.2; // pixels per radian
-    final bigRadius = math.min(size.width, size.height) * 0.36;
-    final r1 = flatScale * math.pow(bigRadius / flatScale, morph);
+    // Home measures its globe in window coordinates; this overlay may sit
+    // inside the desktop phone frame, so shift into its own coordinates.
+    final me = context.findRenderObject() as RenderBox?;
+    final origin = me != null && me.hasSize
+        ? me.localToGlobal(Offset.zero)
+        : Offset.zero;
+    final target =
+        homeGlobeRect.value?.shift(-origin) ??
+        HomeHeroLayout.fallbackGlobeRect(size);
+    final targetRadius = math.min(target.width, target.height) * 0.4;
+    // Shrinks straight to Home's size, so landing is a pure glide down
+    // with no dip and regrow.
+    final r1 = flatScale * math.pow(targetRadius / flatScale, morph);
 
     // 3. The globe glides into Home's hero.
     final land = _landing(t);
-    final target = HomeHeroLayout.globeRect(size, top);
-    final targetRadius = math.min(target.width, target.height) * 0.4;
-    final radius = ui.lerpDouble(r1, targetRadius, land)!;
+    final radius = r1;
     final center = Offset.lerp(screenCenter, target.center, land)!;
 
     // The view drifts east across the map towards the Gulf, then settles on
@@ -293,30 +304,35 @@ class _OnboardingOverlayState extends State<OnboardingOverlay>
       ((t - _revealStart) / (_finaleEnd - _revealStart)).clamp(0.0, 1.0),
     );
 
-    // While landing, the sheet's edge on Home tucks the globe's bottom away.
     return Positioned(
       left: 0,
       top: 0,
       right: 0,
-      height: ui.lerpDouble(
-        size.height,
-        HomeHeroLayout.visibleBottom(top),
-        land,
-      ),
+      height: size.height,
       child: ClipPath(
         clipper: _HoleClipper(dot.center, hole, enabled: reveal < 1),
         child: CustomPaint(
           painter: GlobePainter(
             assets: _assets,
             shader: _shader,
-            viewLat: HomeHeroLayout.globeLat,
-            viewLng: HomeHeroLayout.globeLng - 40 * (1 - drift),
+            // Tilts back while landing to face exactly as Home's globe does.
+            viewLat: ui.lerpDouble(
+              HomeHeroLayout.globeLat,
+              HomeHeroLayout.capLat,
+              land,
+            )!,
+            viewLng: HomeHeroLayout.capLng - 40 * (1 - drift),
             time: t,
             flat: 1 - morph,
             center: center,
             radius: radius,
             showArcs: land > 0.5,
+            // Home draws its own city bubbles instead of name pills.
+            showLabels: false,
             light: globeLight.value ? 1 : 0,
+            // Teal crystal from the first frame, so the map wraps into
+            // exactly the globe Home shows without changing style.
+            crystal: 1,
           ),
         ),
       ),

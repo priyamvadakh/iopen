@@ -6,6 +6,7 @@ import '../data/user_store.dart';
 import '../data/content.dart';
 import '../app/onboarding_state.dart';
 import '../widgets/common.dart';
+import '../widgets/globe.dart';
 import '../widgets/help_sheet.dart';
 import '../widgets/glass_nav_bar.dart';
 
@@ -416,6 +417,16 @@ class ProfileScreen extends StatelessWidget {
               tile(Icons.bookmark_border, 'Saved places'),
               tile(Icons.translate, 'Language'),
               tile(Icons.notifications_none, 'Notifications'),
+              // Sets the whole app's theme (was the 🌙 / ☀️ switch on Home).
+              SwitchListTile(
+                secondary: const Icon(
+                  Icons.dark_mode_outlined,
+                  color: AppColors.teal,
+                ),
+                title: Text('Dark mode', style: AppText.label),
+                value: !globeLight.value,
+                onChanged: (on) => globeLight.value = !on,
+              ),
               ListTile(
                 leading: const Icon(Icons.help_outline, color: AppColors.teal),
                 title: Text('Help & support', style: AppText.label),

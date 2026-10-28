@@ -71,6 +71,29 @@ class GlobeAssets {
   }();
 }
 
+/// Small round-crop city photos for the globe's picture pins, loaded on
+/// first use.
+abstract final class CityPhotos {
+  static final _images = <String, ui.Image>{};
+  static bool _started = false;
+
+  static ui.Image? of(City city) {
+    if (!_started) {
+      _started = true;
+      for (final c in cities) {
+        rootBundle.load('assets/images/${c.coverImage}.jpg').then((data) async {
+          final codec = await ui.instantiateImageCodec(
+            data.buffer.asUint8List(),
+            targetWidth: 128,
+          );
+          _images[c.id] = (await codec.getNextFrame()).image;
+        }, onError: (_) {});
+      }
+    }
+    return _images[city.id];
+  }
+}
+
 /// Deep teal "space" background with a few fixed stars.
 class SpaceBackdrop extends StatelessWidget {
   const SpaceBackdrop({super.key, required this.child, this.radius = 24});
@@ -135,7 +158,19 @@ class Globe extends StatefulWidget {
     this.initialLng = 52,
     this.showZoomControls = true,
     this.insideScrollView = false,
+    this.showLabels = true,
+    this.crystal = false,
+    this.photoPins = false,
   });
+
+  /// Round city photos on the globe instead of name chips.
+  final bool photoPins;
+
+  /// City name pills; off when the page shows its own city bubbles.
+  final bool showLabels;
+
+  /// Teal crystal look with a steady, even spin (Home).
+  final bool crystal;
 
   final ValueChanged<City>? onCityTap;
 
@@ -225,7 +260,10 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
           elapsed > _resumeAt &&
           !onboardingActive.value &&
           (widget.spin?.value ?? true);
-      if (touring) {
+      // With city titles showing, it tours from city to city instead.
+      if (touring && widget.crystal && !widget.showLabels) {
+        _steadySpin(math.min(dt, 0.1));
+      } else if (touring) {
         _glideTour(elapsed, math.min(dt, 0.05));
       } else {
         _vLat = 0;
@@ -237,6 +275,15 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
   // as each live city comes to the front, then speeds up again across the
   // oceans, tilting gently towards the city it is passing.
   double _vLat = 0;
+
+  /// An even turn, eased in from a standstill so it never jerks.
+  double _spinSpeed = 0;
+
+  void _steadySpin(double dt) {
+    _spinSpeed += (5 - _spinSpeed) * math.min(1, dt * 0.8);
+    _lng += dt * _spinSpeed;
+    _lat += (widget.initialLat - _lat) * math.min(1, dt * 1.5);
+  }
 
   void _glideTour(Duration elapsed, double dt) {
     City? nearest;
@@ -411,7 +458,10 @@ class _GlobeState extends State<Globe> with SingleTickerProviderStateMixin {
                     viewLng: _lng,
                     time: _time,
                     zoom: _zoom,
+                    showLabels: widget.showLabels,
                     light: globeLight.value ? 1 : 0,
+                    crystal: widget.crystal ? 1 : 0,
+                    photoPins: widget.photoPins,
                   ),
                 ),
                 if (widget.showZoomControls)
@@ -463,9 +513,17 @@ class GlobePainter extends CustomPainter {
     this.showArcs = true,
     this.flat = 0,
     this.light = 0,
+    this.crystal = 0,
+    this.photoPins = false,
     this.center,
     this.radius,
   });
+
+  /// Draws city photos in glass rings instead of name chips.
+  final bool photoPins;
+
+  /// 1 = teal crystal globe with white glowing routes.
+  final double crystal;
 
   final GlobeAssets? assets;
 
@@ -514,7 +572,11 @@ class GlobePainter extends CustomPainter {
     _paintEarth(canvas, size, center, r);
     if (flat > 0) return;
     if (showArcs) _paintArcs(canvas, center, r);
-    _paintPins(canvas, center, r);
+    if (photoPins && showLabels) {
+      _paintPhotoPins(canvas, center, r);
+    } else {
+      _paintPins(canvas, center, r);
+    }
   }
 
   void _paintEarth(Canvas canvas, Size size, Offset center, double r) {
@@ -552,6 +614,7 @@ class GlobePainter extends CustomPainter {
       ((zoom - 1.4) / 1.8).clamp(0.0, 1.0),
       flat,
       light,
+      crystal,
     ]) {
       shader.setFloat(i++, v);
     }
@@ -585,7 +648,7 @@ class GlobePainter extends CustomPainter {
         points.add(p?.offset);
       }
 
-      if (light > 0.5) {
+      if (light > 0.5 && crystal < 0.5) {
         // Light style: a quiet dashed route.
         final dash = Paint()
           ..style = PaintingStyle.stroke
@@ -604,7 +667,9 @@ class GlobePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2
         ..strokeCap = StrokeCap.round
-        ..color = _pinColor.withValues(alpha: 0.25);
+        ..color = (crystal > 0.5 ? Colors.white : _pinColor).withValues(
+          alpha: crystal > 0.5 ? 0.55 : 0.25,
+        );
       _drawPolyline(canvas, points, 0, 1, base);
 
       final head = ((time * 0.35 + k * 0.23) % 1.4);
@@ -612,7 +677,9 @@ class GlobePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.2
         ..strokeCap = StrokeCap.round
-        ..color = _pinColor.withValues(alpha: 0.9)
+        ..color = (crystal > 0.5 ? Colors.white : _pinColor).withValues(
+          alpha: 0.9,
+        )
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
       _drawPolyline(canvas, points, head - 0.25, head, comet);
     }
@@ -641,6 +708,146 @@ class GlobePainter extends CustomPainter {
           : path.lineTo(p.dx, p.dy);
     }
     if (path != null) canvas.drawPath(path, paint);
+  }
+
+  /// Each city on the front of the globe gets its photo in a glossy white
+  /// ring, standing on a short stem over its glowing dot, with its name
+  /// underneath. Nearer cities win when two would overlap.
+  void _paintPhotoPins(Canvas canvas, Offset center, double r) {
+    final visible = <(City, Offset, double)>[];
+    for (final city in cities) {
+      final p = projectPoint(
+        lat: city.lat,
+        lng: city.lng,
+        viewLat: viewLat,
+        viewLng: viewLng,
+        center: center,
+        radius: r,
+      );
+      if (p != null && p.depth > 0.25) visible.add((city, p.offset, p.depth));
+    }
+    visible.sort((a, b) => b.$3.compareTo(a.$3));
+    final placed = <(City, Offset, Offset, double, double)>[];
+    for (final (city, dot, depth) in visible) {
+      final front = placed.isEmpty;
+      final size = front ? 23.0 : 18.0;
+      final at = dot - Offset(0, size + 14);
+      if (placed.any((q) => (q.$3 - at).distance < q.$4 + size + 4)) continue;
+      placed.add((city, dot, at, size, ((depth - 0.25) / 0.25).clamp(0, 1)));
+    }
+    // Farthest first so the nearest photo sits on top.
+    for (final (city, dot, at, size, fade) in placed.reversed) {
+      canvas.saveLayer(
+        Rect.fromCircle(center: at, radius: size + 40),
+        Paint()..color = Color.fromRGBO(0, 0, 0, fade),
+      );
+      canvas.drawCircle(
+        dot,
+        8,
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.6)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      );
+      canvas.drawCircle(dot, 3, Paint()..color = Colors.white);
+      canvas.drawLine(
+        dot,
+        at + Offset(0, size),
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 1.6,
+      );
+      // Soft shadow and aqua glow, then the white glass ring.
+      canvas.drawCircle(
+        at + const Offset(0, 3),
+        size + 3,
+        Paint()
+          ..color = const Color(0xFF0F1B3D).withValues(alpha: 0.25)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+      );
+      canvas.drawCircle(
+        at,
+        size + 6,
+        Paint()
+          ..color = const Color(0xFF7FE6EE).withValues(alpha: 0.35)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+      );
+      canvas.drawCircle(
+        at,
+        size + 3,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, Color(0xFFA9ECF0), Colors.white],
+          ).createShader(Rect.fromCircle(center: at, radius: size + 3)),
+      );
+      final photo = CityPhotos.of(city);
+      final inner = Rect.fromCircle(center: at, radius: size);
+      canvas.save();
+      canvas.clipPath(Path()..addOval(inner));
+      if (photo != null) {
+        final w = photo.width.toDouble(), h = photo.height.toDouble();
+        final side = math.min(w, h);
+        canvas.drawImageRect(
+          photo,
+          Rect.fromCenter(
+            center: Offset(w / 2, h / 2),
+            width: side,
+            height: side,
+          ),
+          inner,
+          Paint()..filterQuality = FilterQuality.medium,
+        );
+      } else {
+        canvas.drawRect(inner, Paint()..color = AppColors.teal);
+      }
+      // Glass dome sheen over the top of the photo.
+      canvas.drawRect(
+        Rect.fromLTWH(inner.left, inner.top, inner.width, inner.height * 0.5),
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white.withValues(alpha: 0.5),
+              Colors.white.withValues(alpha: 0),
+            ],
+          ).createShader(inner),
+      );
+      canvas.restore();
+      // Name and live Guide count on a small frosted tag under the dot.
+      final tp = TextPainter(
+        text: TextSpan(
+          text: '${city.name} ',
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF0F1B3D),
+          ),
+          children: [
+            TextSpan(
+              text: '${city.guidesOnline}',
+              style: const TextStyle(color: AppColors.teal),
+            ),
+          ],
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final tag = RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: dot + Offset(0, 8 + tp.height / 2 + 3),
+          width: tp.width + 12,
+          height: tp.height + 6,
+        ),
+        const Radius.circular(10),
+      );
+      canvas.drawRRect(
+        tag,
+        Paint()..color = Colors.white.withValues(alpha: 0.88),
+      );
+      tp.paint(canvas, tag.outerRect.topLeft + const Offset(6, 3));
+      canvas.restore();
+    }
   }
 
   void _paintPins(Canvas canvas, Offset center, double r) {
@@ -674,6 +881,22 @@ class GlobePainter extends CustomPainter {
           Paint()
             ..color = _pinColor.withValues(alpha: 0.5 * (1 - pulse) * fade),
         );
+      }
+      if (crystal > 0.5) {
+        // Crystal: a glowing white node, like the design's network lights.
+        canvas.drawCircle(
+          o,
+          9,
+          Paint()
+            ..color = Colors.white.withValues(alpha: 0.55 * fade)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+        );
+        canvas.drawCircle(
+          o,
+          3,
+          Paint()..color = Colors.white.withValues(alpha: fade),
+        );
+        continue;
       }
       // Soft halo, then a white dot with a dark ring.
       canvas.drawCircle(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/content.dart';
+import '../screens/country_screen.dart';
+import '../screens/decide_screen.dart';
 import '../screens/explore_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/inspect_screen.dart';
@@ -21,7 +23,16 @@ final appRouter = GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (context, state, shell) => TabShell(shell: shell),
       branches: [
-        StatefulShellBranch(routes: [_tab('/home', const HomeScreen())]),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/home',
+              builder: (context, state) => HomeScreen(
+                variant: HomeVariant.fromName(state.uri.queryParameters['v']),
+              ),
+            ),
+          ],
+        ),
         StatefulShellBranch(
           routes: [_tab('/sessions', const SessionsScreen())],
         ),
@@ -41,6 +52,16 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/explore',
       builder: (context, state) => ExploreScreen(
+        kind: InspectKind.fromName(state.uri.queryParameters['intent']),
+      ),
+    ),
+    GoRoute(path: '/decide', builder: (context, state) => const DecideScreen()),
+    GoRoute(
+      path: '/country/:id',
+      redirect: (context, state) =>
+          cityById(state.pathParameters['id']!) == null ? '/home' : null,
+      builder: (context, state) => CountryScreen(
+        city: cityById(state.pathParameters['id']!)!,
         kind: InspectKind.fromName(state.uri.queryParameters['intent']),
       ),
     ),

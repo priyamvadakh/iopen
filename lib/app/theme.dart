@@ -10,10 +10,10 @@ abstract final class AppColors {
   static Color get tealTint =>
       dark ? const Color(0xFF173A3F) : const Color(0xFFE3F4F5);
   static Color get ink =>
-      dark ? const Color(0xFFE8F2F1) : const Color(0xFF10202A);
+      dark ? const Color(0xFFE8F2F1) : const Color(0xFF0F1B3D);
   // 5.6:1 on white (light) and on the dark surface, passes WCAG AA.
   static Color get muted =>
-      dark ? const Color(0xFF9DB2B3) : const Color(0xFF5B6B73);
+      dark ? const Color(0xFF9DB2B3) : const Color(0xFF5E6B80);
   static Color get background =>
       dark ? const Color(0xFF0B1A1F) : const Color(0xFFF4FAFA);
   static Color get surface => dark ? const Color(0xFF15282E) : Colors.white;

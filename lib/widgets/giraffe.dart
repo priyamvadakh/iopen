@@ -148,3 +148,102 @@ class GiraffeIconPainter extends CustomPainter {
   bool shouldRepaint(GiraffeIconPainter oldDelegate) =>
       oldDelegate.rounded != rounded;
 }
+
+/// Giraffe-skin network: Voronoi cells with rounded corners, cut out of a
+/// faint [color] so only the network between them shows.
+class GiraffePatternPainter extends CustomPainter {
+  const GiraffePatternPainter({
+    required this.color,
+    this.cell = 62,
+    this.gap = 5,
+    this.seed = 7,
+  });
+
+  final Color color;
+
+  /// Rough width of one cell, in pixels.
+  final double cell;
+
+  /// Half the width of the network between cells.
+  final double gap;
+  final int seed;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(seed);
+    final points = <Offset>[];
+    final rowH = cell * 0.88;
+    for (var row = -2; row * rowH < size.height + cell * 2; row++) {
+      final shift = row.isOdd ? cell / 2 : 0.0;
+      for (var col = -2; col * cell < size.width + cell * 2; col++) {
+        points.add(
+          Offset(
+            col * cell + shift + (random.nextDouble() - 0.5) * cell * 0.7,
+            row * rowH + (random.nextDouble() - 0.5) * cell * 0.7,
+          ),
+        );
+      }
+    }
+    final bounds = Offset.zero & size;
+    canvas.saveLayer(bounds, Paint());
+    canvas.drawRect(bounds, Paint()..color = color);
+    final cut = Paint()..blendMode = BlendMode.dstOut;
+    for (final p in points) {
+      if (!bounds.inflate(cell).contains(p)) continue;
+      final poly = _cell(p, points);
+      if (poly.length >= 3) canvas.drawPath(_rounded(poly), cut);
+    }
+    canvas.restore();
+  }
+
+  /// The Voronoi cell around [p], pulled in by [gap] on every side.
+  List<Offset> _cell(Offset p, List<Offset> points) {
+    final r = cell * 1.6;
+    var poly = [
+      p + Offset(-r, -r),
+      p + Offset(r, -r),
+      p + Offset(r, r),
+      p + Offset(-r, r),
+    ];
+    for (final q in points) {
+      final d = q - p;
+      if (d == Offset.zero || d.distance > cell * 2.4) continue;
+      // Keep the side of the bisector nearer p, less the gap.
+      final n = d / d.distance;
+      final limit = d.distance / 2 - gap;
+      double side(Offset x) => (x - p).dx * n.dx + (x - p).dy * n.dy - limit;
+      final next = <Offset>[];
+      for (var i = 0; i < poly.length; i++) {
+        final a = poly[i], b = poly[(i + 1) % poly.length];
+        final sa = side(a), sb = side(b);
+        if (sa <= 0) next.add(a);
+        if ((sa <= 0) != (sb <= 0)) {
+          next.add(Offset.lerp(a, b, sa / (sa - sb))!);
+        }
+      }
+      poly = next;
+      if (poly.length < 3) return poly;
+    }
+    return poly;
+  }
+
+  /// A smooth closed path through the polygon's corners, rounding each.
+  static Path _rounded(List<Offset> poly) {
+    final n = poly.length;
+    Offset mid(int i) => Offset.lerp(poly[i % n], poly[(i + 1) % n], 0.5)!;
+    final path = Path()..moveTo(mid(0).dx, mid(0).dy);
+    for (var i = 1; i <= n; i++) {
+      final corner = poly[i % n];
+      final m = mid(i);
+      path.quadraticBezierTo(corner.dx, corner.dy, m.dx, m.dy);
+    }
+    return path..close();
+  }
+
+  @override
+  bool shouldRepaint(GiraffePatternPainter old) =>
+      old.color != color ||
+      old.cell != cell ||
+      old.gap != gap ||
+      old.seed != seed;
+}

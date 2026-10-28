@@ -44,91 +44,71 @@ class _ExploreScreenState extends State<ExploreScreen> {
     ].where((s) => s.cities.isNotEmpty).toList();
 
     return Scaffold(
-      body: AquaBackground(
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(20, top + 8, 20, 28),
+      body: CrystalBackground(
+        child: Stack(
           children: [
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: AppBackButton(),
-            ),
-            const SizedBox(height: 16),
-            Text('Explore by Country', style: AppText.display),
-            const SizedBox(height: 6),
-            Text(
-              widget.kind == null
-                  ? 'Find a local Guide and see the reality before you go.'
-                  : 'Where is the ${widget.kind!.label.toLowerCase()} you want to check?',
-              style: AppText.body,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              onChanged: (v) => setState(() => _query = v),
-              style: AppText.label.copyWith(fontWeight: FontWeight.w500),
-              decoration: InputDecoration(
-                hintText: 'Search a city or country',
-                hintStyle: AppText.body,
-                prefixIcon: Icon(Icons.search, color: AppColors.muted),
-                filled: true,
-                fillColor: AppColors.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                  borderSide: BorderSide(color: AppColors.border),
+            Positioned(top: 0, right: 0, child: GlobeCorner(width: top + 150)),
+            ListView(
+              padding: EdgeInsets.fromLTRB(16, top + 12, 16, 28),
+              children: [
+                PageHeader(
+                  title: 'Explore by Country',
+                  subtitle: widget.kind == null
+                      ? 'Find a local Guide and see the reality before you go.'
+                      : 'Where is the ${widget.kind!.label.toLowerCase()} you '
+                            'want to check?',
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                  borderSide: BorderSide(color: AppColors.border),
+                const SizedBox(height: 16),
+                GlassSearchField(
+                  hint: 'Search by keyword',
+                  onChanged: (v) => setState(() => _query = v),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                  borderSide: const BorderSide(
-                    color: AppColors.teal,
-                    width: 1.5,
+                if (sections.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 48),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.travel_explore,
+                          size: 40,
+                          color: AppColors.teal,
+                        ),
+                        const SizedBox(height: 10),
+                        Text('No Guides there yet', style: AppText.section),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Try another city or country.',
+                          style: AppText.body,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            ),
-            if (sections.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 48),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.travel_explore,
-                      size: 40,
-                      color: AppColors.teal,
-                    ),
-                    const SizedBox(height: 10),
-                    Text('No Guides there yet', style: AppText.section),
-                    const SizedBox(height: 4),
-                    Text('Try another city or country.', style: AppText.body),
-                  ],
-                ),
-              ),
-            for (final s in sections) ...[
-              const SizedBox(height: 28),
-              SectionHeader(s.region.name, subtitle: s.region.subtitle),
-              const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.74,
-                children: [
-                  for (final c in s.cities)
-                    _CountryCard(
-                      city: c,
-                      onTap: () => context.push(
-                        widget.kind == null
-                            ? '/city/${c.id}'
-                            : '/city/${c.id}?intent=${widget.kind!.name}',
-                      ),
-                    ),
+                for (final s in sections) ...[
+                  const SizedBox(height: 22),
+                  SectionHeader(s.region.name, subtitle: s.region.subtitle),
+                  const SizedBox(height: 10),
+                  GridView.count(
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.9,
+                    children: [
+                      for (final c in s.cities)
+                        _CountryCard(
+                          city: c,
+                          onTap: () => context.push(
+                            widget.kind == null
+                                ? '/country/${c.id}'
+                                : '/country/${c.id}?intent=${widget.kind!.name}',
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
-              ),
-            ],
+              ],
+            ),
           ],
         ),
       ),
@@ -144,62 +124,136 @@ class _CountryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
+    return Semantics(
+      button: true,
+      label: '${city.country}, ${city.name}',
+      child: GestureDetector(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Photo(city.image, icon: Icons.location_city_outlined),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 6, 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          city.country,
-                          style: AppText.label.copyWith(fontSize: 14),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+        child: Glass(
+          radius: 16,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Photo(city.coverImage, icon: Icons.location_city_outlined),
+                // Glass label sheet with a wavy top edge.
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 62,
+                  child: CustomPaint(
+                    // Bright glass edge along the wave.
+                    foregroundPainter: const _WaveRim(),
+                    child: ClipPath(
+                      clipper: const _WaveTop(),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: AppColors.dark
+                                ? Glass.fill
+                                : [
+                                    Colors.white.withValues(alpha: 0.97),
+                                    const Color(0xFFF2FBFB),
+                                    const Color(0xFFD9F3F5),
+                                  ],
+                          ),
                         ),
-                        Text(
-                          city.name,
-                          style: AppText.small.copyWith(fontSize: 12),
-                          maxLines: 1,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 16, 6, 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      city.country,
+                                      style: AppText.label.copyWith(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: -0.2,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      city.name,
+                                      style: AppText.small.copyWith(
+                                        fontSize: 11,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const ArrowChip(size: 26),
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: AppColors.tealTint,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.chevron_right,
-                      size: 18,
-                      color: AppColors.teal,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+Path _wave(Size size) {
+  final w = size.width;
+  return Path()
+    ..moveTo(0, 12)
+    ..cubicTo(w * 0.3, 2, w * 0.62, 18, w, 2);
+}
+
+/// Gentle wave along the top of the card's label sheet.
+class _WaveTop extends CustomClipper<Path> {
+  const _WaveTop();
+
+  @override
+  Path getClip(Size size) => _wave(size)
+    ..lineTo(size.width, size.height)
+    ..lineTo(0, size.height)
+    ..close();
+
+  @override
+  bool shouldReclip(_WaveTop oldClipper) => false;
+}
+
+/// White highlight with a soft aqua glow on the label sheet's wavy edge.
+class _WaveRim extends CustomPainter {
+  const _WaveRim();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = _wave(size);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..color = const Color(0xFF8FEAEE).withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = Colors.white,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_WaveRim oldDelegate) => false;
 }

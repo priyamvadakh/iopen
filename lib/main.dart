@@ -37,7 +37,8 @@ class GuideApp extends StatefulWidget {
 class _GuideAppState extends State<GuideApp> {
   // Every launch (and every browser refresh) opens on the first onboarding
   // screen, which then lands on Home.
-  bool _onboarding = true;
+  // `?nointro` (before the #) skips it, for the side-by-side variations.
+  bool _onboarding = !Uri.base.queryParameters.containsKey('nointro');
 
   @override
   void initState() {
@@ -66,7 +67,7 @@ class _GuideAppState extends State<GuideApp> {
 
   @override
   Widget build(BuildContext context) {
-    // The 🌙 / ☀️ switch on Home sets the whole app's theme.
+    // The dark mode switch in Profile sets the whole app's theme.
     return ValueListenableBuilder(
       valueListenable: globeLight,
       builder: (context, light, _) {
