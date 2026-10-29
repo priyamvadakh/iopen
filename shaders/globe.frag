@@ -192,8 +192,8 @@ vec4 surface(vec3 n, float lat, float lng, vec2 p, float curve) {
   return color;
 }
 
-// Teal crystal globe: deep teal glass sea, frosted aqua continents, a white
-// hairline grid, strong gloss and a bright aqua rim.
+// Teal crystal globe: white glass sea, mid-teal continents, a white
+// hairline grid, strong gloss and a bright rim.
 vec4 crystalSurface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float z = n.z;
   float latDeg = lat * DEG;
@@ -204,8 +204,8 @@ vec4 crystalSurface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float lit = 0.5 + 0.5 * light;
 
   float land = landAt(uv);
-  vec3 sea = mix(vec3(0.02, 0.3, 0.37), vec3(0.17, 0.62, 0.68), lit);
-  vec3 ground = mix(vec3(0.5, 0.83, 0.86), vec3(0.84, 0.97, 0.98), lit);
+  vec3 sea = mix(vec3(0.8, 0.93, 0.94), vec3(0.97, 1.0, 1.0), lit);
+  vec3 ground = mix(vec3(0.3, 0.62, 0.66), vec3(0.5, 0.8, 0.82), lit);
   vec4 color = mix(vec4(sea * 0.92, 0.92), vec4(ground * 0.97, 0.97), land);
 
   // Faint white grid every 15°.
@@ -216,26 +216,18 @@ vec4 crystalSurface(vec3 n, float lat, float lng, vec2 p, float curve) {
   float grid = (1.0 - smoothstep(0.2, 0.9, min(dLat, dLng))) * 0.16;
   color = color * (1.0 - grid) + vec4(vec3(grid), grid);
 
-  // Gloss, like polished glass: a crisp specular dot, a curved window
-  // reflection hugging the top edge and a glossy sheen across the sea.
+  // Gloss, like polished glass: a crisp specular dot and a glossy sheen
+  // across the sea. No reflection along the top edge: it read as a white
+  // line.
   vec3 halfVec = normalize(sun + vec3(0.0, 0.0, 1.0));
   float nh = max(dot(n, halfVec), 0.0);
   float spec = (pow(nh, 400.0) * 0.5 + pow(nh, 40.0) * 0.04) * curve;
-  float d = length(p);
-  float topEdge = smoothstep(0.05, -0.55, p.y);
-  float window = smoothstep(0.8, 0.9, d) * (1.0 - smoothstep(0.93, 0.975, d));
-  // Reflections only once the map has wrapped into a sphere.
-  float round3 = curve * curve * curve;
-  spec += window * topEdge * 0.5 * round3;
-  // A second, thinner reflection just inside it.
-  float inner = smoothstep(0.7, 0.73, d) * (1.0 - smoothstep(0.74, 0.77, d));
-  spec += inner * topEdge * smoothstep(0.2, -0.4, p.x) * 0.22 * round3;
   spec += (1.0 - land) * pow(nh, 6.0) * 0.1 * curve;
   color += vec4(vec3(spec), spec);
 
   // Bright aqua rim where the glass curves away.
   float fresnel = pow(1.0 - z, 2.0) * curve;
-  color = mix(color, vec4(0.78, 1.0, 1.0, 1.0), fresnel * 0.7);
+  color = mix(color, vec4(0.88, 0.98, 0.98, 1.0), fresnel * 0.6);
   return color;
 }
 
@@ -298,9 +290,10 @@ void main() {
     // No glow around the light globe, just its outline.
     float glow = exp(-(d - 1.0) * 10.0) * 0.65 * (1.0 - uLight);
     vec3 glowColor = mix(RIM, vec3(0.72, 0.86, 0.83), uLight);
-    // Crystal: a wide soft aqua halo.
-    glow = mix(glow, exp(-(d - 1.0) * 7.0) * 0.55, uCrystal);
-    glowColor = mix(glowColor, vec3(0.45, 0.88, 0.92), uCrystal);
+    // Crystal: a thin, faint aqua halo hugging the edge, so the page
+    // above stays white.
+    glow = mix(glow, exp(-(d - 1.0) * 18.0) * 0.35, uCrystal);
+    glowColor = mix(glowColor, vec3(0.34, 0.82, 0.78), uCrystal);
     float a = glow * smoothstep(1.0, 1.0 + edge, d);
     fragColor = vec4(glowColor * a, a);
     return;

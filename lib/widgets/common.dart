@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -305,34 +306,36 @@ class GlassSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Glass(
-      radius: 30,
-      child: SizedBox(
-        height: 50,
-        child: Row(
-          children: [
-            const SizedBox(width: 16),
-            Icon(Icons.search_rounded, color: AppColors.ink, size: 24),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                readOnly: onTap != null,
-                onTap: onTap,
-                onChanged: onChanged,
-                style: AppText.label.copyWith(fontWeight: FontWeight.w500),
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  border: InputBorder.none,
-                  hintText: hint,
-                  hintStyle: AppText.body,
-                ),
+    final dark = AppColors.dark;
+    final field = Row(
+      children: [
+        const SizedBox(width: 16),
+        Icon(
+          CupertinoIcons.search,
+          color: dark ? AppColors.ink : const Color(0xFF1B2433),
+          size: 23,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextField(
+            readOnly: onTap != null,
+            onTap: onTap,
+            onChanged: onChanged,
+            style: AppText.label.copyWith(fontWeight: FontWeight.w500),
+            decoration: InputDecoration(
+              isCollapsed: true,
+              border: InputBorder.none,
+              hintText: hint,
+              hintStyle: AppText.body.copyWith(
+                color: dark ? null : const Color(0xFF8C97A6),
               ),
             ),
-            const SizedBox(width: 16),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(width: 16),
+      ],
     );
+    return Glass(radius: 30, child: SizedBox(height: 50, child: field));
   }
 }
 
@@ -436,25 +439,8 @@ class CrystalBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (AppColors.dark) return AquaBackground(child: child);
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFF2FBFB), Color(0xFFE6F6F7), Color(0xFFDDF2F4)],
-        ),
-      ),
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(-0.9, 0.2),
-            radius: 0.9,
-            colors: [Color(0x33FFFFFF), Color(0x00FFFFFF)],
-          ),
-        ),
-        child: child,
-      ),
-    );
+    // Plain white, like the app.
+    return ColoredBox(color: Colors.white, child: child);
   }
 }
 
@@ -487,7 +473,7 @@ class SectionHeader extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Text(title, style: AppText.title.copyWith(fontSize: 21)),
+              child: Text(title, style: AppText.title.copyWith(fontSize: 18)),
             ),
             if (onSeeAll != null)
               TextButton(
@@ -497,14 +483,16 @@ class SectionHeader extends StatelessWidget {
                       ? const Color(0xFF8EE3E8)
                       : AppColors.tealDark,
                   padding: const EdgeInsets.only(left: 8),
-                  textStyle: AppText.label.copyWith(fontSize: 15),
+                  textStyle: AppText.label.copyWith(fontSize: 13),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('See all'),
-                    SizedBox(width: 2),
-                    Icon(Icons.chevron_right_rounded, size: 22),
+                    SizedBox(width: 1),
+                    Icon(Icons.chevron_right_rounded, size: 18),
                   ],
                 ),
               ),
@@ -512,7 +500,16 @@ class SectionHeader extends StatelessWidget {
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 2),
-          Text(subtitle!, style: AppText.small),
+          // Always one line: long subtitles shrink to fit.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              subtitle!,
+              maxLines: 1,
+              style: AppText.small.copyWith(fontSize: 12),
+            ),
+          ),
         ],
       ],
     );
@@ -698,7 +695,8 @@ void showComingSoon(BuildContext context, String what) {
     ..showSnackBar(SnackBar(content: Text('$what is not built yet.')));
 }
 
-/// Soft white-to-aqua page background used across the app.
+/// Page background used across the app: white, or a soft aqua fade in the
+/// dark theme.
 class AquaBackground extends StatelessWidget {
   const AquaBackground({super.key, required this.child});
 
@@ -706,6 +704,8 @@ class AquaBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Plain white in the light theme, like the app.
+    if (!AppColors.dark) return ColoredBox(color: Colors.white, child: child);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(

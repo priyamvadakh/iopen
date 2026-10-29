@@ -10,12 +10,16 @@ import '../data/content.dart';
 import '../widgets/common.dart';
 import '../widgets/giraffe.dart';
 import '../widgets/globe.dart';
+import '../widgets/liquid_glass_edge.dart';
 import 'globe_screen.dart';
 
-/// The three Home layouts shown side by side at /variations.html.
+/// The Home layouts shown side by side at /variations.html.
 enum HomeVariant {
-  /// The PDF's cards, flipping over a hinge like a flip deck.
+  /// The PDF's cards, flipping vertically over a hinge like a flip deck.
   coverflow,
+
+  /// The same page, with the cards turning horizontally like a book's.
+  book,
 
   /// A fanned hand of cards.
   fan,
@@ -78,7 +82,9 @@ class _HomeScreenState extends State<HomeScreen>
         widget.variant == HomeVariant.bento ||
         widget.variant == HomeVariant.scan;
     // The flip book, with the country globe pinned under it.
-    final flip = widget.variant == HomeVariant.coverflow;
+    final flip =
+        widget.variant == HomeVariant.coverflow ||
+        widget.variant == HomeVariant.book;
     // These two open on a light header instead of the photo slider.
     final scan = widget.variant == HomeVariant.scan;
     final compact = flip || scan;
@@ -90,9 +96,9 @@ class _HomeScreenState extends State<HomeScreen>
       Padding(
         padding: EdgeInsets.fromLTRB(
           16,
-          compact ? 14 : 10,
+          compact ? 8 : 10,
           16,
-          compact ? 18 : 0,
+          compact ? 26 : 0,
         ),
         child: search,
       ),
@@ -151,8 +157,11 @@ class _HomeScreenState extends State<HomeScreen>
                   onSeeAll: () => context.push('/decide'),
                 ),
               ),
-              SizedBox(height: flip ? 14 : 4),
-              _DecideCarousel(fan: widget.variant == HomeVariant.fan),
+              SizedBox(height: flip ? 18 : 4),
+              _DecideCarousel(
+                fan: widget.variant == HomeVariant.fan,
+                book: widget.variant == HomeVariant.book,
+              ),
             ],
           ),
         ),
@@ -273,17 +282,16 @@ class _HomeScreenState extends State<HomeScreen>
 class _PinnedCountries extends StatelessWidget {
   const _PinnedCountries({required this.reveal, required this.bottomInset});
 
-  /// Raises the globe so its cap shows above the floating tab bar.
-  static const lift = 34.0;
+  /// Shifts the globe up (positive) or down (negative) against the tab bar.
+  static const lift = -26.0;
 
   final Animation<double> reveal;
   final double bottomInset;
 
   @override
   Widget build(BuildContext context) {
-    final page = AppColors.dark
-        ? AppColors.background
-        : const Color(0xFFE6F6F7);
+    // Plain white behind the section, so the globe's glow does the colour.
+    final page = AppColors.dark ? AppColors.background : Colors.white;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -303,7 +311,7 @@ class _PinnedCountries extends StatelessWidget {
               curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+              padding: const EdgeInsets.fromLTRB(18, 26, 18, 0),
               child: SectionHeader(
                 'Explore by Country',
                 subtitle: 'Find a Guide in the country you want to inspect.',
@@ -1070,7 +1078,7 @@ class _CompactHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = math.max(MediaQuery.paddingOf(context).top, 28.0);
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, top + 10, 16, 16),
+      padding: EdgeInsets.fromLTRB(20, top + 4, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1144,21 +1152,21 @@ class _WalletChip extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Glass(
-          radius: 14,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          radius: 12,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
                 Icons.account_balance_wallet_outlined,
-                size: 19,
+                size: 16,
                 color: AppColors.teal,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
                 'AED 120.00',
                 style: AppText.label.copyWith(
-                  fontSize: 14,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1173,10 +1181,14 @@ class _WalletChip extends StatelessWidget {
 /// Cover-flow of "See Before You Decide" cards: the centre card faces you,
 /// the ones either side turn away.
 class _DecideCarousel extends StatefulWidget {
-  const _DecideCarousel({required this.fan});
+  const _DecideCarousel({required this.fan, this.book = false});
 
   /// A fanned hand of cards; otherwise the PDF's cover-flow.
   final bool fan;
+
+  /// The flip book's pages turn horizontally, like a book's, instead of
+  /// vertically over a hinge.
+  final bool book;
 
   @override
   State<_DecideCarousel> createState() => _DecideCarouselState();
@@ -1221,6 +1233,9 @@ class _FlipPage {
 class _DecideCarouselState extends State<_DecideCarousel> {
   /// Not fanned: the cards flip vertically over a hinge.
   bool get _flip => !widget.fan;
+
+  /// Flip book turning horizontally, like a book.
+  bool get _book => _flip && widget.book;
   Timer? _auto;
 
   static final _countries = [
@@ -1266,7 +1281,11 @@ class _DecideCarouselState extends State<_DecideCarousel> {
   static final _start = _kinds.indexOf(InspectKind.car);
   late final PageController _controller = PageController(
     // One swipe of this width moves the deck by one card.
-    viewportFraction: widget.fan ? 0.42 : 0.37,
+    viewportFraction: widget.fan
+        ? 0.42
+        : widget.book
+        ? 0.8
+        : 0.37,
     initialPage: _flip ? 0 : _start,
   );
 
@@ -1278,9 +1297,14 @@ class _DecideCarouselState extends State<_DecideCarousel> {
   }
 
   /// Page height, sized in [build] so the book fills the room between
-  /// the dial and the search bar; the spine runs just under the top page.
+  /// the section title and the country globe; the spine runs just under
+  /// the top page.
   double _pageH = 216;
   double get _spineY => _pageH + 8;
+  double get _bookH => _pageH * 2 + 18;
+
+  /// Page width, as a share of the row.
+  static const _pageW = 0.78;
 
   /// Flip book: every page hinges on one spine across the middle. Pages
   /// still to come stand above it, leaning back a little more each; the
@@ -1303,6 +1327,7 @@ class _DecideCarouselState extends State<_DecideCarousel> {
         (math.sin(angle.clamp(0.0, math.pi)) * 0.4 +
                 (delta > 0 ? math.min(delta, 2.0) * 0.08 : 0))
             .clamp(0.0, 0.5);
+    final page = _glassPage(i);
     return Positioned(
       left: 0,
       right: 0,
@@ -1330,9 +1355,9 @@ class _DecideCarouselState extends State<_DecideCarousel> {
                     ? Transform(
                         alignment: Alignment.center,
                         transform: Matrix4.rotationX(math.pi),
-                        child: _FlipPageCard(page: _pages[i]),
+                        child: page,
                       )
-                    : _FlipPageCard(page: _pages[i]),
+                    : page,
               ),
             ),
           ),
@@ -1340,6 +1365,88 @@ class _DecideCarouselState extends State<_DecideCarousel> {
       ),
     );
   }
+
+  /// How far the two pages underneath peek out on the right in all; the
+  /// book is shifted left by half of it, so page and edges sit centred.
+  static const _peek = 12.0;
+
+  /// Room above and below the book's page.
+  static const _pad = 6.0;
+
+  /// Book: one page at a time, bound on a spine down its left edge. The
+  /// page being read turns over the spine, and the pages to come wait
+  /// underneath, their edges peeking out on the right.
+  Widget _bookCard(int i, double delta, double w) {
+    final d = delta.abs();
+    // Turned pages are gone; only the next two wait underneath.
+    if (delta <= -1 || delta > 2.5) {
+      return const Positioned(left: 0, top: 0, child: SizedBox());
+    }
+    final double angle, dx, scale, opacity, shade;
+    if (delta >= 0) {
+      // Waiting underneath, a little smaller and nudged right.
+      angle = 0;
+      dx = math.min(delta, 2) * (_peek / 2 + w * 0.04) - _peek / 2;
+      scale = 1 - math.min(delta, 2) * 0.04;
+      opacity = (2.5 - delta).clamp(0.0, 1.0);
+      shade = math.min(delta, 2) * 0.12;
+    } else {
+      // Turning over the spine, the free edge swinging across to the left.
+      final t = Curves.easeInOut.transform(d);
+      angle = -t * 1.9;
+      dx = -_peek / 2;
+      scale = 1;
+      opacity = 1 - Curves.easeIn.transform(((t - 0.7) / 0.3).clamp(0.0, 1.0));
+      shade = math.sin(t * math.pi / 2) * 0.35;
+    }
+    return Positioned(
+      left: 0,
+      right: 0,
+      top: _pad,
+      height: _bookH - _pad * 2,
+      child: Center(
+        child: SizedBox(
+          width: w,
+          child: Opacity(
+            opacity: opacity,
+            child: Transform(
+              alignment: Alignment.centerLeft,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.0012)
+                ..translateByDouble(dx, 0, 0, 1)
+                ..rotateY(angle)
+                ..scaleByDouble(scale, scale, 1, 1),
+              child: ColorFiltered(
+                colorFilter: ColorFilter.mode(
+                  const Color(0xFF0F1B3D).withValues(alpha: shade),
+                  BlendMode.srcATop,
+                ),
+                child: _glassPage(i),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// A flip page with the same liquid-glass edge as the tab bar. The
+  /// vertical flip's half-pages are short, so their text is smaller.
+  Widget _glassPage(int i) => Stack(
+    fit: StackFit.expand,
+    children: [
+      _FlipPageCard(page: _pages[i], compact: !_book),
+      const IgnorePointer(
+        child: CustomPaint(
+          painter: LiquidGlassEdgePainter(
+            radius: 20,
+            rim: 6,
+            flares: [0.3, 0.8],
+          ),
+        ),
+      ),
+    ],
+  );
 
   void _step(int by) {
     final page = (_controller.page ?? _start.toDouble()).round() + by;
@@ -1397,19 +1504,16 @@ class _DecideCarouselState extends State<_DecideCarousel> {
     // Fills what's left between the search bar and the pinned country
     // globe: header 150, search 74, gaps 8 + 18, book frame 18.
     final globe = _CountryGlobe.pinnedHeight + _PinnedCountries.lift;
-    _pageH =
-        ((mq.size.height - mq.padding.top - mq.padding.bottom - 268 - globe) /
-                2)
-            .clamp(110.0, 220.0);
-    final deck = _deck(context);
-    if (!_flip) return deck;
-    // Pulled up under the search bar.
-    return Transform.translate(offset: const Offset(0, -12), child: deck);
+    // The header keeps at least 28 above it even with no status bar.
+    final top = math.max(mq.padding.top, 28.0);
+    _pageH = ((mq.size.height - top - mq.padding.bottom - 204 - globe) / 2)
+        .clamp(100.0, 220.0);
+    return _deck(context);
   }
 
   Widget _deck(BuildContext context) {
     return SizedBox(
-      height: widget.fan ? 220 : _pageH * 2 + 18,
+      height: widget.fan ? 220 : _bookH,
       child: Stack(
         children: [
           LayoutBuilder(
@@ -1424,29 +1528,46 @@ class _DecideCarouselState extends State<_DecideCarousel> {
                           _controller.position.haveDimensions
                       ? _controller.page!
                       : (_flip ? 0.0 : _start.toDouble());
-                  // Farthest first, so the centre card paints on top.
+                  // Farthest first, so the centre card paints on top. In the
+                  // book, the page being turned stays on top of the pages
+                  // underneath for the whole turn.
+                  int depth(int i) => _book && i - page < 0 ? 1 : 0;
                   final order = List.generate(_count, (i) => i)
-                    ..sort(
-                      (a, b) => (b - page).abs().compareTo((a - page).abs()),
-                    );
+                    ..sort((a, b) {
+                      final byDepth = depth(a).compareTo(depth(b));
+                      if (byDepth != 0) return byDepth;
+                      return (b - page).abs().compareTo((a - page).abs());
+                    });
                   return Stack(
                     clipBehavior: Clip.none,
                     children: [
                       for (final i in order)
                         widget.fan
                             ? _placed(i, i - page, itemWidth, 200)
+                            : _book
+                            ? _bookCard(
+                                i,
+                                i - page,
+                                constraints.maxWidth * _pageW,
+                              )
                             : _flipCard(
                                 i,
                                 i - page,
-                                constraints.maxWidth * 0.76,
+                                constraints.maxWidth * _pageW,
                               ),
-                      // The spine the pages turn on.
+                      // The spine the pages turn on: across the middle, or
+                      // down the book's left edge.
                       if (_flip)
                         Positioned(
-                          left: constraints.maxWidth * 0.04,
-                          right: constraints.maxWidth * 0.04,
-                          top: _spineY - 2,
-                          height: 4,
+                          left: _book
+                              ? constraints.maxWidth * (1 - _pageW) / 2 -
+                                    _peek / 2 -
+                                    2
+                              : constraints.maxWidth * 0.04,
+                          right: _book ? null : constraints.maxWidth * 0.04,
+                          width: _book ? 4 : null,
+                          top: _book ? _pad + 6 : _spineY - 2,
+                          height: _book ? _bookH - _pad * 2 - 12 : 4,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(2),
@@ -1470,8 +1591,9 @@ class _DecideCarouselState extends State<_DecideCarousel> {
           // Invisible pages on top take the swipes and taps.
           PageView.builder(
             controller: _controller,
-            // The flip deck turns with up and down swipes.
-            scrollDirection: _flip ? Axis.vertical : Axis.horizontal,
+            // The flip deck turns with up and down swipes; the book with
+            // left and right ones.
+            scrollDirection: _flip && !_book ? Axis.vertical : Axis.horizontal,
             itemCount: _count,
             itemBuilder: (context, i) => Semantics(
               button: true,
@@ -1485,10 +1607,14 @@ class _DecideCarouselState extends State<_DecideCarousel> {
             ),
           ),
           Positioned(
-            left: 12,
-            top: widget.fan ? 90 : _spineY - 19,
+            left: _book ? 4 : 12,
+            top: widget.fan
+                ? 90
+                : _book
+                ? _bookH / 2 - 19
+                : _spineY - 19,
             child: GlassIconButton(
-              icon: _flip
+              icon: _flip && !_book
                   ? Icons.keyboard_arrow_up_rounded
                   : Icons.chevron_left_rounded,
               label: 'Previous',
@@ -1497,10 +1623,14 @@ class _DecideCarouselState extends State<_DecideCarousel> {
             ),
           ),
           Positioned(
-            right: 12,
-            top: widget.fan ? 90 : _spineY - 19,
+            right: _book ? 4 : 12,
+            top: widget.fan
+                ? 90
+                : _book
+                ? _bookH / 2 - 19
+                : _spineY - 19,
             child: GlassIconButton(
-              icon: _flip
+              icon: _flip && !_book
                   ? Icons.keyboard_arrow_down_rounded
                   : Icons.chevron_right_rounded,
               label: 'Next',
@@ -1689,9 +1819,12 @@ class _DialTicks extends CustomPainter {
 
 /// A flip-book page: a check type, or a country with its live Guides.
 class _FlipPageCard extends StatelessWidget {
-  const _FlipPageCard({required this.page});
+  const _FlipPageCard({required this.page, this.compact = false});
 
   final _FlipPage page;
+
+  /// Smaller text, for the vertical flip book's short half-pages.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -1700,6 +1833,7 @@ class _FlipPageCard extends StatelessWidget {
       return _BentoTile(
         kind: page.kind!,
         big: true,
+        compact: compact,
         onTap: () => context.push(page.route),
       );
     }
@@ -1711,7 +1845,8 @@ class _FlipPageCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Photo(city.coverImage, icon: Icons.location_city_outlined),
+            // The full-size photo: covers are small crops, blurry this big.
+            Photo(city.image, icon: Icons.location_city_outlined),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -1781,7 +1916,7 @@ class _FlipPageCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: AppText.label.copyWith(
                             color: Colors.white,
-                            fontSize: 17,
+                            fontSize: compact ? 14 : 17,
                             fontWeight: FontWeight.w700,
                             height: 1.15,
                           ),
@@ -1795,6 +1930,7 @@ class _FlipPageCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: AppText.small.copyWith(
                             color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: compact ? 11 : null,
                           ),
                         ),
                       ],
@@ -2123,11 +2259,24 @@ class _BentoTile extends StatelessWidget {
     required this.kind,
     required this.onTap,
     this.big = false,
+    this.compact = false,
   });
 
   final InspectKind kind;
   final VoidCallback onTap;
   final bool big;
+
+  /// Smaller text, for the vertical flip book's short half-pages.
+  final bool compact;
+
+  static const _sharpPhotos = {
+    InspectKind.place: 'loc_streets',
+    InspectKind.car: 'hero_car_live',
+    InspectKind.property: 'hero_property',
+    InspectKind.hotel: 'hero_hotel',
+    InspectKind.restaurant: 'loc_food',
+    InspectKind.tourist: 'area_fahidi',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -2143,7 +2292,12 @@ class _BentoTile extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Photo(kind.card, icon: kind.icon),
+                // Big tiles use a full-size photo where there is one: the
+                // card crops are small and blur when shown this big.
+                Photo(
+                  big ? (_sharpPhotos[kind] ?? kind.card) : kind.card,
+                  icon: kind.icon,
+                ),
                 // Glass sheen across the top, deeper teal along the bottom.
                 const DecoratedBox(
                   decoration: BoxDecoration(
@@ -2185,7 +2339,7 @@ class _BentoTile extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: AppText.label.copyWith(
                                 color: Colors.white,
-                                fontSize: big ? 17 : 13.5,
+                                fontSize: big ? (compact ? 14 : 17) : 13.5,
                                 fontWeight: FontWeight.w700,
                                 height: 1.15,
                               ),
@@ -2197,6 +2351,7 @@ class _BentoTile extends StatelessWidget {
                                 maxLines: 2,
                                 style: AppText.small.copyWith(
                                   color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: compact ? 11 : null,
                                 ),
                               ),
                             ],
@@ -2335,7 +2490,7 @@ class _CountryGlobe extends StatefulWidget {
   static const height = 178.0;
 
   /// The whole pinned block, header included.
-  static const pinnedHeight = height + 70;
+  static const pinnedHeight = height + 82;
 
   /// The bubbles and arc fade in with the rest of Home; the globe doesn't.
   final Animation<double> reveal;
@@ -2348,13 +2503,13 @@ class _CountryGlobeState extends State<_CountryGlobe> {
   /// Bubble centres as (fraction of width, offset from the top), with
   /// their diameters, matching the arc in the design.
   static const _spots = [
-    (0.1, 82.0, 50.0),
-    (0.23, 58.0, 50.0),
-    (0.365, 44.0, 50.0),
-    (0.5, 38.0, 64.0),
-    (0.635, 44.0, 50.0),
-    (0.77, 62.0, 50.0),
-    (0.9, 80.0, 42.0),
+    (0.07, 72.0, 40.0),
+    (0.215, 56.0, 40.0),
+    (0.36, 46.0, 40.0),
+    (0.5, 42.0, 52.0),
+    (0.64, 46.0, 40.0),
+    (0.785, 56.0, 40.0),
+    (0.93, 70.0, 34.0),
   ];
 
   /// Where the globe's top edge sits, just under the bubble names.
@@ -2385,7 +2540,8 @@ class _CountryGlobeState extends State<_CountryGlobe> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final w = constraints.maxWidth;
-          final r = w * 0.74;
+          // A rounder dome, curving away well inside the screen edges.
+          final r = w * 0.72;
           final globeCenter = Offset(w / 2, _capTop + r);
           final centers = [for (final s in _spots) Offset(w * s.$1, s.$2)];
           return Stack(
@@ -2477,8 +2633,7 @@ class _ArcPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final t = progress.value;
     if (t <= 0) return;
-    // Frosted glass band between the arc and the globe, then its bright
-    // rim with a soft glow.
+    // Frosted glass band between the arc and the globe.
     final band = Rect.fromCircle(center: globeCenter, radius: arcRadius);
     canvas.drawCircle(
       globeCenter,
@@ -2488,38 +2643,11 @@ class _ArcPainter extends CustomPainter {
           colors: [
             Colors.white.withValues(alpha: 0),
             Colors.white.withValues(alpha: 0),
-            Colors.white.withValues(alpha: (AppColors.dark ? 0.06 : 0.45) * t),
+            Colors.white.withValues(alpha: (AppColors.dark ? 0.06 : 0.25) * t),
           ],
           stops: const [0, 0.82, 1],
         ).createShader(band),
     );
-    // The rim grows out both ways from the top of the arc.
-    const half = math.pi * 0.42;
-    final sweep = half * 2 * t;
-    final start = -math.pi / 2 - sweep / 2;
-    canvas.drawArc(
-      band,
-      start,
-      sweep,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 10
-        ..color = const Color(0xFF8FEAEE).withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
-    );
-    canvas.drawArc(
-      band,
-      start,
-      sweep,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6
-        ..strokeCap = StrokeCap.round
-        ..color = Colors.white.withValues(alpha: AppColors.dark ? 0.4 : 0.95),
-    );
-
     final line = Paint()
       ..color = AppColors.teal.withValues(alpha: 0.28 * t)
       ..strokeWidth = 1.2
@@ -2604,7 +2732,11 @@ class _CityBubble extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Colors.white, Color(0xFFA9ECF0), Colors.white],
+                  colors: [
+                    Color(0xFFB5F1F4),
+                    Color(0xFF2FB4BE),
+                    Color(0xFF8FE6EB),
+                  ],
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -2660,7 +2792,7 @@ class _CityBubble extends StatelessWidget {
               style: AppText.small.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w600,
-                fontSize: 12,
+                fontSize: 10,
               ),
             ),
             if (focused)
@@ -2712,7 +2844,7 @@ class _MoreBubble extends StatelessWidget {
               style: AppText.small.copyWith(
                 color: AppColors.ink,
                 fontWeight: FontWeight.w600,
-                fontSize: 12,
+                fontSize: 10,
               ),
             ),
           ],

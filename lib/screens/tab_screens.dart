@@ -8,7 +8,7 @@ import '../app/onboarding_state.dart';
 import '../widgets/common.dart';
 import '../widgets/globe.dart';
 import '../widgets/help_sheet.dart';
-import '../widgets/glass_nav_bar.dart';
+import '../widgets/liquid_glass_nav.dart';
 
 /// Tab scaffold with the floating glass navigation pill. The body extends
 /// behind the pill, and the pill's height is added to the bottom padding so
@@ -23,10 +23,23 @@ class TabShell extends StatelessWidget {
     return Scaffold(
       extendBody: true,
       body: shell,
-      bottomNavigationBar: GlassNavBar(
-        currentIndex: shell.currentIndex,
-        onTap: (i) =>
-            shell.goBranch(i, initialLocation: i == shell.currentIndex),
+      bottomNavigationBar: Builder(
+        builder: (context) {
+          final bottom = MediaQuery.paddingOf(context).bottom;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              bottom > 0 ? bottom - 10 : 10,
+            ),
+            child: LiquidGlassNav(
+              selectedIndex: shell.currentIndex,
+              onChanged: (i) =>
+                  shell.goBranch(i, initialLocation: i == shell.currentIndex),
+            ),
+          );
+        },
       ),
     );
   }

@@ -41,6 +41,15 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+    // On a wide desktop window, the demo opens on both flip options side
+    // by side. Phones, the side-by-side frames themselves and ?single
+    // still get the app on its own.
+    if (window.top === window.self && innerWidth >= 900 &&
+        !location.search.includes('single')) {
+      location.replace('variations.html');
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

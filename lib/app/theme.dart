@@ -15,7 +15,7 @@ abstract final class AppColors {
   static Color get muted =>
       dark ? const Color(0xFF9DB2B3) : const Color(0xFF5E6B80);
   static Color get background =>
-      dark ? const Color(0xFF0B1A1F) : const Color(0xFFF4FAFA);
+      dark ? const Color(0xFF0B1A1F) : Colors.white;
   static Color get surface => dark ? const Color(0xFF15282E) : Colors.white;
   static Color get aqua =>
       dark ? const Color(0xFF12363B) : const Color(0xFFD9F1F2);
@@ -71,21 +71,21 @@ ThemeData buildTheme() {
 /// Shared text styles, so screens keep one clear hierarchy.
 abstract final class AppText {
   static TextStyle get display => GoogleFonts.inter(
-    fontSize: 28,
+    fontSize: 24,
     height: 1.15,
     fontWeight: FontWeight.w700,
     color: AppColors.ink,
     letterSpacing: -0.5,
   );
   static TextStyle get title => GoogleFonts.inter(
-    fontSize: 22,
+    fontSize: 19,
     height: 1.2,
     fontWeight: FontWeight.w700,
     color: AppColors.ink,
     letterSpacing: -0.3,
   );
   static TextStyle get section => GoogleFonts.inter(
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: FontWeight.w700,
     color: AppColors.ink,
     letterSpacing: -0.2,

@@ -25,7 +25,7 @@ class PhoneFrame extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(child: _frame(mq)),
-          if (canOpenDemoPages)
+          if (_showLayoutOptions && canOpenDemoPages)
             const Positioned(
               right: 32,
               top: 0,
@@ -107,6 +107,10 @@ class PhoneFrame extends StatelessWidget {
     );
   }
 }
+
+/// Shows the "Options: 3 Home layouts" link beside the phone. Hidden on
+/// the client demo; set to true to compare layouts again.
+const _showLayoutOptions = false;
 
 /// Glossy pill beside the phone that opens the three Home layouts.
 class _OptionsLink extends StatelessWidget {
