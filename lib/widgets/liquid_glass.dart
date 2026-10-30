@@ -204,7 +204,7 @@ class _GlassBodyPainter extends CustomPainter {
       rrect,
       Colors.white.withValues(alpha: 0.95),
       0,
-      1.5,
+      0.75,
       0,
     );
     _insetShadow(
@@ -212,7 +212,7 @@ class _GlassBodyPainter extends CustomPainter {
       rrect,
       Colors.white.withValues(alpha: 0.55),
       0,
-      -1.5,
+      -0.75,
       0,
     );
     _insetShadow(
@@ -236,8 +236,8 @@ class _GlassBodyPainter extends CustomPainter {
     // Directional rim: bright where the light hits, teal where it bends.
     _ring(
       canvas,
-      rrect.deflate(1),
-      2,
+      rrect.deflate(0.5),
+      1,
       _conic(210, const [
         (0, Colors.white),
         (70, Color(0xFFB7FFF4)),
@@ -249,16 +249,18 @@ class _GlassBodyPainter extends CustomPainter {
       ], rect),
     );
 
-    // Inner refractive rim.
+    // Inner refraction: a soft glow hugging the rim, so the edge reads as
+    // one blended border rather than two lines.
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        rect.deflate(5.5),
-        Radius.circular(math.max(r - 5, 0)),
+        rect.deflate(1.5),
+        Radius.circular(math.max(r - 1, 0)),
       ),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1
-        ..color = Colors.white.withValues(alpha: 0.7),
+        ..color = Colors.white.withValues(alpha: 0.3)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.75),
     );
 
     // Curved specular highlight across the upper half.
@@ -337,8 +339,8 @@ class _GlassBodyPainter extends CustomPainter {
     // Prismatic rim: light splitting into pale spectrum colours.
     _ring(
       canvas,
-      RRect.fromRectAndRadius(rect.deflate(1.75), Radius.circular(r - 1)),
-      1.5,
+      RRect.fromRectAndRadius(rect.deflate(0.75), Radius.circular(r - 0.5)),
+      0.75,
       _conic(0, const [
         (0, Color(0xE6FFFFFF)),
         (40, Color(0xE6FFD6EC)),
