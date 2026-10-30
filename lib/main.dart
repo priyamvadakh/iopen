@@ -37,7 +37,7 @@ class GuideApp extends StatefulWidget {
 class _GuideAppState extends State<GuideApp> {
   // Every launch (and every browser refresh) opens on the first onboarding
   // screen, which then lands on Home.
-  // `?nointro` (before the #) skips it, for the side-by-side variations.
+  // `?nointro` (before the #) skips it.
   bool _onboarding = !Uri.base.queryParameters.containsKey('nointro');
 
   @override

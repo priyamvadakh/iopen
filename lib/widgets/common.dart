@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../app/theme.dart';
 import '../data/content.dart';
+import 'liquid_glass.dart';
 
 /// Bundled photo with a calm placeholder if the file is missing.
 class Photo extends StatelessWidget {
@@ -309,11 +310,11 @@ class GlassSearchField extends StatelessWidget {
     final dark = AppColors.dark;
     final field = Row(
       children: [
-        const SizedBox(width: 16),
+        const SizedBox(width: 20),
         Icon(
           CupertinoIcons.search,
-          color: dark ? AppColors.ink : const Color(0xFF1B2433),
-          size: 23,
+          color: dark ? AppColors.ink : const Color(0xFF1F5E63),
+          size: 22,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -327,7 +328,7 @@ class GlassSearchField extends StatelessWidget {
               border: InputBorder.none,
               hintText: hint,
               hintStyle: AppText.body.copyWith(
-                color: dark ? null : const Color(0xFF8C97A6),
+                color: dark ? null : const Color(0xFF5E7A80),
               ),
             ),
           ),
@@ -335,7 +336,10 @@ class GlassSearchField extends StatelessWidget {
         const SizedBox(width: 16),
       ],
     );
-    return Glass(radius: 30, child: SizedBox(height: 50, child: field));
+    if (dark) {
+      return Glass(radius: 30, child: SizedBox(height: 54, child: field));
+    }
+    return LiquidGlass(radius: 30, height: 54, child: field);
   }
 }
 
@@ -459,14 +463,63 @@ class TopBackButton extends StatelessWidget {
 }
 
 class SectionHeader extends StatelessWidget {
-  const SectionHeader(this.title, {super.key, this.subtitle, this.onSeeAll});
+  const SectionHeader(
+    this.title, {
+    super.key,
+    this.subtitle,
+    this.onSeeAll,
+    this.centered = false,
+  });
 
   final String title;
   final String? subtitle;
   final VoidCallback? onSeeAll;
 
+  /// Title centred, with "See all" in the right column so it doesn't push
+  /// the title off centre.
+  final bool centered;
+
+  Widget _seeAll() => TextButton(
+    onPressed: onSeeAll,
+    style: TextButton.styleFrom(
+      foregroundColor: AppColors.dark
+          ? const Color(0xFF8EE3E8)
+          : AppColors.tealDark,
+      padding: const EdgeInsets.only(left: 8),
+      textStyle: AppText.label.copyWith(fontSize: 13),
+      minimumSize: const Size(0, 32),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    ),
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('See all'),
+        SizedBox(width: 1),
+        Icon(Icons.chevron_right_rounded, size: 18),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    if (centered) {
+      return Row(
+        children: [
+          const Expanded(child: SizedBox()),
+          Text(
+            title,
+            maxLines: 1,
+            style: AppText.title.copyWith(fontSize: 15.5, letterSpacing: 0),
+          ),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: onSeeAll == null ? null : _seeAll(),
+            ),
+          ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -475,27 +528,7 @@ class SectionHeader extends StatelessWidget {
             Expanded(
               child: Text(title, style: AppText.title.copyWith(fontSize: 18)),
             ),
-            if (onSeeAll != null)
-              TextButton(
-                onPressed: onSeeAll,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.dark
-                      ? const Color(0xFF8EE3E8)
-                      : AppColors.tealDark,
-                  padding: const EdgeInsets.only(left: 8),
-                  textStyle: AppText.label.copyWith(fontSize: 13),
-                  minimumSize: const Size(0, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('See all'),
-                    SizedBox(width: 1),
-                    Icon(Icons.chevron_right_rounded, size: 18),
-                  ],
-                ),
-              ),
+            if (onSeeAll != null) _seeAll(),
           ],
         ),
         if (subtitle != null) ...[
@@ -695,8 +728,8 @@ void showComingSoon(BuildContext context, String what) {
     ..showSnackBar(SnackBar(content: Text('$what is not built yet.')));
 }
 
-/// Page background used across the app: white, or a soft aqua fade in the
-/// dark theme.
+/// Page background used across the app: a pale aqua mist, or a soft aqua
+/// fade in the dark theme.
 class AquaBackground extends StatelessWidget {
   const AquaBackground({super.key, required this.child});
 
@@ -704,55 +737,68 @@ class AquaBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Plain white in the light theme, like the app.
-    if (!AppColors.dark) return ColoredBox(color: Colors.white, child: child);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.surface, AppColors.background, AppColors.aqua],
-          stops: [0, 0.55, 1],
+    // Fills the page, so content laid out inside isn't shrink-wrapped.
+    if (!AppColors.dark) {
+      return SizedBox.expand(
+        child: ColoredBox(color: const Color(0xFFEEF8F8), child: child),
+      );
+    }
+    return SizedBox.expand(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppColors.surface, AppColors.background, AppColors.aqua],
+            stops: [0, 0.55, 1],
+          ),
         ),
+        child: child,
       ),
-      child: child,
     );
   }
 }
 
-/// Primary call to action: glossy teal pill with a soft glow.
+/// Primary call to action: glossy teal, 54 tall, with a sheen over its
+/// top half.
 class GlossyButton extends StatelessWidget {
-  const GlossyButton({super.key, required this.onPressed, required this.child});
+  const GlossyButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.expand = true,
+  });
 
   final VoidCallback? onPressed;
   final Widget child;
+
+  /// Fills the width; otherwise hugs its label.
+  final bool expand;
+
+  static const _radius = BorderRadius.all(Radius.circular(AppRadius.button));
 
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
     return DecoratedBox(
-      decoration: ShapeDecoration(
-        shape: const StadiumBorder(
-          side: BorderSide(color: Color(0xCCA6F4F7), width: 1.5),
+      decoration: BoxDecoration(
+        borderRadius: _radius,
+        border: Border.all(
+          color: enabled ? const Color(0x99A6F4F7) : AppColors.border,
         ),
-        shadows: enabled
+        boxShadow: enabled
             ? [
                 BoxShadow(
-                  color: const Color(0xFF3CC7D0).withValues(alpha: 0.45),
-                  blurRadius: 22,
-                  spreadRadius: 1,
-                ),
-                BoxShadow(
-                  color: const Color(0xFF0B4F57).withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
+                  color: AppColors.teal.withValues(alpha: 0.35),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
               ]
             : null,
       ),
       child: Material(
         type: MaterialType.transparency,
-        shape: const StadiumBorder(),
+        borderRadius: _radius,
         clipBehavior: Clip.antiAlias,
         child: Ink(
           decoration: BoxDecoration(
@@ -762,39 +808,39 @@ class GlossyButton extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0xFF2E9AA2),
-                      Color(0xFF136B74),
-                      Color(0xFF0A4D55),
+                      Color(0xFF3FB3BB),
+                      Color(0xFF2E7F87),
+                      Color(0xFF145A63),
                     ],
-                    stops: [0, 0.55, 1],
                   )
                 : null,
           ),
           child: InkWell(
             onTap: onPressed,
             child: SizedBox(
-              height: 58,
-              width: double.infinity,
+              height: 54,
+              width: expand ? double.infinity : null,
               child: Stack(
+                alignment: Alignment.center,
                 children: [
                   if (enabled)
                     const Positioned.fill(
-                      child: CustomPaint(painter: _GlossPainter()),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0x73FFFFFF), Color(0x00FFFFFF)],
+                            stops: [0, 0.5],
+                          ),
+                        ),
+                      ),
                     ),
-                  Center(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
                     child: DefaultTextStyle(
                       style: AppText.label.copyWith(
-                        fontSize: 17,
                         color: enabled ? Colors.white : AppColors.muted,
-                        shadows: enabled
-                            ? const [
-                                Shadow(
-                                  color: Color(0x40000000),
-                                  blurRadius: 2,
-                                  offset: Offset(0, 1),
-                                ),
-                              ]
-                            : null,
                       ),
                       child: child,
                     ),

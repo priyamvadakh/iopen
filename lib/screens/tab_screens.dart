@@ -156,6 +156,7 @@ class SessionsScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 GlossyButton(
                   onPressed: () => context.push('/explore'),
+                  expand: false,
                   child: const Text('Find a guide'),
                 ),
                 const Spacer(flex: 2),

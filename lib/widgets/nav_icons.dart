@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
 /// Hand-drawn tab icons, for shapes the icon fonts don't have.
 enum NavGlyph { house, webcam, wallet }
@@ -16,7 +15,7 @@ class NavItem {
 const navItems = [
   NavItem('Home', glyph: NavGlyph.house),
   NavItem('Sessions', glyph: NavGlyph.webcam),
-  NavItem('Map', icon: Icons.public),
+  NavItem('Map', icon: CupertinoIcons.globe),
   NavItem('Wallet', glyph: NavGlyph.wallet),
   NavItem('Profile', icon: CupertinoIcons.person),
 ];

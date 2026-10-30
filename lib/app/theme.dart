@@ -14,8 +14,7 @@ abstract final class AppColors {
   // 5.6:1 on white (light) and on the dark surface, passes WCAG AA.
   static Color get muted =>
       dark ? const Color(0xFF9DB2B3) : const Color(0xFF5E6B80);
-  static Color get background =>
-      dark ? const Color(0xFF0B1A1F) : Colors.white;
+  static Color get background => dark ? const Color(0xFF0B1A1F) : Colors.white;
   static Color get surface => dark ? const Color(0xFF15282E) : Colors.white;
   static Color get aqua =>
       dark ? const Color(0xFF12363B) : const Color(0xFFD9F1F2);

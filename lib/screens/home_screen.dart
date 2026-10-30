@@ -8,36 +8,12 @@ import '../app/onboarding_state.dart';
 import '../app/theme.dart';
 import '../data/content.dart';
 import '../widgets/common.dart';
-import '../widgets/giraffe.dart';
 import '../widgets/globe.dart';
-import '../widgets/liquid_glass_edge.dart';
+import '../widgets/liquid_glass.dart';
 import 'globe_screen.dart';
 
-/// The Home layouts shown side by side at /variations.html.
-enum HomeVariant {
-  /// The PDF's cards, flipping vertically over a hinge like a flip deck.
-  coverflow,
-
-  /// The same page, with the cards turning horizontally like a book's.
-  book,
-
-  /// A fanned hand of cards.
-  fan,
-
-  /// The globe whole, in the middle of the page, with bento tiles below.
-  bento,
-
-  /// A "Detecting spots" location scanner in the middle, tiles below.
-  scan;
-
-  static HomeVariant fromName(String? name) =>
-      values.asNameMap()[name] ?? coverflow;
-}
-
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.variant = HomeVariant.coverflow});
-
-  final HomeVariant variant;
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -78,204 +54,77 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final middle =
-        widget.variant == HomeVariant.bento ||
-        widget.variant == HomeVariant.scan;
-    // The flip book, with the country globe pinned under it.
-    final flip =
-        widget.variant == HomeVariant.coverflow ||
-        widget.variant == HomeVariant.book;
-    // These two open on a light header instead of the photo slider.
-    final scan = widget.variant == HomeVariant.scan;
-    final compact = flip || scan;
-    final search = GlassSearchField(
-      hint: 'Search for it…',
-      onTap: () => context.push('/explore'),
-    );
     final sections = <Widget>[
       Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          compact ? 8 : 10,
-          16,
-          compact ? 26 : 0,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 22),
+        child: GlassSearchField(
+          hint: 'Search for a location',
+          onTap: () => context.push('/explore'),
         ),
-        child: search,
       ),
-      if (middle && !scan)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-          child: SectionHeader(
-            'Explore by Country',
-            subtitle: 'Find a Guide in the country you want to inspect.',
-            onSeeAll: () => context.push('/explore'),
-          ),
-        ),
-      // The scanner holds everything itself, so it has no tiles below.
-      if (scan)
-        const SizedBox()
-      else if (middle)
-        // Under the middle globe, the header and tiles share one glass card.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-          child: Glass(
-            radius: 26,
-            padding: const EdgeInsets.only(top: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: SectionHeader(
-                    'See Before You Decide',
-                    subtitle:
-                        'Avoid surprises. Inspect with a local Guide through '
-                        'a live video.',
-                    onSeeAll: () => context.push('/decide'),
-                  ),
-                ),
-                const _DecideBento(
-                  padding: EdgeInsets.fromLTRB(10, 12, 10, 10),
-                ),
-              ],
+      Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: SectionHeader(
+                'See Before You Decide',
+                centered: true,
+                onSeeAll: () => context.push('/decide'),
+              ),
             ),
-          ),
-        )
-      else
-        Padding(
-          padding: EdgeInsets.only(top: flip ? 2 : 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: SectionHeader(
-                  'See Before You Decide',
-                  subtitle:
-                      'Avoid surprises. Inspect with a local Guide through '
-                      'a live video.',
-                  onSeeAll: () => context.push('/decide'),
-                ),
-              ),
-              SizedBox(height: flip ? 18 : 4),
-              _DecideCarousel(
-                fan: widget.variant == HomeVariant.fan,
-                book: widget.variant == HomeVariant.book,
-              ),
-            ],
-          ),
+            const SizedBox(height: 12),
+            const _DecideCarousel(),
+          ],
         ),
+      ),
     ];
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
-      body: _PageBackground(
-        white: flip,
+      body: ColoredBox(
+        // Plain white, so the cards and the globe's glow do the colour.
+        color: AppColors.dark ? AppColors.background : Colors.white,
         child: Stack(
           children: [
-            // A faint giraffe-skin pattern behind the scanner layout.
-            if (scan)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: RepaintBoundary(
-                    child: CustomPaint(
-                      painter: GiraffePatternPainter(
-                        // A white network, like the globe's.
-                        color: Colors.white.withValues(
-                          alpha: AppColors.dark ? 0.06 : 0.75,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ListView(
               // Room for the pinned globe section below.
               padding: EdgeInsets.only(
                 bottom:
                     bottomInset +
-                    (middle
-                        ? 100
-                        : _CountryGlobe.pinnedHeight + _PinnedCountries.lift),
+                    _CountryGlobe.pinnedHeight +
+                    _PinnedCountries.lift,
               ),
               children: [
-                if (compact)
-                  _CompactHero(combined: compact)
-                else
-                  const _PhotoHero(),
-                // The content sheet overlaps the hero with rounded corners.
-                Transform.translate(
-                  offset: Offset(0, compact ? 0 : -HomeHeroLayout.sheetOverlap),
-                  child: Container(
-                    // The flip book sits straight on the page, no sheet.
-                    decoration: compact
-                        ? null
-                        : BoxDecoration(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(30),
-                            ),
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: AppColors.dark
-                                  ? [AppColors.background, AppColors.background]
-                                  : const [
-                                      Color(0xFFF7FDFD),
-                                      Color(0xFFE6F6F7),
-                                    ],
-                            ),
-                            border: Border(
-                              top: BorderSide(color: Glass.rim, width: 1.4),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF3CC7D0)
-                                    .withValues(alpha: 0.18),
-                                blurRadius: 24,
-                                offset: const Offset(0, -6),
-                              ),
-                            ],
-                          ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (var i = 0; i < sections.length; i++) ...[
-                          _Reveal(
-                            animation: _entrance,
-                            index: i,
-                            child: sections[i],
-                          ),
-                          // Not faded in: the intro's globe lands right on it.
-                          if (middle && i == (scan ? 0 : 1))
-                            widget.variant == HomeVariant.scan
-                                ? const _LocationScanner()
-                                : const _MiddleGlobe(),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
+                SizedBox(height: _flipTop(context)),
+                for (var i = 0; i < sections.length; i++)
+                  _Reveal(animation: _entrance, index: i, child: sections[i]),
               ],
             ),
             // Pinned to the bottom so the globe is always on screen; the
             // page scrolls under it. Not faded in: the intro's globe lands
             // right on it.
-            if (!middle)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: _PinnedCountries(
-                  reveal: _entrance,
-                  bottomInset: bottomInset,
-                ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _PinnedCountries(
+                reveal: _entrance,
+                bottomInset: bottomInset,
               ),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+/// Room above the flip book's search bar, under the status bar.
+double _flipTop(BuildContext context) =>
+    math.max(MediaQuery.paddingOf(context).top, 20.0) + 14;
 
 /// "Explore by Country" header over the globe, on a backdrop that fades in
 /// from the page above so cards scroll softly under it.
@@ -311,10 +160,10 @@ class _PinnedCountries extends StatelessWidget {
               curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 26, 18, 0),
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
               child: SectionHeader(
                 'Explore by Country',
-                subtitle: 'Find a Guide in the country you want to inspect.',
+                centered: true,
                 onSeeAll: () => context.push('/explore'),
               ),
             ),
@@ -327,515 +176,6 @@ class _PinnedCountries extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The whole crystal globe in the middle of Home, with the city bubbles
-/// on a glass orbit over its top half.
-class _MiddleGlobe extends StatefulWidget {
-  const _MiddleGlobe();
-
-  @override
-  State<_MiddleGlobe> createState() => _MiddleGlobeState();
-}
-
-class _MiddleGlobeState extends State<_MiddleGlobe> {
-  // Shorter than the globe, so the card below rides up over its bottom.
-  static const _height = 276.0;
-  static const _radius = 132.0;
-
-  final _globeKey = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    // Tells the onboarding where to land its globe.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final box = _globeKey.currentContext?.findRenderObject() as RenderBox?;
-      if (!mounted || box == null || !box.hasSize) return;
-      homeGlobeRect.value = box.localToGlobal(Offset.zero) & box.size;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: _height,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          // Sits just under the section title.
-          final center = Offset(constraints.maxWidth / 2, _radius + 34);
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                key: _globeKey,
-                left: center.dx - _radius / 0.4 / 2,
-                top: center.dy - _radius / 0.4 / 2,
-                width: _radius / 0.4,
-                height: _radius / 0.4,
-                child: RepaintBoundary(
-                  // The first demo's idea: city photo pins on the globe as
-                  // it tours the live cities. Drag to spin it, tap a city to
-                  // open it, pinch or scroll-zoom for the full globe.
-                  child: Globe(
-                    initialLat: HomeHeroLayout.globeLat,
-                    initialLng: HomeHeroLayout.globeLng,
-                    insideScrollView: true,
-                    showZoomControls: false,
-                    crystal: true,
-                    photoPins: true,
-                    onCityTap: (c) => context.push('/country/${c.id}'),
-                    onZoomIn: (lat, lng) =>
-                        showFullGlobe(context, lat: lat, lng: lng),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// "Detecting spots…": landmark photos glide through a scan frame while a
-/// glowing line sweeps across it, naming each place as it's scanned.
-class _LocationScanner extends StatefulWidget {
-  const _LocationScanner();
-
-  @override
-  State<_LocationScanner> createState() => _LocationScannerState();
-}
-
-class _LocationScannerState extends State<_LocationScanner>
-    with SingleTickerProviderStateMixin {
-  /// Same filter as the flip book: everything, countries, or one kind of
-  /// check followed by every country for it.
-  String? _filter;
-
-  List<_FlipPage> get _pages {
-    final kind = InspectKind.fromName(_filter);
-    final countries = _DecideCarouselState._countries;
-    if (kind != null) {
-      return [
-        _FlipPage(kind: kind),
-        for (final c in countries) _FlipPage(kind: kind, city: c),
-      ];
-    }
-    return [
-      if (_filter != 'countries')
-        for (final k in _DecideCarouselState._kinds) _FlipPage(kind: k),
-      for (final c in countries) _FlipPage(city: c),
-    ];
-  }
-
-  /// Position along the pages, in pages: whole numbers are a page resting
-  /// in the frame, and the fraction above it plays the glide then the
-  /// scan. Steps on its own every few seconds; holding a press pauses it.
-  late final _c = AnimationController.unbounded(vsync: this, value: 0)
-    ..animateTo(_rest(0), duration: _scanTime, curve: Curves.linear);
-
-  static const _scanTime = Duration(milliseconds: 1500);
-
-  /// Where page [i] has finished gliding in and being scanned.
-  static double _rest(int i) => i + 0.999;
-
-  int get _at => _c.value.floor();
-
-  /// True while a mouse button or finger is held down on the scanner.
-  bool _held = false;
-  Timer? _auto;
-  Duration _idleSince = Duration.zero;
-  final _clock = Stopwatch()..start();
-
-  @override
-  void initState() {
-    super.initState();
-    // Moves on to the next page after it has rested for a few seconds.
-    _auto = Timer.periodic(const Duration(milliseconds: 250), (_) {
-      if (_held || _c.isAnimating) {
-        _idleSince = _clock.elapsed;
-        return;
-      }
-      if (_clock.elapsed - _idleSince > const Duration(milliseconds: 2800)) {
-        _idleSince = _clock.elapsed;
-        _step(1);
-      }
-    });
-  }
-
-  void _hold(bool down) {
-    setState(() => _held = down);
-    if (down) {
-      _c.stop();
-    } else if (_c.value != _rest(_at)) {
-      // Finishes the glide and scan it was in the middle of.
-      _c.animateTo(
-        _rest(_at),
-        duration: const Duration(milliseconds: 1200),
-        curve: Curves.linear,
-      );
-    }
-  }
-
-  /// Glides [by] pages and scans the one that lands in the frame.
-  void _step(int by) {
-    _c.animateTo(
-      _rest(_at + by),
-      duration: const Duration(milliseconds: 2200),
-      curve: Curves.linear,
-    );
-  }
-
-  void _setFilter(String? f) {
-    setState(() => _filter = f);
-    _c
-      ..value = 0
-      ..animateTo(_rest(0), duration: _scanTime, curve: Curves.linear);
-  }
-
-  @override
-  void dispose() {
-    _auto?.cancel();
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final pages = _pages;
-    final mq = MediaQuery.of(context);
-    // Fills the room under the search bar, like the flip book.
-    final room = (mq.size.height - mq.padding.top - mq.padding.bottom - 360)
-        .clamp(330.0, 470.0);
-    return Column(
-      children: [
-        // Press and hold anywhere on the scanner to pause it.
-        Listener(
-          onPointerDown: (_) => _hold(true),
-          onPointerUp: (_) => _hold(false),
-          onPointerCancel: (_) => _hold(false),
-          child: SizedBox(
-            height: room,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final w = constraints.maxWidth;
-                const frame = 196.0;
-                const spacing = 168.0;
-                // Caption (56) + gap (20) + frame, centred in the room.
-                const block = 56 + 20 + frame;
-                final blockTop = (constraints.maxHeight - block) / 2;
-                // Frame and its caption, centred together in the room.
-                // Caption first, the frame just below it.
-                final center = Offset(w / 2, blockTop + 76 + frame / 2);
-                return AnimatedBuilder(
-                  animation: _c,
-                  builder: (context, _) {
-                    final t = _c.value;
-                    // Glide, then pause with the place centred in the frame.
-                    final step = t.floor();
-                    final eased =
-                        step +
-                        Curves.easeInOutCubic.transform(
-                          ((t - step) / 0.45).clamp(0.0, 1.0),
-                        );
-                    final current = pages[eased.round() % pages.length];
-                    final within = (t - step - 0.45) / 0.55;
-                    // The scan line sweeps the frame while the place rests in it.
-                    final scanX = within < 0
-                        ? -1.0
-                        : math.sin(
-                            within.clamp(0.0, 1.0) * math.pi * 2 - math.pi / 2,
-                          );
-                    final scanned = within > 0.55;
-                    return Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        // Soft glow behind the frame.
-                        Positioned(
-                          left: center.dx - 160,
-                          top: center.dy - 160,
-                          width: 320,
-                          height: 320,
-                          child: IgnorePointer(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: RadialGradient(
-                                  colors: [
-                                    const Color(0xFF7FD8FF)
-                                        .withValues(alpha: 0.28),
-                                    const Color(0xFF7FD8FF)
-                                        .withValues(alpha: 0),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        for (var k = -2; k <= 2; k++)
-                          _place(pages, k, eased, center, spacing),
-                        Positioned(
-                          left: center.dx - frame / 2,
-                          top: center.dy - frame / 2,
-                          width: frame,
-                          height: frame,
-                          child: const IgnorePointer(
-                            child: CustomPaint(painter: _BracketPainter()),
-                          ),
-                        ),
-                        // The glowing scan line, gone once the page has been read.
-                        if (within >= 0 && within < 0.97)
-                          Positioned(
-                            left: center.dx + scanX * frame * 0.42 - 3,
-                            top: center.dy - frame * 0.62,
-                            width: 6,
-                            height: frame * 1.24,
-                            child: IgnorePointer(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(3),
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Color(0x335B8CFF),
-                                      Color(0xFF5B8CFF),
-                                      Color(0xFF3CC7D0),
-                                      Color(0x333CC7D0),
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF5B8CFF)
-                                          .withValues(alpha: 0.55),
-                                      blurRadius: 22,
-                                      spreadRadius: 6,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        Positioned(
-                          left: 16,
-                          right: 16,
-                          top: blockTop,
-                          child: Column(
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 250),
-                                child: Text(
-                                  scanned
-                                      ? current.found
-                                      : 'Detecting spots${'.' * (1 + (t * 3).floor() % 3)}',
-                                  key: ValueKey(
-                                    scanned ? current.route : 'scan',
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppText.title.copyWith(fontSize: 21),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                scanned
-                                    ? current.foundDetail
-                                    : 'Scanning for local Guides near you…',
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.small.copyWith(fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // Tap or click a side photo (or its arrow) to scan it next.
-                        for (final by in [-1, 1])
-                          Positioned(
-                            left: center.dx + by * spacing - 60,
-                            top: center.dy - 60,
-                            width: 120,
-                            height: 120,
-                            child: Semantics(
-                              button: true,
-                              label: by < 0 ? 'Scan previous' : 'Scan next',
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => _step(by),
-                                ),
-                              ),
-                            ),
-                          ),
-                        for (final by in [-1, 1])
-                          Positioned(
-                            left: by < 0 ? 10 : null,
-                            right: by > 0 ? 10 : null,
-                            top: center.dy + frame / 2 + 6,
-                            child: GlassIconButton(
-                              icon: by < 0
-                                  ? Icons.chevron_left_rounded
-                                  : Icons.chevron_right_rounded,
-                              label: by < 0 ? 'Scan previous' : 'Scan next',
-                              size: 38,
-                              onPressed: () => _step(by),
-                            ),
-                          ),
-                        // Tapping the frame opens the place being scanned.
-                        Positioned(
-                          left: center.dx - frame / 2,
-                          top: center.dy - frame / 2,
-                          width: frame,
-                          height: frame,
-                          child: Semantics(
-                            button: true,
-                            label: 'Open ${current.label}',
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () => context.push(current.route),
-                              onHorizontalDragEnd: (d) {
-                                final v = d.primaryVelocity ?? 0;
-                                if (v.abs() > 100) _step(v < 0 ? 1 : -1);
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-        const _Headline(combined: true),
-        const SizedBox(height: 18),
-        _FilterDial(selected: _filter, onSelected: _setFilter),
-        const SizedBox(height: 18),
-      ],
-    );
-  }
-
-  /// The place [k] steps from the one in the frame; grows as it nears it.
-  Widget _place(
-    List<_FlipPage> pages,
-    int k,
-    double eased,
-    Offset center,
-    double spacing,
-  ) {
-    final index = (eased.floor() + k) % pages.length;
-    final offset = k - (eased - eased.floor());
-    final d = offset.abs();
-    final size = 150 - math.min(1.0, d) * 50;
-    final page = pages[index];
-    return Positioned(
-      left: center.dx + offset * spacing - size / 2,
-      top: center.dy - size / 2,
-      width: size,
-      height: size,
-      child: Opacity(
-        opacity: (1 - math.max(0.0, d - 1) * 0.9).clamp(0.0, 1.0).toDouble(),
-        child: Container(
-          // A bright glass rim and aqua glow around each photo.
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(size * 0.28 + 3),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.white, Color(0xFFA9ECF0), Colors.white],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF3CC7D0).withValues(alpha: 0.35),
-                blurRadius: 16,
-              ),
-              BoxShadow(
-                color: const Color(0xFF0F1B3D).withValues(alpha: 0.16),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(size * 0.28),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Photo(page.image, icon: Icons.location_city_outlined),
-                // Glossy top, like a little glass tile.
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0x8CFFFFFF),
-                        Color(0x14FFFFFF),
-                        Color(0x00FFFFFF),
-                      ],
-                      stops: [0, 0.38, 0.5],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Four soft rounded corner brackets of a camera viewfinder.
-class _BracketPainter extends CustomPainter {
-  const _BracketPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round
-      ..color = (AppColors.dark ? Colors.white : const Color(0xFF0F1B3D))
-          .withValues(alpha: 0.12);
-    final w = size.width, h = size.height;
-    const arm = 30.0, r = 18.0;
-    for (final (x, y, sx, sy) in [
-      (0.0, 0.0, 1.0, 1.0),
-      (w, 0.0, -1.0, 1.0),
-      (0.0, h, 1.0, -1.0),
-      (w, h, -1.0, -1.0),
-    ]) {
-      canvas.drawPath(
-        Path()
-          ..moveTo(x, y + sy * arm)
-          ..lineTo(x, y + sy * r)
-          ..quadraticBezierTo(x, y, x + sx * r, y)
-          ..lineTo(x + sx * arm, y),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_BracketPainter oldDelegate) => false;
-}
-
-/// The flip book sits on plain white; the others on the crystal aqua.
-class _PageBackground extends StatelessWidget {
-  const _PageBackground({required this.white, required this.child});
-
-  final bool white;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => white && !AppColors.dark
-      ? ColoredBox(color: Colors.white, child: child)
-      : CrystalBackground(child: child);
 }
 
 /// Fades and slides a section in, slightly after the one above it.
@@ -896,347 +236,42 @@ abstract final class HomeHeroLayout {
   }
 }
 
-/// Full-bleed photo carousel with the greeting, headline and wallet.
-class _PhotoHero extends StatefulWidget {
-  const _PhotoHero();
-
-  @override
-  State<_PhotoHero> createState() => _PhotoHeroState();
-}
-
-class _PhotoHeroState extends State<_PhotoHero> {
-  static const _slides = [
-    (InspectKind.car, Alignment(0.3, -0.2)),
-    (InspectKind.property, Alignment.center),
-    (InspectKind.hotel, Alignment.center),
-    (InspectKind.place, Alignment.center),
-  ];
-
-  final _controller = PageController();
-  Timer? _timer;
-  int _page = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!_controller.hasClients) return;
-      _controller.animateToPage(
-        (_page + 1) % _slides.length,
-        duration: const Duration(milliseconds: 700),
-        curve: Curves.easeInOutCubic,
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // At least a status bar's worth on top, so the headline never clips
-    // on screens without one (the side-by-side variations).
-    final top = math.max(MediaQuery.paddingOf(context).top, 24.0);
-    return SizedBox(
-      height: top + HomeHeroLayout.height,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          PageView.builder(
-            controller: _controller,
-            itemCount: _slides.length,
-            onPageChanged: (i) => setState(() => _page = i),
-            itemBuilder: (context, i) => GestureDetector(
-              onTap: () => context.push('/inspect/${_slides[i].$1.name}'),
-              child: Photo(
-                _slides[i].$1.hero,
-                icon: _slides[i].$1.icon,
-                alignment: _slides[i].$2,
-              ),
-            ),
-          ),
-          // One smooth wash: light at the top for the status bar and
-          // greeting, deep teal under the headline.
-          const IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x80072A33),
-                    Color(0x33072A33),
-                    Color(0xB3072A33),
-                    Color(0xF2062A33),
-                  ],
-                  stops: [0, 0.3, 0.65, 1],
-                ),
-              ),
-            ),
-          ),
-          // Greeting and wallet share one row.
-          Positioned(
-            top: top + 8,
-            left: 20,
-            right: 16,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Hi Priyamvada! 👋',
-                    style: AppText.label.copyWith(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                _WalletChip(onTap: () => context.go('/wallet')),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: HomeHeroLayout.sheetOverlap + 14,
-            child: IgnorePointer(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'See it live.',
-                    style: AppText.display.copyWith(
-                      color: Colors.white,
-                      fontSize: 23,
-                      height: 1.1,
-                    ),
-                  ),
-                  Text(
-                    'Know before you go.',
-                    style: AppText.display.copyWith(
-                      color: const Color(0xFF6FF0F2),
-                      fontSize: 23,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Send a local Guide to inspect any place,\n'
-                    'before you spend your time or money.',
-                    style: AppText.body.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontSize: 12.5,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Slide dots, tucked into the bottom-right corner.
-          Positioned(
-            right: 18,
-            bottom: HomeHeroLayout.sheetOverlap + 16,
-            child: Row(
-              children: [
-                for (var i = 0; i < _slides.length; i++)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.only(left: 5),
-                    width: i == _page ? 16 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(3),
-                      color: i == _page
-                          ? const Color(0xFF5EE6EC)
-                          : Colors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Light header without the photo slider: greeting and wallet, then the
-/// headline, so the flip book gets the room.
-class _CompactHero extends StatelessWidget {
-  const _CompactHero({this.combined = false});
-
-  /// One headline that also says what the cards are for, instead of a
-  /// separate "See Before You Decide" title.
-  final bool combined;
-
-  @override
-  Widget build(BuildContext context) {
-    final top = math.max(MediaQuery.paddingOf(context).top, 28.0);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, top + 4, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Hi Priyamvada! 👋',
-                  style: AppText.label.copyWith(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              _WalletChip(onTap: () => context.go('/wallet')),
-            ],
-          ),
-          // The combined headline lives above the filter dial instead.
-          if (!combined) ...[
-            const SizedBox(height: 26),
-            const _Headline(combined: false),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// "See it live. Know before you go.", or the combined two-line, centred
-/// "See it live before you / decide or go."
-class _Headline extends StatelessWidget {
-  const _Headline({required this.combined});
-
-  final bool combined;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: Text.rich(
-        TextSpan(
-          text: combined ? 'See it live before you\n' : 'See it live. ',
-          children: [
-            TextSpan(
-              text: combined ? 'decide or go.' : 'Know before you go.',
-              style: TextStyle(
-                color: AppColors.dark
-                    ? const Color(0xFF8EE3E8)
-                    : AppColors.tealDark,
-              ),
-            ),
-          ],
-        ),
-        style: AppText.display.copyWith(fontSize: 23, height: 1.15),
-        textAlign: combined ? TextAlign.center : TextAlign.start,
-      ),
-    );
-  }
-}
-
-class _WalletChip extends StatelessWidget {
-  const _WalletChip({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Wallet, AED 120.00',
-      child: GestureDetector(
-        onTap: onTap,
-        child: Glass(
-          radius: 12,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.account_balance_wallet_outlined,
-                size: 16,
-                color: AppColors.teal,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'AED 120.00',
-                style: AppText.label.copyWith(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Cover-flow of "See Before You Decide" cards: the centre card faces you,
-/// the ones either side turn away.
+/// "See Before You Decide" flip book: the cards flip up and down over a
+/// hinge, like a flip calendar.
 class _DecideCarousel extends StatefulWidget {
-  const _DecideCarousel({required this.fan, this.book = false});
-
-  /// A fanned hand of cards; otherwise the PDF's cover-flow.
-  final bool fan;
-
-  /// The flip book's pages turn horizontally, like a book's, instead of
-  /// vertically over a hinge.
-  final bool book;
+  const _DecideCarousel();
 
   @override
   State<_DecideCarousel> createState() => _DecideCarouselState();
 }
 
-/// One page of the flip book: a kind of check, a country, or a country
-/// for one kind of check.
+/// One page of the flip book: a kind of check, or a country.
 class _FlipPage {
   const _FlipPage({this.kind, this.city});
 
   final InspectKind? kind;
   final City? city;
 
-  String get label => city == null
-      ? kind!.title
-      : kind == null
-      ? '${city!.country}, ${city!.name}'
-      : '${kind!.label} check in ${city!.country}';
+  String get label =>
+      city == null ? kind!.title : '${city!.country}, ${city!.name}';
 
-  String get image => city?.coverImage ?? kind!.card;
-
-  /// What the scanner says once it has read this page.
-  String get found => city == null
-      ? kind!.title
-      : kind == null
-      ? '${city!.name} · ${city!.guidesOnline} Guides live'
-      : '${kind!.label} check in ${city!.country}';
-
-  String get foundDetail => city == null
-      ? kind!.cardSubtitle
-      : kind == null
-      ? 'Tap to explore ${city!.country} live.'
-      : '${city!.guidesOnline} Guides ready in ${city!.name}.';
-
-  String get route => city == null
-      ? '/inspect/${kind!.name}'
-      : kind == null
-      ? '/country/${city!.id}'
-      : '/country/${city!.id}?intent=${kind!.name}';
+  String get route =>
+      city == null ? '/inspect/${kind!.name}' : '/country/${city!.id}';
 }
 
 class _DecideCarouselState extends State<_DecideCarousel> {
-  /// Not fanned: the cards flip vertically over a hinge.
-  bool get _flip => !widget.fan;
-
-  /// Flip book turning horizontally, like a book.
-  bool get _book => _flip && widget.book;
   Timer? _auto;
+
+  static const _kinds = [
+    InspectKind.mall,
+    InspectKind.place,
+    InspectKind.car,
+    InspectKind.property,
+    InspectKind.hotel,
+    InspectKind.restaurant,
+    InspectKind.venue,
+    InspectKind.tourist,
+  ];
 
   static final _countries = [
     for (final r in regions)
@@ -1249,45 +284,23 @@ class _DecideCarouselState extends State<_DecideCarousel> {
     for (final c in _countries) _FlipPage(city: c),
   ];
 
-  int get _count => _flip ? _pages.length : _kinds.length;
+  // One swipe of this height moves the deck by one card.
+  final _controller = PageController(viewportFraction: 0.37);
 
   @override
   void initState() {
     super.initState();
-    if (_flip) {
-      // Flips to the next card on its own, round and round.
-      _auto = Timer.periodic(const Duration(milliseconds: 3200), (_) {
-        if (!_controller.hasClients) return;
-        final page = (_controller.page ?? 0).round();
-        _controller.animateToPage(
-          (page + 1) % _count,
-          duration: const Duration(milliseconds: 700),
-          curve: Curves.easeInOutCubic,
-        );
-      });
-    }
+    // Flips to the next card on its own, round and round.
+    _auto = Timer.periodic(const Duration(milliseconds: 3200), (_) {
+      if (!_controller.hasClients) return;
+      final page = (_controller.page ?? 0).round();
+      _controller.animateToPage(
+        (page + 1) % _pages.length,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOutCubic,
+      );
+    });
   }
-
-  static const _kinds = [
-    InspectKind.mall,
-    InspectKind.place,
-    InspectKind.car,
-    InspectKind.property,
-    InspectKind.hotel,
-    InspectKind.restaurant,
-    InspectKind.venue,
-    InspectKind.tourist,
-  ];
-  static final _start = _kinds.indexOf(InspectKind.car);
-  late final PageController _controller = PageController(
-    // One swipe of this width moves the deck by one card.
-    viewportFraction: widget.fan
-        ? 0.42
-        : widget.book
-        ? 0.8
-        : 0.37,
-    initialPage: _flip ? 0 : _start,
-  );
 
   @override
   void dispose() {
@@ -1300,25 +313,26 @@ class _DecideCarouselState extends State<_DecideCarousel> {
   /// the section title and the country globe; the spine runs just under
   /// the top page.
   double _pageH = 216;
-  double get _spineY => _pageH + 8;
+  double get _spineY => _pageH + 4;
   double get _bookH => _pageH * 2 + 18;
 
   /// Page width, as a share of the row.
-  static const _pageW = 0.78;
+  static const _pageW = 0.86;
 
-  /// Flip book: every page hinges on one spine across the middle. Pages
-  /// still to come stand above it, leaning back a little more each; the
-  /// page being turned swings over the spine, and turned pages hang below
-  /// it showing their backs, upside down.
+  /// Every page hinges on one spine across the middle. Pages still to come
+  /// stand above it, leaning back a little more each; the page being
+  /// turned swings over the spine, and turned pages hang below it showing
+  /// their backs, upside down.
   Widget _flipCard(int i, double delta, double w) {
     final d = delta.abs();
     if (d > 3.2) return const Positioned(left: 0, top: 0, child: SizedBox());
     // 0 stands the page up above the spine; pi hangs it straight down.
     final double angle;
+    // A gentle lean, so the standing page reads flat and roomy.
     if (delta >= 0) {
-      angle = -0.12 - math.min(delta, 2.5) * 0.16;
+      angle = -0.06 - math.min(delta, 2.5) * 0.12;
     } else if (delta > -1) {
-      angle = -0.12 + Curves.easeInOut.transform(-delta) * (math.pi - 0.02);
+      angle = -0.06 + Curves.easeInOut.transform(-delta) * (math.pi - 0.02);
     } else {
       angle = math.pi - 0.14 - math.min(d - 1, 2) * 0.14;
     }
@@ -1366,275 +380,163 @@ class _DecideCarouselState extends State<_DecideCarousel> {
     );
   }
 
-  /// How far the two pages underneath peek out on the right in all; the
-  /// book is shifted left by half of it, so page and edges sit centred.
-  static const _peek = 12.0;
-
-  /// Room above and below the book's page.
-  static const _pad = 6.0;
-
-  /// Book: one page at a time, bound on a spine down its left edge. The
-  /// page being read turns over the spine, and the pages to come wait
-  /// underneath, their edges peeking out on the right.
-  Widget _bookCard(int i, double delta, double w) {
-    final d = delta.abs();
-    // Turned pages are gone; only the next two wait underneath.
-    if (delta <= -1 || delta > 2.5) {
-      return const Positioned(left: 0, top: 0, child: SizedBox());
-    }
-    final double angle, dx, scale, opacity, shade;
-    if (delta >= 0) {
-      // Waiting underneath, a little smaller and nudged right.
-      angle = 0;
-      dx = math.min(delta, 2) * (_peek / 2 + w * 0.04) - _peek / 2;
-      scale = 1 - math.min(delta, 2) * 0.04;
-      opacity = (2.5 - delta).clamp(0.0, 1.0);
-      shade = math.min(delta, 2) * 0.12;
-    } else {
-      // Turning over the spine, the free edge swinging across to the left.
-      final t = Curves.easeInOut.transform(d);
-      angle = -t * 1.9;
-      dx = -_peek / 2;
-      scale = 1;
-      opacity = 1 - Curves.easeIn.transform(((t - 0.7) / 0.3).clamp(0.0, 1.0));
-      shade = math.sin(t * math.pi / 2) * 0.35;
-    }
-    return Positioned(
-      left: 0,
-      right: 0,
-      top: _pad,
-      height: _bookH - _pad * 2,
-      child: Center(
-        child: SizedBox(
-          width: w,
-          child: Opacity(
-            opacity: opacity,
-            child: Transform(
-              alignment: Alignment.centerLeft,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.0012)
-                ..translateByDouble(dx, 0, 0, 1)
-                ..rotateY(angle)
-                ..scaleByDouble(scale, scale, 1, 1),
-              child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                  const Color(0xFF0F1B3D).withValues(alpha: shade),
-                  BlendMode.srcATop,
-                ),
-                child: _glassPage(i),
-              ),
-            ),
-          ),
+  /// A flip page with a polished crystal finish: a clear-coat glare,
+  /// luminous rims, a glossy top reflection and twinkling sparkles. The
+  /// half-pages are short, so their text is smaller.
+  Widget _glassPage(int i) => DecoratedBox(
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFF0F1B3D).withValues(alpha: 0.1),
+          blurRadius: 24,
+          offset: const Offset(0, 10),
         ),
-      ),
-    );
-  }
-
-  /// A flip page with the same liquid-glass edge as the tab bar. The
-  /// vertical flip's half-pages are short, so their text is smaller.
-  Widget _glassPage(int i) => Stack(
-    fit: StackFit.expand,
-    children: [
-      _FlipPageCard(page: _pages[i], compact: !_book),
-      const IgnorePointer(
-        child: CustomPaint(
-          painter: LiquidGlassEdgePainter(
-            radius: 20,
-            rim: 6,
-            flares: [0.3, 0.8],
-          ),
+        BoxShadow(
+          color: const Color(0xFF3CC7D0).withValues(alpha: 0.28),
+          blurRadius: 26,
         ),
-      ),
-    ],
+      ],
+    ),
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        _FlipPageCard(page: _pages[i], compact: true),
+        const IgnorePointer(
+          child: CustomPaint(painter: _CrystalCardPainter(radius: 20)),
+        ),
+        const GlassSparkles(
+          radius: 20,
+          spots: [
+            SparkleSpot(0.22, 0, 0, 3, 14, 0.3),
+            SparkleSpot(0, -3, 0.46, 5, 10, 1.4),
+            SparkleSpot(0.82, 0, 1, -2, 12, 2.1),
+          ],
+        ),
+      ],
+    ),
   );
 
   void _step(int by) {
-    final page = (_controller.page ?? _start.toDouble()).round() + by;
+    final page = (_controller.page ?? 0).round() + by;
     _controller.animateToPage(
-      page.clamp(0, _count - 1),
+      page.clamp(0, _pages.length - 1),
       duration: const Duration(milliseconds: 380),
       curve: Curves.easeOutCubic,
-    );
-  }
-
-  /// A hand of cards: each one turns about a pivot far below the deck,
-  /// so neighbours fan out on an arc and tuck in behind the front card.
-  Widget _placed(int i, double delta, double itemWidth, double height) {
-    final d = delta.abs();
-    final angle = delta.clamp(-3.0, 3.0) * 0.21;
-    final scale = 1 - math.min(1.0, d) * 0.1 - math.max(0.0, d - 1) * 0.05;
-    // Pivot sits well below the cards, in the card's own coordinates.
-    final pivotY = height * 1.9;
-    final transform = Matrix4.identity()
-      ..translateByDouble(itemWidth / 2, pivotY, 0, 1)
-      ..rotateZ(angle)
-      ..translateByDouble(-itemWidth / 2, -pivotY, 0, 1)
-      ..translateByDouble(itemWidth / 2, height / 2, 0, 1)
-      ..scaleByDouble(scale, scale, 1, 1)
-      ..translateByDouble(-itemWidth / 2, -height / 2, 0, 1);
-    return Positioned(
-      left: 0,
-      right: 0,
-      top: 0,
-      bottom: 0,
-      child: Center(
-        child: SizedBox(
-          width: itemWidth,
-          height: height,
-          child: Opacity(
-            opacity: (1 - math.max(0.0, d - 2) * 0.8).clamp(0.0, 1.0),
-            child: Transform(
-              transform: transform,
-              child: _DecideCard(
-                kind: _kinds[i],
-                active: d < 0.5,
-                // Photos drift against the turn, like looking through glass.
-                parallax: delta.clamp(-1.5, 1.5),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    // Fills what's left between the search bar and the pinned country
-    // globe: header 150, search 74, gaps 8 + 18, book frame 18.
+    // Fills what's left between the section title and the pinned country
+    // globe: search 54 + 8 + 22, title 32 + 12 and book frame 18; the fade
+    // above the globe overlaps the book a little.
     final globe = _CountryGlobe.pinnedHeight + _PinnedCountries.lift;
-    // The header keeps at least 28 above it even with no status bar.
-    final top = math.max(mq.padding.top, 28.0);
-    _pageH = ((mq.size.height - top - mq.padding.bottom - 204 - globe) / 2)
-        .clamp(100.0, 220.0);
-    return _deck(context);
-  }
-
-  Widget _deck(BuildContext context) {
+    final top = _flipTop(context);
+    _pageH = ((mq.size.height - top - mq.padding.bottom - 136 - globe) / 2)
+        .clamp(100.0, 236.0);
     return SizedBox(
-      height: widget.fan ? 220 : _bookH,
+      height: _bookH,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
+          // Clear glass slate behind both the standing and turned page.
+          if (!AppColors.dark)
+            const Positioned.fill(
+              top: -6,
+              child: FractionallySizedBox(
+                widthFactor: 0.95,
+                child: IgnorePointer(
+                  child: CustomPaint(painter: _GlassSlatePainter()),
+                ),
+              ),
+            ),
           LayoutBuilder(
-            builder: (context, constraints) {
-              final itemWidth =
-                  constraints.maxWidth * (widget.fan ? 0.5 : 0.37);
-              return AnimatedBuilder(
-                animation: _controller,
-                builder: (context, _) {
-                  final page =
-                      _controller.hasClients &&
-                          _controller.position.haveDimensions
-                      ? _controller.page!
-                      : (_flip ? 0.0 : _start.toDouble());
-                  // Farthest first, so the centre card paints on top. In the
-                  // book, the page being turned stays on top of the pages
-                  // underneath for the whole turn.
-                  int depth(int i) => _book && i - page < 0 ? 1 : 0;
-                  final order = List.generate(_count, (i) => i)
-                    ..sort((a, b) {
-                      final byDepth = depth(a).compareTo(depth(b));
-                      if (byDepth != 0) return byDepth;
-                      return (b - page).abs().compareTo((a - page).abs());
-                    });
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      for (final i in order)
-                        widget.fan
-                            ? _placed(i, i - page, itemWidth, 200)
-                            : _book
-                            ? _bookCard(
-                                i,
-                                i - page,
-                                constraints.maxWidth * _pageW,
-                              )
-                            : _flipCard(
-                                i,
-                                i - page,
-                                constraints.maxWidth * _pageW,
-                              ),
-                      // The spine the pages turn on: across the middle, or
-                      // down the book's left edge.
-                      if (_flip)
-                        Positioned(
-                          left: _book
-                              ? constraints.maxWidth * (1 - _pageW) / 2 -
-                                    _peek / 2 -
-                                    2
-                              : constraints.maxWidth * 0.04,
-                          right: _book ? null : constraints.maxWidth * 0.04,
-                          width: _book ? 4 : null,
-                          top: _book ? _pad + 6 : _spineY - 2,
-                          height: _book ? _bookH - _pad * 2 - 12 : 4,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(2),
-                              color: Colors.white.withValues(alpha: 0.9),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF3CC7D0)
-                                      .withValues(alpha: 0.5),
-                                  blurRadius: 10,
-                                ),
-                              ],
-                            ),
+            builder: (context, constraints) => AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                final page =
+                    _controller.hasClients &&
+                        _controller.position.haveDimensions
+                    ? _controller.page!
+                    : 0.0;
+                // Farthest first, so the centre card paints on top.
+                final order = List.generate(
+                  _pages.length,
+                  (i) => i,
+                )..sort((a, b) => (b - page).abs().compareTo((a - page).abs()));
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    for (final i in order)
+                      _flipCard(i, i - page, constraints.maxWidth * _pageW),
+                    // The glossy glass spine the pages turn on.
+                    Positioned(
+                      left: constraints.maxWidth * 0.03,
+                      right: constraints.maxWidth * 0.03,
+                      top: _spineY - 2.5,
+                      height: 5,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(3),
+                          border: Border.all(color: const Color(0xFFB7FFF4)),
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0x66FFFFFF),
+                              Colors.white,
+                              Color(0xFFC6F7F2),
+                              Colors.white,
+                              Color(0x66FFFFFF),
+                            ],
+                            stops: [0, 0.3, 0.55, 0.75, 1],
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF3CC7D0)
+                                  .withValues(alpha: 0.6),
+                              blurRadius: 12,
+                            ),
+                          ],
                         ),
-                    ],
-                  );
-                },
-              );
-            },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
-          // Invisible pages on top take the swipes and taps.
+          // Invisible pages on top take the up and down swipes and taps.
           PageView.builder(
             controller: _controller,
-            // The flip deck turns with up and down swipes; the book with
-            // left and right ones.
-            scrollDirection: _flip && !_book ? Axis.vertical : Axis.horizontal,
-            itemCount: _count,
+            scrollDirection: Axis.vertical,
+            itemCount: _pages.length,
             itemBuilder: (context, i) => Semantics(
               button: true,
-              label: _flip ? _pages[i].label : _kinds[i].title,
+              label: _pages[i].label,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => context.push(
-                  _flip ? _pages[i].route : '/inspect/${_kinds[i].name}',
-                ),
+                onTap: () => context.push(_pages[i].route),
               ),
             ),
           ),
           Positioned(
-            left: _book ? 4 : 12,
-            top: widget.fan
-                ? 90
-                : _book
-                ? _bookH / 2 - 19
-                : _spineY - 19,
+            left: 6,
+            top: _spineY - 18,
             child: GlassIconButton(
-              icon: _flip && !_book
-                  ? Icons.keyboard_arrow_up_rounded
-                  : Icons.chevron_left_rounded,
+              icon: Icons.keyboard_arrow_up_rounded,
               label: 'Previous',
-              size: 38,
+              size: 36,
               onPressed: () => _step(-1),
             ),
           ),
           Positioned(
-            right: _book ? 4 : 12,
-            top: widget.fan
-                ? 90
-                : _book
-                ? _bookH / 2 - 19
-                : _spineY - 19,
+            right: 6,
+            top: _spineY - 18,
             child: GlassIconButton(
-              icon: _flip && !_book
-                  ? Icons.keyboard_arrow_down_rounded
-                  : Icons.chevron_right_rounded,
+              icon: Icons.keyboard_arrow_down_rounded,
               label: 'Next',
-              size: 38,
+              size: 36,
               onPressed: () => _step(1),
             ),
           ),
@@ -1642,179 +544,6 @@ class _DecideCarouselState extends State<_DecideCarousel> {
       ),
     );
   }
-}
-
-/// Camera-style mode dial over the flip book. Filters sit on a gentle
-/// arc; swipe or tap one into the glowing glass lens in the middle to pick
-/// it, and the ones further out shrink and fade.
-class _FilterDial extends StatefulWidget {
-  const _FilterDial({required this.selected, required this.onSelected});
-
-  final String? selected;
-  final ValueChanged<String?> onSelected;
-
-  @override
-  State<_FilterDial> createState() => _FilterDialState();
-}
-
-class _FilterDialState extends State<_FilterDial> {
-  static final _options = <(String?, String, IconData)>[
-    (null, 'All', Icons.auto_awesome_outlined),
-    ('countries', 'Countries', Icons.public),
-    for (final k in InspectKind.decideOrder) (k.name, k.label, k.icon),
-  ];
-
-  /// The dial loops round, so every filter (All too) has others on both
-  /// sides; it starts far into the loop with the selected one centred.
-  static const _loops = 1000;
-  late final _controller = PageController(
-    viewportFraction: 0.3,
-    initialPage:
-        _options.length * _loops ~/ 2 +
-        _options.indexWhere((o) => o.$1 == widget.selected),
-  );
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
-      child: Stack(
-        children: [
-          // The lens: a glossy glass pill the chosen filter sits in.
-          const Positioned.fill(
-            top: 16,
-            child: Center(
-              child: IgnorePointer(child: GlossyPill(width: 120, height: 42)),
-            ),
-          ),
-          // Tick marks along the dial's rim.
-          const Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 10,
-            child: IgnorePointer(child: CustomPaint(painter: _DialTicks())),
-          ),
-          // The filters sit below the ticks, with room between.
-          Positioned.fill(
-            top: 16,
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final page =
-                    _controller.hasClients &&
-                        _controller.position.haveDimensions
-                    ? _controller.page!
-                    : _controller.initialPage.toDouble();
-                return PageView.builder(
-                  controller: _controller,
-                  itemCount: _options.length * _loops,
-                  onPageChanged: (i) =>
-                      widget.onSelected(_options[i % _options.length].$1),
-                  itemBuilder: (context, i) {
-                    final (_, label, icon) = _options[i % _options.length];
-                    final d = (i - page).abs();
-                    final on = d < 0.5;
-                    final t = math.min(1.0, d);
-                    return Semantics(
-                      button: true,
-                      selected: on,
-                      label: '$label filter',
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => _controller.animateToPage(
-                          i,
-                          duration: const Duration(milliseconds: 350),
-                          curve: Curves.easeOutCubic,
-                        ),
-                        // Dips along the arc and shrinks away from the lens.
-                        child: Transform.translate(
-                          offset: Offset(0, -math.min(d, 2.5) * 3),
-                          child: Transform.scale(
-                            scale: 1.08 - t * 0.24,
-                            child: Opacity(
-                              opacity: (1 - math.max(0.0, d - 0.6) * 0.45)
-                                  .clamp(0.25, 1.0)
-                                  .toDouble(),
-                              child: Center(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      icon,
-                                      size: 17,
-                                      color: Color.lerp(
-                                        Colors.white,
-                                        AppColors.muted,
-                                        t,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Flexible(
-                                      child: Text(
-                                        label,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppText.label.copyWith(
-                                          fontSize: 14,
-                                          fontWeight: on
-                                              ? FontWeight.w700
-                                              : FontWeight.w500,
-                                          color: Color.lerp(
-                                            Colors.white,
-                                            AppColors.muted,
-                                            t,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Fine ticks along the top of the dial, brightest over the lens.
-class _DialTicks extends CustomPainter {
-  const _DialTicks();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final mid = size.width / 2;
-    for (var x = 12.0; x < size.width - 12; x += 9) {
-      final near = 1 - ((x - mid).abs() / mid).clamp(0.0, 1.0);
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, 3 + near * 4),
-        Paint()
-          ..strokeWidth = 1.2
-          ..strokeCap = StrokeCap.round
-          ..color = AppColors.teal.withValues(alpha: 0.12 + near * 0.45),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DialTicks oldDelegate) => false;
 }
 
 /// A flip-book page: a check type, or a country with its live Guides.
@@ -1947,315 +676,8 @@ class _FlipPageCard extends StatelessWidget {
   }
 }
 
-class _DecideCard extends StatelessWidget {
-  const _DecideCard({
-    required this.kind,
-    required this.active,
-    this.parallax = 0,
-  });
-
-  final InspectKind kind;
-  final bool active;
-
-  /// How far the card has turned away, in cards; shifts the photo.
-  final double parallax;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-      child: ExcludeSemantics(
-        child: DecoratedBox(
-          // Solid backing so cards behind don't show through the glass.
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Glass(
-            radius: 18,
-            glow: active ? 1.4 : 0.7,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(17),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 112,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      fit: StackFit.expand,
-                      children: [
-                        ClipPath(
-                          clipper: const WaveClipper(depth: 14),
-                          child: Photo(
-                            kind.card,
-                            icon: kind.icon,
-                            alignment: Alignment(-parallax * 0.7, 0),
-                          ),
-                        ),
-                        // Glass sheen across the top of the photo.
-                        const IgnorePointer(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment(0.2, 0.2),
-                                colors: [Color(0x55FFFFFF), Color(0x00FFFFFF)],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: AnimatedOpacity(
-                            opacity: active ? 1 : 0,
-                            duration: const Duration(milliseconds: 250),
-                            child: const _LiveChip(),
-                          ),
-                        ),
-                        Positioned(
-                          left: 10,
-                          bottom: -16,
-                          child: _IconBadge(icon: kind.icon, size: 36),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(10, 20, 8, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            kind.title,
-                            style: AppText.label.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Expanded(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    kind.cardSubtitle,
-                                    style: AppText.small.copyWith(
-                                      fontSize: 11.5,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                AnimatedOpacity(
-                                  opacity: active ? 1 : 0,
-                                  duration: const Duration(milliseconds: 200),
-                                  child: const GlossyArrow(size: 30),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Bento grid: one tall feature tile beside two stacked tiles, then a
-/// wide tile, each a glossy photo with its title on frosted glass.
-class _DecideBento extends StatefulWidget {
-  const _DecideBento({
-    this.padding = const EdgeInsets.fromLTRB(16, 10, 16, 14),
-  });
-
-  final EdgeInsets padding;
-
-  @override
-  State<_DecideBento> createState() => _DecideBentoState();
-}
-
-/// The tiles turn in like book pages, one after another; then every few
-/// seconds one tile turns its page to show another kind of check.
-class _DecideBentoState extends State<_DecideBento>
-    with SingleTickerProviderStateMixin {
-  static const _slots = 5;
-
-  /// Which kind each slot shows, as an index into [InspectKind.decideOrder].
-  final _shown = [0, 1, 2, 3, 4];
-  int _nextKind = _slots;
-  int _nextSlot = 1;
-  Timer? _timer;
-
-  late final _entrance = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1500),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(const Duration(milliseconds: 350), () {
-      if (mounted) _entrance.forward();
-    });
-    _timer = Timer.periodic(const Duration(milliseconds: 3400), (_) {
-      if (!mounted) return;
-      setState(() {
-        _shown[_nextSlot] = _nextKind % InspectKind.decideOrder.length;
-        // Skip kinds already on screen.
-        do {
-          _nextKind++;
-        } while (_shown.contains(_nextKind % InspectKind.decideOrder.length));
-        _nextSlot = (_nextSlot + 1) % _slots;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _entrance.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Widget tile(int slot, {bool big = false}) {
-      final kind = InspectKind.decideOrder[_shown[slot]];
-      // Page turning in from its left edge, slightly after the one before.
-      final turnIn = CurvedAnimation(
-        parent: _entrance,
-        curve: Interval(
-          slot * 0.13,
-          slot * 0.13 + 0.48,
-          curve: Curves.easeOutCubic,
-        ),
-      );
-      return AnimatedBuilder(
-        animation: turnIn,
-        builder: (context, child) => Opacity(
-          opacity: turnIn.value < 0.02 ? 0 : 1,
-          child: Transform(
-            alignment: Alignment.centerLeft,
-            transform: Matrix4.identity()
-              ..setEntry(3, 2, 0.0015)
-              ..rotateY((1 - turnIn.value) * math.pi / 2),
-            child: child,
-          ),
-        ),
-        child: _PageTurn(
-          child: _BentoTile(
-            key: ValueKey(kind),
-            kind: kind,
-            big: big,
-            onTap: () => context.push('/inspect/${kind.name}'),
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: widget.padding,
-      child: Column(
-        children: [
-          SizedBox(
-            height: 196,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: tile(0, big: true)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: tile(1)),
-                      const SizedBox(height: 10),
-                      Expanded(child: tile(2)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 110,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(flex: 3, child: tile(3)),
-                const SizedBox(width: 10),
-                Expanded(flex: 2, child: tile(4)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// When its child changes, the old one lifts away from its left edge like
-/// a turning page, uncovering the new one underneath.
-class _PageTurn extends StatelessWidget {
-  const _PageTurn({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 750),
-      switchInCurve: Curves.linear,
-      switchOutCurve: Curves.easeInOutCubic,
-      // The page being turned sits on top of the new one.
-      layoutBuilder: (current, previous) =>
-          Stack(fit: StackFit.expand, children: [?current, ...previous]),
-      transitionBuilder: (child, animation) {
-        if (child.key == this.child.key) return child;
-        return AnimatedBuilder(
-          animation: animation,
-          child: child,
-          builder: (context, child) {
-            final turn = 1 - animation.value;
-            return Transform(
-              alignment: Alignment.centerLeft,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.0015)
-                ..rotateY(-turn * math.pi / 2),
-              // Darkens as it turns away from the light.
-              child: ColorFiltered(
-                colorFilter: ColorFilter.mode(
-                  Colors.black.withValues(alpha: turn * 0.35),
-                  BlendMode.srcATop,
-                ),
-                child: child,
-              ),
-            );
-          },
-        );
-      },
-      child: child,
-    );
-  }
-}
-
 class _BentoTile extends StatelessWidget {
   const _BentoTile({
-    super.key,
     required this.kind,
     required this.onTap,
     this.big = false,
@@ -2490,7 +912,7 @@ class _CountryGlobe extends StatefulWidget {
   static const height = 178.0;
 
   /// The whole pinned block, header included.
-  static const pinnedHeight = height + 82;
+  static const pinnedHeight = height + 48;
 
   /// The bubbles and arc fade in with the rest of Home; the globe doesn't.
   final Animation<double> reveal;
@@ -2852,4 +1274,264 @@ class _MoreBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Polished glass over a flip page: a diagonal clear-coat glare, a
+/// luminous aqua outer rim, a refractive inner rim and a glossy reflection
+/// along the top edge.
+class _CrystalCardPainter extends CustomPainter {
+  const _CrystalCardPainter({required this.radius});
+
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
+    canvas.save();
+    canvas.clipRRect(rrect);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.42),
+            Colors.white.withValues(alpha: 0.12),
+            Colors.white.withValues(alpha: 0),
+          ],
+          stops: const [0, 0.22, 0.38],
+        ).createShader(rect),
+    );
+    canvas.drawRRect(
+      rrect.deflate(1),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFFB7FFF4).withValues(alpha: 0.9),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect.deflate(4.5), Radius.circular(radius - 4)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.white.withValues(alpha: 0.6),
+    );
+    final line = Rect.fromLTRB(32, 3, size.width - 32, 6);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(line.inflate(1), const Radius.circular(3)),
+      Paint()
+        ..color = const Color(0x9957D1C7)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.5),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(line, const Radius.circular(2)),
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Colors.transparent,
+            Color(0xFF8FFFF0),
+            Colors.white,
+            Color(0xFF57D1C7),
+            Colors.white,
+            Colors.transparent,
+          ],
+        ).createShader(line),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_CrystalCardPainter old) => old.radius != radius;
+}
+
+/// The thin, clear glass sheet behind the flip book: barely tinted, with
+/// hairline edges, a diagonal glare and coloured light caught in its edges
+/// as in cut glass.
+class _GlassSlatePainter extends CustomPainter {
+  const _GlassSlatePainter();
+
+  static const _radius = 34.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    final rect = Offset.zero & size;
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(_radius));
+
+    // Shadow and glow outside the sheet only.
+    canvas.save();
+    canvas.clipPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addRect(rect.inflate(60)),
+        Path()..addRRect(rrect),
+      ),
+    );
+    canvas.drawRRect(
+      rrect.shift(const Offset(0, 6)),
+      Paint()
+        ..color = const Color(0xFF0F1B3D).withValues(alpha: 0.06)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
+    );
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..color = const Color(0xFF8FFFF0).withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
+    );
+    canvas.restore();
+    canvas.drawRRect(
+      rrect.inflate(0.25),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.5
+        ..color = const Color(0xFF6E8C98).withValues(alpha: 0.35),
+    );
+
+    canvas.save();
+    canvas.clipRRect(rrect);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment(-0.17, -1),
+          end: Alignment(0.17, 1),
+          colors: [Color(0x0D284856), Color(0x06284856), Color(0x0F1E3C50)],
+        ).createShader(rect),
+    );
+    // Bright inner edges, lit from the top left.
+    final white = Colors.white;
+    paintInsetShadow(canvas, rrect, white, spread: 1);
+    paintInsetShadow(
+      canvas,
+      rrect,
+      white,
+      dx: 1.5,
+      dy: 2,
+      blur: 1,
+      spread: 0.5,
+    );
+    paintInsetShadow(
+      canvas,
+      rrect,
+      white.withValues(alpha: 0.9),
+      dx: -1.5,
+      dy: -2,
+      blur: 1,
+      spread: 0.5,
+    );
+
+    // Shine: a broad diagonal glare with a thin bright streak beside it.
+    for (final (left, width, colors, stops) in [
+      (
+        0.08,
+        0.22,
+        [
+          white.withValues(alpha: 0),
+          white.withValues(alpha: 0.38),
+          white.withValues(alpha: 0.12),
+          white.withValues(alpha: 0),
+        ],
+        const [0.0, 0.45, 0.7, 1.0],
+      ),
+      (
+        0.34,
+        0.03,
+        [
+          white.withValues(alpha: 0),
+          white.withValues(alpha: 0.5),
+          white.withValues(alpha: 0),
+        ],
+        const [0.0, 0.5, 1.0],
+      ),
+    ]) {
+      final strip = Rect.fromLTWH(w * left, -h * 0.1, w * width, h * 1.3);
+      canvas.save();
+      canvas.translate(strip.center.dx, strip.center.dy);
+      canvas.transform(
+        (Matrix4.identity()..setEntry(0, 1, math.tan(24 * math.pi / 180)))
+            .storage,
+      );
+      canvas.translate(-strip.center.dx, -strip.center.dy);
+      canvas.drawRect(
+        strip,
+        Paint()
+          ..shader = LinearGradient(
+            colors: colors,
+            stops: stops,
+          ).createShader(strip),
+      );
+      canvas.restore();
+    }
+
+    // Glossy sheen along the top.
+    final sheen = Rect.fromLTWH(24, 2, w - 48, 56);
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        sheen,
+        topLeft: const Radius.circular(32),
+        topRight: const Radius.circular(32),
+      ),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [white.withValues(alpha: 0.6), white.withValues(alpha: 0)],
+        ).createShader(sheen),
+    );
+
+    // Hot spots where the light hits the rounded corners, a glare down
+    // the left edge, and coloured light caught in the edges.
+    paintGlow(canvas, Rect.fromLTWH(18, 3, w * 0.3, 6), white, blur: 1.5);
+    paintGlow(
+      canvas,
+      Rect.fromLTWH(w - 18 - w * 0.24, h - 8, w * 0.24, 5),
+      white.withValues(alpha: 0.95),
+      blur: 1.5,
+    );
+    paintGlow(
+      canvas,
+      Rect.fromLTWH(-4, h * 0.16, 16, h * 0.26),
+      white,
+      blur: 4,
+    );
+    paintGlow(
+      canvas,
+      Rect.fromLTWH(w - 6, h * 0.06, 10, h * 0.14),
+      const Color(0xD9BE96FF),
+      blur: 3,
+    );
+    paintGlow(
+      canvas,
+      Rect.fromLTWH(w - 6, h * 0.58, 10, h * 0.16),
+      const Color(0xCC6EF0D2),
+      blur: 3,
+    );
+    paintGlow(
+      canvas,
+      Rect.fromLTWH(-4, h * 0.7, 10, h * 0.1),
+      const Color(0xCCFFAA5A),
+      blur: 3,
+    );
+
+    // Polished top corners catching the light.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect.deflate(1.5), const Radius.circular(33)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [white.withValues(alpha: 0.95), white.withValues(alpha: 0)],
+          stops: const [0, 0.18],
+        ).createShader(rect),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_GlassSlatePainter oldDelegate) => false;
 }

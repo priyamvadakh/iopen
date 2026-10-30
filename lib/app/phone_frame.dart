@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/common.dart';
-import 'open_page.dart';
 import 'theme.dart';
 
 /// On wide screens (a laptop browser during a demo), shows the app inside an
@@ -20,21 +18,7 @@ class PhoneFrame extends StatelessWidget {
     final mq = MediaQuery.of(context);
     if (mq.size.width < 600) return child;
 
-    return ColoredBox(
-      color: const Color(0xFFDCE8E8),
-      child: Stack(
-        children: [
-          Positioned.fill(child: _frame(mq)),
-          if (_showLayoutOptions && canOpenDemoPages)
-            const Positioned(
-              right: 32,
-              top: 0,
-              bottom: 0,
-              child: Center(child: _OptionsLink()),
-            ),
-        ],
-      ),
-    );
+    return ColoredBox(color: const Color(0xFFDCE8E8), child: _frame(mq));
   }
 
   Widget _frame(MediaQueryData mq) {
@@ -99,60 +83,6 @@ class PhoneFrame extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Shows the "Options: 3 Home layouts" link beside the phone. Hidden on
-/// the client demo; set to true to compare layouts again.
-const _showLayoutOptions = false;
-
-/// Glossy pill beside the phone that opens the three Home layouts.
-class _OptionsLink extends StatelessWidget {
-  const _OptionsLink();
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      link: true,
-      label: 'Options: see three Home layouts',
-      // Sits outside the app's pages, so it brings its own Material for
-      // text styling.
-      child: Material(
-        type: MaterialType.transparency,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () => openDemoPage('variations.html'),
-            child: Glass(
-              radius: 24,
-              gloss: true,
-              padding: const EdgeInsets.fromLTRB(18, 12, 14, 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.view_carousel_outlined,
-                    size: 20,
-                    color: AppColors.teal,
-                  ),
-                  const SizedBox(width: 8),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Options', style: AppText.label),
-                      Text('3 Home layouts', style: AppText.small),
-                    ],
-                  ),
-                  const SizedBox(width: 10),
-                  const ArrowChip(size: 28),
-                ],
               ),
             ),
           ),

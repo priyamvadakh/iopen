@@ -27,9 +27,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/home',
-              builder: (context, state) => HomeScreen(
-                variant: HomeVariant.fromName(state.uri.queryParameters['v']),
-              ),
+              builder: (context, state) => const HomeScreen(),
             ),
           ],
         ),

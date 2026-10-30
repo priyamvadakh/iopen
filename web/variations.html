@@ -1,52 +1,7 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>iOpen Home Layouts</title>
-  <style>
-    :root { --bg: #e9f6f7; --ink: #0f1b3d; --muted: #5e6b80; --frame: #0f1b3d; }
-    @media (prefers-color-scheme: dark) { :root { --bg: #0b1a1f; --ink: #e8f2f1; --muted: #9db2b3; --frame: #26404a; } }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--ink);
-      font-family: Inter, -apple-system, system-ui, sans-serif; }
-    .row { display: flex; gap: 24px; justify-content: center; flex-wrap: nowrap;
-      padding: 24px 16px 16px; }
-    figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-    /* Each phone keeps its real 390×844 size and is scaled to fit the
-       window (see the script below). */
-    .slot { width: calc(414px * var(--fit, 1)); height: calc(868px * var(--fit, 1)); }
-    .phone { width: 414px; height: 868px; padding: 12px; border-radius: 52px;
-      background: var(--frame); box-shadow: 0 20px 50px rgba(15, 27, 61, .25);
-      transform: scale(var(--fit, 1)); transform-origin: top left; }
-    iframe { width: 390px; height: 844px; border: 0; border-radius: 40px;
-      display: block; background: #f2fbfb; }
-    figcaption { text-align: center; max-width: 390px; }
-    figcaption b { display: block; font-size: 16px; }
-    figcaption span { color: var(--muted); font-size: 13px; }
-    @media (max-width: 700px) { .row { flex-wrap: wrap; } }
-  </style>
-</head>
-<body>
-  <div class="row">
-    <figure>
-      <div class="slot"><div class="phone"><iframe src="./?nointro=1#/home?v=coverflow" title="Vertical flip"></iframe></div></div>
-      <figcaption><b>A · Vertical flip</b><span>Cards flip up and down over a hinge, like a flip calendar.</span></figcaption>
-    </figure>
-    <figure>
-      <div class="slot"><div class="phone"><iframe src="./?nointro=1#/home?v=book" title="Horizontal flip"></iframe></div></div>
-      <figcaption><b>B · Horizontal flip</b><span>Cards turn left and right on a spine, like a book.</span></figcaption>
-    </figure>
-  </div>
-  <script>
-    // Scale the two phones so they fit the window, side by side.
-    function fit() {
-      const byHeight = (innerHeight - 80) / 868;
-      const byWidth = innerWidth > 700 ? (innerWidth - 32 - 24) / (414 * 2) : (innerWidth - 32) / 414;
-      document.documentElement.style.setProperty('--fit', Math.max(0.3, Math.min(1, byHeight, byWidth)));
-    }
-    addEventListener('resize', fit);
-    fit();
-  </script>
-</body>
-</html>
+<!-- The side-by-side layouts page is gone. Browsers that still have the old
+     index.html cached are sent here on wide windows; `?single` stops that
+     old page from redirecting back, so they land on the app. -->
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0; url=./?single">
+<script>location.replace('./?single');</script>

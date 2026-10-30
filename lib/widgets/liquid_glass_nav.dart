@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'nav_icons.dart';
-import 'teal_liquid_glass.dart';
+import 'liquid_glass.dart';
 
-/// Teal-green liquid-glass tab bar: [TealLiquidGlass] with a glossy bubble
-/// that slides to the selected tab.
+/// Crystal liquid-glass tab bar: [LiquidGlass] with a glossy bubble that
+/// slides to the selected tab.
 class LiquidGlassNav extends StatelessWidget {
   const LiquidGlassNav({
     super.key,
@@ -29,8 +29,10 @@ class LiquidGlassNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TealLiquidGlass(
+    return LiquidGlass(
       height: height,
+      radius: 48,
+      crystal: true,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final tabWidth = (constraints.maxWidth - inset * 2) / items.length;
@@ -43,8 +45,8 @@ class LiquidGlassNav extends StatelessWidget {
                 // A pill inside its own tab, so it never touches the next
                 // tab or the glass rim; short enough to read as a pill.
                 left: inset + selectedIndex * tabWidth + 2,
-                top: inset + 8,
-                bottom: inset + 8,
+                top: 13,
+                bottom: 13,
                 width: tabWidth - 4,
                 child: const _ActiveBubble(),
               ),
@@ -103,7 +105,7 @@ class _Tab extends StatelessWidget {
                 item.label,
                 maxLines: 1,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 9.5,
                   height: 1,
                   fontWeight: active ? FontWeight.w700 : FontWeight.w500,
                   color: ink,
