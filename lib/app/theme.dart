@@ -5,10 +5,10 @@ abstract final class AppColors {
   /// Dark theme across the app; follows the globe's 🌙 / ☀️ switch.
   static bool dark = false;
 
-  static const teal = Color(0xFF2E7F87);
-  static const tealDark = Color(0xFF1F6670);
+  static const teal = Color(0xFF0E8A6E);
+  static const tealDark = Color(0xFF0A6552);
   static Color get tealTint =>
-      dark ? const Color(0xFF173A3F) : const Color(0xFFE3F4F5);
+      dark ? const Color(0xFF173A3F) : const Color(0xFFE1F6EC);
   static Color get ink =>
       dark ? const Color(0xFFE8F2F1) : const Color(0xFF0F1B3D);
   // 5.6:1 on white (light) and on the dark surface, passes WCAG AA.
@@ -17,9 +17,9 @@ abstract final class AppColors {
   static Color get background => dark ? const Color(0xFF0B1A1F) : Colors.white;
   static Color get surface => dark ? const Color(0xFF15282E) : Colors.white;
   static Color get aqua =>
-      dark ? const Color(0xFF12363B) : const Color(0xFFD9F1F2);
+      dark ? const Color(0xFF12363B) : const Color(0xFFD3F2E4);
   static Color get border =>
-      dark ? const Color(0xFF26404A) : const Color(0xFFDDE7E7);
+      dark ? const Color(0xFF26404A) : const Color(0xFFD7E9E0);
   static const online = Color(0xFF1E8F55);
   static const star = Color(0xFFD99A00);
 }

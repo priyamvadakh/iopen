@@ -83,13 +83,13 @@ class LiquidGlass extends StatelessWidget {
                       ? const [
                           Color(0x24FFFFFF),
                           Color(0x0AD6FCF7),
-                          Color(0x059FFFF1),
+                          Color(0x059FFFD6),
                           Color(0x1AC8FFF8),
                         ]
                       : const [
                           Color(0x6BFFFFFF),
                           Color(0x2ED6FCF7),
-                          Color(0x1A9FFFF1),
+                          Color(0x1A9FFFD6),
                           Color(0x42C8FFF8),
                         ],
                   stops: const [0, 0.45, 0.75, 1],
@@ -170,7 +170,7 @@ class _OuterShadowPainter extends CustomPainter {
     canvas.drawRRect(
       rrect.inflate(2),
       Paint()
-        ..color = const Color(0xFF57D1C7).withValues(alpha: 0.28)
+        ..color = const Color(0xFF3FD6A0).withValues(alpha: 0.28)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 13),
     );
     canvas.restore();
@@ -226,7 +226,7 @@ class _GlassBodyPainter extends CustomPainter {
     _insetShadow(
       canvas,
       rrect,
-      const Color(0xFF57D1C7).withValues(alpha: crystal ? 0.22 : 0.28),
+      const Color(0xFF3FD6A0).withValues(alpha: crystal ? 0.22 : 0.28),
       0,
       crystal ? -10 : -12,
       crystal ? 18 : 22,
@@ -240,11 +240,11 @@ class _GlassBodyPainter extends CustomPainter {
       1,
       _conic(210, const [
         (0, Colors.white),
-        (70, Color(0xFFB7FFF4)),
-        (140, Color(0x8C57D1C7)),
+        (70, Color(0xFFB7FFE0)),
+        (140, Color(0x8C3FD6A0)),
         (200, Colors.white),
-        (260, Color(0xFF8FFFF0)),
-        (320, Color(0x8057D1C7)),
+        (260, Color(0xFF8FFFCF)),
+        (320, Color(0x803FD6A0)),
         (360, Colors.white),
       ], rect),
     );
@@ -304,13 +304,13 @@ class _GlassBodyPainter extends CustomPainter {
       Rect.fromLTRB(r * 0.8, 3, w - r * 0.8, 5.5),
       const [
         Colors.transparent,
-        Color(0xFF8FFFF0),
+        Color(0xFF8FFFCF),
         Colors.white,
-        Color(0xFF57D1C7),
+        Color(0xFF3FD6A0),
         Colors.white,
         Colors.transparent,
       ],
-      const Color(0x9957D1C7),
+      const Color(0x993FD6A0),
       4,
     );
     _reflection(
@@ -318,13 +318,13 @@ class _GlassBodyPainter extends CustomPainter {
       Rect.fromLTRB(r * 0.6, h - 6, w - r * 0.6, h - 3),
       const [
         Colors.transparent,
-        Color(0xFF57D1C7),
+        Color(0xFF3FD6A0),
         Colors.white,
         Color(0xFF70FFDB),
         Colors.white,
         Colors.transparent,
       ],
-      const Color(0xB357D1C7),
+      const Color(0xB33FD6A0),
       5,
     );
 
@@ -413,10 +413,10 @@ class _GlassBodyPainter extends CustomPainter {
           colors: [
             Color(0x00FFFFFF),
             Color(0x40C6FFF8),
-            Color(0x8C8FFFF0),
+            Color(0x8C8FFFCF),
             Color(0xF2FFFFFF),
-            Color(0xB3B7FFF4),
-            Color(0x5957D1C7),
+            Color(0xB3B7FFE0),
+            Color(0x593FD6A0),
           ],
           stops: [0.58, 0.68, 0.78, 0.88, 0.93, 1],
         ).createShader(const Rect.fromLTRB(-1, -1, 1, 1)),
@@ -445,7 +445,7 @@ class _GlassBodyPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3
-        ..color = const Color(0x738FFFF0)
+        ..color = const Color(0x738FFFCF)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
     );
     canvas.drawPath(
@@ -479,7 +479,7 @@ class _GlassBodyPainter extends CustomPainter {
       Offset(w - r * 0.25 - r * 0.4, h - 6 - 6),
       Size(r * 0.8, 12),
       -22,
-      [const Color(0xD970FFDB), const Color(0x0057D1C7)],
+      [const Color(0xD970FFDB), const Color(0x003FD6A0)],
       blur: 2.5,
     );
 
@@ -714,9 +714,9 @@ class _SparklePainter extends CustomPainter {
         (60, Color(0x59FFFFFF)),
         (70, Color(0x00FFFFFF)),
         (196, Color(0x00FFFFFF)),
-        (206, Color(0x4DB7FFF4)),
+        (206, Color(0x4DB7FFE0)),
         (214, Color(0xFFE9FFFC)),
-        (222, Color(0x4DB7FFF4)),
+        (222, Color(0x4DB7FFE0)),
         (232, Color(0x00FFFFFF)),
         (360, Color(0x00FFFFFF)),
       ], rect);
@@ -754,7 +754,7 @@ class _SparklePainter extends CustomPainter {
       canvas.drawPath(
         _star,
         Paint()
-          ..color = const Color(0xFF8FFFF0).withValues(alpha: 0.9 * opacity)
+          ..color = const Color(0xFF8FFFCF).withValues(alpha: 0.9 * opacity)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, 5 * 24 / s.size),
       );
       canvas.drawPath(

@@ -17,10 +17,10 @@ class LiquidGlassNav extends StatelessWidget {
 
   static const items = navItems;
 
-  static const teal = Color(0xFF57D1C7);
-  static const aqua = Color(0xFF57D1C7);
-  static const mint = Color(0xFF9FFFF1);
-  static const deepTeal = Color(0xFF006D73);
+  static const teal = Color(0xFF3FD6A0);
+  static const aqua = Color(0xFF3FD6A0);
+  static const mint = Color(0xFF9FFFD6);
+  static const deepTeal = Color(0xFF00704F);
 
   static const double height = 82;
 
@@ -83,7 +83,7 @@ class _Tab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Dark teal; the selected tab is bolder and sits in the bubble.
-    final ink = active ? LiquidGlassNav.deepTeal : const Color(0xFF1F5E63);
+    final ink = active ? LiquidGlassNav.deepTeal : const Color(0xFF0E5A45);
     return Semantics(
       button: true,
       selected: active,
@@ -139,9 +139,9 @@ class _ActiveBubble extends StatelessWidget {
           radius: 1.2,
           colors: [
             Colors.white.withValues(alpha: 0.88),
-            const Color(0xFFC6F7F2).withValues(alpha: 0.72),
-            const Color(0xFF7FE6E0).withValues(alpha: 0.6),
-            const Color(0xFFB5F3EE).withValues(alpha: 0.7),
+            const Color(0xFFC6F7E2).withValues(alpha: 0.72),
+            const Color(0xFF7FE8C4).withValues(alpha: 0.6),
+            const Color(0xFFB5F3DC).withValues(alpha: 0.7),
           ],
         ),
         shadows: [

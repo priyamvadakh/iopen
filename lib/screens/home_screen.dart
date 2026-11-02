@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -56,56 +57,81 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final sections = <Widget>[
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 22),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
         child: GlassSearchField(
           hint: 'Search for a location',
           onTap: () => context.push('/explore'),
         ),
       ),
-      Padding(
-        padding: const EdgeInsets.only(top: 2),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              child: SectionHeader(
-                'See Before You Decide',
-                centered: true,
-                onSeeAll: () => context.push('/decide'),
-              ),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: SectionHeader(
+              'See Before You Decide',
+              centered: true,
+              onSeeAll: () => context.push('/decide'),
             ),
-            const SizedBox(height: 12),
-            const _DecideCarousel(),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          const _DecideCarousel(),
+        ],
       ),
     ];
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
+    final sheetTop = _sheetTop(context);
+    final dark = AppColors.dark;
+
     return Scaffold(
-      body: ColoredBox(
-        // Plain white, so the cards and the globe's glow do the colour.
-        color: AppColors.dark ? AppColors.background : Colors.white,
+      body: DecoratedBox(
+        // White into a fresh mint, so the whole page reads green and glossy.
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: dark
+                ? [AppColors.background, AppColors.background]
+                : const [Colors.white, _pageMint],
+          ),
+        ),
         child: Stack(
           children: [
-            ListView(
-              // Room for the pinned globe section below.
-              padding: EdgeInsets.only(
-                bottom:
-                    bottomInset +
-                    _CountryGlobe.pinnedHeight +
-                    _PinnedCountries.lift,
-              ),
-              children: [
-                SizedBox(height: _flipTop(context)),
-                for (var i = 0; i < sections.length; i++)
-                  _Reveal(animation: _entrance, index: i, child: sections[i]),
-              ],
+            // The rotating photos fill the screen; the frosted sheet blurs
+            // them below the header.
+            const Positioned.fill(child: _PhotoHero()),
+            // One liquid-glass sheet from just over the photos all the way
+            // down past the bottom edge, under everything else on Home.
+            Positioned(
+              left: 0,
+              right: 0,
+              top: sheetTop,
+              bottom: -_sheetRadius,
+              // Not faded in: a fade layer would hide the photos from the
+              // glass's blur.
+              child: const _FrostedSheet(),
             ),
-            // Pinned to the bottom so the globe is always on screen; the
-            // page scrolls under it. Not faded in: the intro's globe lands
-            // right on it.
+            // The search bar and cards scroll inside the sheet, above the
+            // pinned country globe.
+            Positioned(
+              left: 0,
+              right: 0,
+              top: sheetTop,
+              bottom:
+                  bottomInset +
+                  _CountryGlobe.pinnedHeight +
+                  _PinnedCountries.lift,
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  for (var i = 0; i < sections.length; i++)
+                    _Reveal(animation: _entrance, index: i, child: sections[i]),
+                ],
+              ),
+            ),
+            // Pinned to the bottom so the globe is always on screen. Not
+            // faded in: the intro's globe lands right on it.
             Positioned(
               left: 0,
               right: 0,
@@ -122,9 +148,153 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
-/// Room above the flip book's search bar, under the status bar.
-double _flipTop(BuildContext context) =>
-    math.max(MediaQuery.paddingOf(context).top, 20.0) + 14;
+/// Corner radius of the glass sheet over the photos.
+const _sheetRadius = 30.0;
+
+/// Frosted glass over the photos: a heavy blur, a light mint tint, a bright
+/// rim, a glossy reflection along the top edge and twinkling sparkles.
+class _FrostedSheet extends StatelessWidget {
+  const _FrostedSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = AppColors.dark;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(_sheetRadius),
+        boxShadow: [
+          // Crisp green keyline right outside the white rim.
+          BoxShadow(
+            color: const Color(0xFF14A37C).withValues(alpha: 0.55),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: const Color(0xFF2FD39A).withValues(alpha: 0.4),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(_sheetRadius),
+        child: BackdropFilter(
+          // Brighter, more saturated colour through the frost, so it
+          // reads fresh rather than grey.
+          filter: ImageFilter.compose(
+            outer: ColorFilter.matrix(_saturate(1.15, 1.12)),
+            inner: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(_sheetRadius),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: dark
+                    ? const [Color(0x990B1A1F), Color(0x800B1A1F)]
+                    : const [
+                        Color(0xCCFFFFFF),
+                        Color(0xA6F4FFFA),
+                        Color(0x99EAFAF2),
+                      ],
+                stops: const [0, 0.35, 1],
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: dark ? 0.2 : 1),
+                width: 1.6,
+              ),
+            ),
+            child: const Stack(
+              fit: StackFit.expand,
+              children: [
+                IgnorePointer(
+                  child: CustomPaint(painter: _SheetGlossPainter()),
+                ),
+                GlassSparkles(
+                  radius: _sheetRadius,
+                  spots: [
+                    SparkleSpot(0.14, 0, 0, 3, 14, 0),
+                    SparkleSpot(0.78, 0, 0, 2, 11, 1.1),
+                    SparkleSpot(0, -2, 0.12, 4, 10, 1.7),
+                    SparkleSpot(1, 2, 0.2, 4, 10, 0.6),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Saturation and brightness, like CSS `saturate() brightness()`.
+List<double> _saturate(double s, double b) {
+  const r = 0.2126, g = 0.7152, bl = 0.0722;
+  return [
+    (r + (1 - r) * s) * b, (g - g * s) * b, (bl - bl * s) * b, 0, 0, //
+    (r - r * s) * b, (g + (1 - g) * s) * b, (bl - bl * s) * b, 0, 0,
+    (r - r * s) * b, (g - g * s) * b, (bl + (1 - bl) * s) * b, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
+}
+
+/// The sheet's gloss: a soft white sheen along the top and a bright green
+/// and white reflection right on the top edge.
+class _SheetGlossPainter extends CustomPainter {
+  const _SheetGlossPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final sheen = Rect.fromLTWH(0, 0, w, 70);
+    canvas.drawRect(
+      sheen,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.white.withValues(alpha: 0.75),
+            Colors.white.withValues(alpha: 0),
+          ],
+        ).createShader(sheen),
+    );
+    final line = Rect.fromLTRB(_sheetRadius, 3, w - _sheetRadius, 5.5);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(line.inflate(1), const Radius.circular(3)),
+      Paint()
+        ..color = const Color(0x993FD6A0)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(line, const Radius.circular(2)),
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Colors.transparent,
+            Color(0xFF8FFFCF),
+            Colors.white,
+            Color(0xFF3FD6A0),
+            Colors.white,
+            Colors.transparent,
+          ],
+        ).createShader(line),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SheetGlossPainter old) => false;
+}
+
+/// The mint the page fades to at the bottom, behind the country globe.
+const _pageMint = Color(0xFFE6F7EE);
+
+/// Where the content sheet starts, under the photo header.
+double _sheetTop(BuildContext context) =>
+    math.max(MediaQuery.paddingOf(context).top, 24.0) +
+    HomeHeroLayout.height -
+    HomeHeroLayout.sheetOverlap;
 
 /// "Explore by Country" header over the globe, on a backdrop that fades in
 /// from the page above so cards scroll softly under it.
@@ -139,41 +309,30 @@ class _PinnedCountries extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Plain white behind the section, so the globe's glow does the colour.
-    final page = AppColors.dark ? AppColors.background : Colors.white;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [page.withValues(alpha: 0), page, page],
-          stops: const [0, 0.06, 1],
+    // No backdrop of its own: it sits straight on the glass sheet.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FadeTransition(
+          opacity: CurvedAnimation(
+            parent: reveal,
+            curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+            child: SectionHeader(
+              'Explore by Country',
+              centered: true,
+              onSeeAll: () => context.push('/explore'),
+            ),
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FadeTransition(
-            opacity: CurvedAnimation(
-              parent: reveal,
-              curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
-              child: SectionHeader(
-                'Explore by Country',
-                centered: true,
-                onSeeAll: () => context.push('/explore'),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: _CountryGlobe.height + lift + bottomInset,
-            child: _CountryGlobe(reveal: reveal),
-          ),
-        ],
-      ),
+        SizedBox(
+          height: _CountryGlobe.height + lift + bottomInset,
+          child: _CountryGlobe(reveal: reveal),
+        ),
+      ],
     );
   }
 }
@@ -213,7 +372,7 @@ class _Reveal extends StatelessWidget {
 /// Geometry shared with the onboarding landing.
 abstract final class HomeHeroLayout {
   /// Hero height below the status bar.
-  static const height = 176.0;
+  static const height = 190.0;
 
   /// How far the content sheet rides up over the hero.
   static const sheetOverlap = 24.0;
@@ -236,8 +395,240 @@ abstract final class HomeHeroLayout {
   }
 }
 
-/// "See Before You Decide" flip book: the cards flip up and down over a
-/// hinge, like a flip calendar.
+/// Full-bleed photo carousel with the greeting, headline and wallet.
+class _PhotoHero extends StatefulWidget {
+  const _PhotoHero();
+
+  @override
+  State<_PhotoHero> createState() => _PhotoHeroState();
+}
+
+class _PhotoHeroState extends State<_PhotoHero> {
+  static const _slides = [
+    (InspectKind.car, Alignment(0.3, -0.2)),
+    (InspectKind.property, Alignment.center),
+    (InspectKind.hotel, Alignment.center),
+    (InspectKind.place, Alignment.center),
+  ];
+
+  final _controller = PageController();
+  Timer? _timer;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!_controller.hasClients) return;
+      _controller.animateToPage(
+        (_page + 1) % _slides.length,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOutCubic,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // At least a status bar's worth on top, so the headline never clips
+    // on screens without one (the side-by-side variations).
+    final top = math.max(MediaQuery.paddingOf(context).top, 24.0);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // The photos fill the whole screen, so the frosted sheet below
+        // the header has them to blur.
+        PageView.builder(
+          controller: _controller,
+          itemCount: _slides.length,
+          onPageChanged: (i) => setState(() => _page = i),
+          itemBuilder: (context, i) => GestureDetector(
+            onTap: () => context.push('/inspect/${_slides[i].$1.name}'),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Full screen behind the frosted sheet, which blurs it.
+                Photo(_slides[i].$1.hero, icon: _slides[i].$1.icon),
+                // The header keeps its own crop, so it stays crisp.
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  height: top + HomeHeroLayout.height,
+                  child: Photo(
+                    _slides[i].$1.hero,
+                    icon: _slides[i].$1.icon,
+                    alignment: _slides[i].$2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          height: top + HomeHeroLayout.height,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // One smooth wash: light at the top for the status bar and
+              // greeting, deep teal under the headline.
+              const IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x66063A2A),
+                        Color(0x14063A2A),
+                        Color(0x8C063A2A),
+                        Color(0xB3063A2A),
+                      ],
+                      stops: [0, 0.3, 0.65, 1],
+                    ),
+                  ),
+                ),
+              ),
+              // Greeting and wallet share one row.
+              Positioned(
+                top: top + 8,
+                left: 20,
+                right: 16,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Hi Priyamvada! 👋',
+                        style: AppText.label.copyWith(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    _WalletChip(onTap: () => context.go('/wallet')),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: HomeHeroLayout.sheetOverlap + 14,
+                child: IgnorePointer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'See it live.',
+                        style: AppText.display.copyWith(
+                          color: Colors.white,
+                          fontSize: 27,
+                          height: 1.1,
+                        ),
+                      ),
+                      Text(
+                        'Know before you go.',
+                        style: AppText.display.copyWith(
+                          color: const Color(0xFF7BF5C2),
+                          fontSize: 27,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Send a local Guide to inspect any place,\n'
+                        'before you spend your time or money.',
+                        style: AppText.body.copyWith(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 13.5,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Slide dots, tucked into the bottom-right corner.
+              Positioned(
+                right: 18,
+                bottom: HomeHeroLayout.sheetOverlap + 16,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < _slides.length; i++)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        margin: const EdgeInsets.only(left: 5),
+                        width: i == _page ? 16 : 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(3),
+                          color: i == _page
+                              ? const Color(0xFF4BE3A4)
+                              : Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WalletChip extends StatelessWidget {
+  const _WalletChip({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Wallet, AED 120.00',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Glass(
+          radius: 12,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 16,
+                color: AppColors.teal,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'AED 120.00',
+                style: AppText.label.copyWith(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "See Before You Decide" flip book: the cards turn left and right over a
+/// spine, like a book's pages, with the next ones fanned out underneath.
 class _DecideCarousel extends StatefulWidget {
   const _DecideCarousel();
 
@@ -284,8 +675,8 @@ class _DecideCarouselState extends State<_DecideCarousel> {
     for (final c in _countries) _FlipPage(city: c),
   ];
 
-  // One swipe of this height moves the deck by one card.
-  final _controller = PageController(viewportFraction: 0.37);
+  // One swipe of this width turns one page.
+  final _controller = PageController(viewportFraction: 0.6);
 
   @override
   void initState() {
@@ -309,69 +700,75 @@ class _DecideCarouselState extends State<_DecideCarousel> {
     super.dispose();
   }
 
-  /// Page height, sized in [build] so the book fills the room between
-  /// the section title and the country globe; the spine runs just under
-  /// the top page.
-  double _pageH = 216;
-  double get _spineY => _pageH + 4;
-  double get _bookH => _pageH * 2 + 18;
+  /// Page height, sized in [build] so the deck fits between the section
+  /// title and the country globe.
+  double _pageH = 180;
 
-  /// Page width, as a share of the row.
-  static const _pageW = 0.86;
+  /// Room above and below the pages, for their shadows.
+  static const _pad = 8.0;
+  double get _deckH => _pageH + _pad * 2;
 
-  /// Every page hinges on one spine across the middle. Pages still to come
-  /// stand above it, leaning back a little more each; the page being
-  /// turned swings over the spine, and turned pages hang below it showing
-  /// their backs, upside down.
-  Widget _flipCard(int i, double delta, double w) {
+  /// Page width, as a share of the row: small enough that the pages
+  /// waiting underneath show plenty of themselves.
+  static const _pageW = 0.6;
+
+  /// How many pages wait underneath, and how far each steps out to the
+  /// right of the one above it.
+  static const _under = 4;
+  static const _step = 26.0;
+
+  /// The whole stack is nudged left by half the fan, so it sits centred.
+  static const _shift = _under * _step / 2;
+
+  /// One page at a time turns over a spine down its left edge, like a
+  /// book's; the next pages wait underneath, fanned out to the right.
+  Widget _bookCard(int i, double delta, double w) {
     final d = delta.abs();
-    if (d > 3.2) return const Positioned(left: 0, top: 0, child: SizedBox());
-    // 0 stands the page up above the spine; pi hangs it straight down.
-    final double angle;
-    // A gentle lean, so the standing page reads flat and roomy.
-    if (delta >= 0) {
-      angle = -0.06 - math.min(delta, 2.5) * 0.12;
-    } else if (delta > -1) {
-      angle = -0.06 + Curves.easeInOut.transform(-delta) * (math.pi - 0.02);
-    } else {
-      angle = math.pi - 0.14 - math.min(d - 1, 2) * 0.14;
+    // Turned pages are gone; only the next few wait underneath.
+    if (delta <= -1 || delta > _under + 0.5) {
+      return const Positioned(left: 0, top: 0, child: SizedBox());
     }
-    // Darkest when edge-on to the light, half way over.
-    final shade =
-        (math.sin(angle.clamp(0.0, math.pi)) * 0.4 +
-                (delta > 0 ? math.min(delta, 2.0) * 0.08 : 0))
-            .clamp(0.0, 0.5);
-    final page = _glassPage(i);
+    final double angle, dx, scale, opacity, shade;
+    if (delta >= 0) {
+      // Waiting underneath, each a little smaller and further right.
+      final k = math.min(delta, _under.toDouble());
+      angle = 0;
+      dx = k * (_step + w * 0.035) - _shift;
+      scale = 1 - k * 0.05;
+      opacity = (_under + 0.5 - delta).clamp(0.0, 1.0);
+      shade = k * 0.07;
+    } else {
+      // Turning over the spine, the free edge swinging across to the left.
+      final t = Curves.easeInOut.transform(d);
+      angle = -t * 1.9;
+      dx = -_shift;
+      scale = 1;
+      opacity = 1 - Curves.easeIn.transform(((t - 0.7) / 0.3).clamp(0.0, 1.0));
+      shade = math.sin(t * math.pi / 2) * 0.3;
+    }
     return Positioned(
       left: 0,
       right: 0,
-      top: _spineY - _pageH,
+      top: _pad,
       height: _pageH,
       child: Center(
         child: SizedBox(
           width: w,
-          height: _pageH,
           child: Opacity(
-            opacity: (1 - math.max(0.0, d - 2.4)).clamp(0.0, 1.0).toDouble(),
+            opacity: opacity,
             child: Transform(
-              alignment: Alignment.bottomCenter,
+              alignment: Alignment.centerLeft,
               transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.0013)
-                ..rotateX(angle),
+                ..setEntry(3, 2, 0.0012)
+                ..translateByDouble(dx, 0, 0, 1)
+                ..rotateY(angle)
+                ..scaleByDouble(scale, scale, 1, 1),
               child: ColorFiltered(
                 colorFilter: ColorFilter.mode(
-                  const Color(0xFF0F1B3D).withValues(alpha: shade),
+                  const Color(0xFF06402F).withValues(alpha: shade),
                   BlendMode.srcATop,
                 ),
-                // Past half way the page shows its other side, drawn the
-                // right way up rather than mirrored.
-                child: angle > math.pi / 2
-                    ? Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.rotationX(math.pi),
-                        child: page,
-                      )
-                    : page,
+                child: _glassPage(i),
               ),
             ),
           ),
@@ -380,21 +777,21 @@ class _DecideCarouselState extends State<_DecideCarousel> {
     );
   }
 
-  /// A flip page with a polished crystal finish: a clear-coat glare,
-  /// luminous rims, a glossy top reflection and twinkling sparkles. The
-  /// half-pages are short, so their text is smaller.
+  /// A page with a polished crystal finish: a clear-coat glare, luminous
+  /// green rims, a glossy top reflection and twinkling sparkles.
   Widget _glassPage(int i) => DecoratedBox(
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(18),
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFF0F1B3D).withValues(alpha: 0.1),
-          blurRadius: 24,
-          offset: const Offset(0, 10),
+          color: const Color(0xFF06402F).withValues(alpha: 0.16),
+          blurRadius: 12,
+          offset: const Offset(0, 6),
         ),
         BoxShadow(
-          color: const Color(0xFF3CC7D0).withValues(alpha: 0.28),
+          color: const Color(0xFF1FC98E).withValues(alpha: 0.75),
           blurRadius: 26,
+          spreadRadius: 2,
         ),
       ],
     ),
@@ -403,10 +800,10 @@ class _DecideCarouselState extends State<_DecideCarousel> {
       children: [
         _FlipPageCard(page: _pages[i], compact: true),
         const IgnorePointer(
-          child: CustomPaint(painter: _CrystalCardPainter(radius: 20)),
+          child: CustomPaint(painter: _CrystalCardPainter(radius: 18)),
         ),
         const GlassSparkles(
-          radius: 20,
+          radius: 18,
           spots: [
             SparkleSpot(0.22, 0, 0, 3, 14, 0.3),
             SparkleSpot(0, -3, 0.46, 5, 10, 1.4),
@@ -417,7 +814,7 @@ class _DecideCarouselState extends State<_DecideCarousel> {
     ),
   );
 
-  void _step(int by) {
+  void _turn(int by) {
     final page = (_controller.page ?? 0).round() + by;
     _controller.animateToPage(
       page.clamp(0, _pages.length - 1),
@@ -430,120 +827,167 @@ class _DecideCarouselState extends State<_DecideCarousel> {
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     // Fills what's left between the section title and the pinned country
-    // globe: search 54 + 8 + 22, title 32 + 12 and book frame 18; the fade
-    // above the globe overlaps the book a little.
+    // globe: search 14 + 54 + 16, title 32 + 8; the fade above the globe
+    // overlaps the deck a little.
     final globe = _CountryGlobe.pinnedHeight + _PinnedCountries.lift;
-    final top = _flipTop(context);
-    _pageH = ((mq.size.height - top - mq.padding.bottom - 136 - globe) / 2)
-        .clamp(100.0, 236.0);
-    return SizedBox(
-      height: _bookH,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Clear glass slate behind both the standing and turned page.
-          if (!AppColors.dark)
-            const Positioned.fill(
-              top: -6,
-              child: FractionallySizedBox(
-                widthFactor: 0.95,
-                child: IgnorePointer(
-                  child: CustomPaint(painter: _GlassSlatePainter()),
-                ),
+    final room =
+        mq.size.height - _sheetTop(context) - mq.padding.bottom - 124 - globe;
+    _pageH = (room - _pad * 2).clamp(120.0, 196.0);
+    // Any room left over goes evenly above and below the deck.
+    final spare = math.max(0.0, room - _deckH);
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: spare / 2),
+      child: SizedBox(
+        height: _deckH,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // A soft green glow behind the slides.
+            const Positioned(
+              left: -30,
+              right: -30,
+              top: -70,
+              bottom: -70,
+              child: IgnorePointer(
+                child: CustomPaint(painter: _DeckGlowPainter(shift: _shift)),
               ),
             ),
-          LayoutBuilder(
-            builder: (context, constraints) => AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final page =
-                    _controller.hasClients &&
-                        _controller.position.haveDimensions
-                    ? _controller.page!
-                    : 0.0;
-                // Farthest first, so the centre card paints on top.
-                final order = List.generate(
-                  _pages.length,
-                  (i) => i,
-                )..sort((a, b) => (b - page).abs().compareTo((a - page).abs()));
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    for (final i in order)
-                      _flipCard(i, i - page, constraints.maxWidth * _pageW),
-                    // The glossy glass spine the pages turn on.
-                    Positioned(
-                      left: constraints.maxWidth * 0.03,
-                      right: constraints.maxWidth * 0.03,
-                      top: _spineY - 2.5,
-                      height: 5,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(3),
-                          border: Border.all(color: const Color(0xFFB7FFF4)),
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0x66FFFFFF),
-                              Colors.white,
-                              Color(0xFFC6F7F2),
-                              Colors.white,
-                              Color(0x66FFFFFF),
-                            ],
-                            stops: [0, 0.3, 0.55, 0.75, 1],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF3CC7D0)
-                                  .withValues(alpha: 0.6),
-                              blurRadius: 12,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final w = constraints.maxWidth * _pageW;
+                return AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    final page =
+                        _controller.hasClients &&
+                            _controller.position.haveDimensions
+                        ? _controller.page!
+                        : 0.0;
+                    // Farthest underneath first; the page being turned stays
+                    // on top for the whole turn.
+                    int depth(int i) => i - page < 0 ? 1 : 0;
+                    final order = List.generate(_pages.length, (i) => i)
+                      ..sort((a, b) {
+                        final byDepth = depth(a).compareTo(depth(b));
+                        if (byDepth != 0) return byDepth;
+                        return (b - page).abs().compareTo((a - page).abs());
+                      });
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        for (final i in order) _bookCard(i, i - page, w),
+                        // The glossy green spine down the book's left edge.
+                        Positioned(
+                          left: (constraints.maxWidth - w) / 2 - _shift - 3,
+                          width: 5,
+                          top: _pad + 10,
+                          height: _pageH - 20,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(3),
+                              border: Border.all(
+                                color: const Color(0xFFB7FFE0),
+                              ),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Color(0x66FFFFFF),
+                                  Colors.white,
+                                  Color(0xFFC6F7E2),
+                                  Colors.white,
+                                  Color(0x66FFFFFF),
+                                ],
+                                stops: [0, 0.3, 0.55, 0.75, 1],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF2FD39A)
+                                      .withValues(alpha: 0.6),
+                                  blurRadius: 10,
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 );
               },
             ),
-          ),
-          // Invisible pages on top take the up and down swipes and taps.
-          PageView.builder(
-            controller: _controller,
-            scrollDirection: Axis.vertical,
-            itemCount: _pages.length,
-            itemBuilder: (context, i) => Semantics(
-              button: true,
-              label: _pages[i].label,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => context.push(_pages[i].route),
+            // Invisible pages on top take the left and right swipes and taps.
+            PageView.builder(
+              controller: _controller,
+              itemCount: _pages.length,
+              itemBuilder: (context, i) => Semantics(
+                button: true,
+                label: _pages[i].label,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => context.push(_pages[i].route),
+                ),
               ),
             ),
-          ),
-          Positioned(
-            left: 6,
-            top: _spineY - 18,
-            child: GlassIconButton(
-              icon: Icons.keyboard_arrow_up_rounded,
-              label: 'Previous',
-              size: 36,
-              onPressed: () => _step(-1),
+            Positioned(
+              left: 4,
+              top: _deckH / 2 - 18,
+              child: GlassIconButton(
+                icon: Icons.chevron_left_rounded,
+                label: 'Previous',
+                size: 36,
+                onPressed: () => _turn(-1),
+              ),
             ),
-          ),
-          Positioned(
-            right: 6,
-            top: _spineY - 18,
-            child: GlassIconButton(
-              icon: Icons.keyboard_arrow_down_rounded,
-              label: 'Next',
-              size: 36,
-              onPressed: () => _step(1),
+            Positioned(
+              right: 4,
+              top: _deckH / 2 - 18,
+              child: GlassIconButton(
+                icon: Icons.chevron_right_rounded,
+                label: 'Next',
+                size: 36,
+                onPressed: () => _turn(1),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
+
+/// Soft mint-green light pooled behind the slides, brightest behind the
+/// front card and trailing off along the fan.
+class _DeckGlowPainter extends CustomPainter {
+  const _DeckGlowPainter({required this.shift});
+
+  /// How far the deck sits left of centre.
+  final double shift;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(size.width / 2 - shift * 0.4, size.height / 2);
+    final glow = Rect.fromCenter(
+      center: c,
+      width: size.width,
+      height: size.height,
+    );
+    canvas.drawOval(
+      glow,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            const Color(0xFF1FC98E).withValues(alpha: 0.9),
+            const Color(0xFF3FD6A0).withValues(alpha: 0.6),
+            const Color(0xFF7BEBC2).withValues(alpha: 0),
+          ],
+          stops: const [0, 0.6, 1],
+        ).createShader(glow),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_DeckGlowPainter old) => old.shift != shift;
 }
 
 /// A flip-book page: a check type, or a country with its live Guides.
@@ -582,10 +1026,10 @@ class _FlipPageCard extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0x55FFFFFF),
+                    Color(0x1FFFFFFF),
                     Color(0x00FFFFFF),
-                    Color(0x00072A33),
-                    Color(0xB3072A33),
+                    Color(0x00063A2A),
+                    Color(0xB3063A2A),
                   ],
                   stops: [0, 0.3, 0.5, 1],
                 ),
@@ -727,10 +1171,10 @@ class _BentoTile extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Color(0x55FFFFFF),
+                        Color(0x1FFFFFFF),
                         Color(0x00FFFFFF),
-                        Color(0x00072A33),
-                        Color(0xB3072A33),
+                        Color(0x00063A2A),
+                        Color(0xB3063A2A),
                       ],
                       stops: [0, 0.3, 0.5, 1],
                     ),
@@ -1162,7 +1606,7 @@ class _CityBubble extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF3CC7D0)
+                    color: const Color(0xFF2FD39A)
                         .withValues(alpha: focused ? 0.6 : 0.35),
                     blurRadius: focused ? 20 : 12,
                   ),
@@ -1297,8 +1741,8 @@ class _CrystalCardPainter extends CustomPainter {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withValues(alpha: 0.42),
-            Colors.white.withValues(alpha: 0.12),
+            Colors.white.withValues(alpha: 0.24),
+            Colors.white.withValues(alpha: 0.05),
             Colors.white.withValues(alpha: 0),
           ],
           stops: const [0, 0.22, 0.38],
@@ -1309,7 +1753,15 @@ class _CrystalCardPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
-        ..color = const Color(0xFFB7FFF4).withValues(alpha: 0.9),
+        ..color = const Color(0xFFB7FFE0).withValues(alpha: 0.9),
+    );
+    // A crisp green keyline right on the edge, so the card reads sharp.
+    canvas.drawRRect(
+      rrect.deflate(0.5),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = const Color(0xFF0E8A6E).withValues(alpha: 0.6),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect.deflate(4.5), Radius.circular(radius - 4)),
@@ -1322,7 +1774,7 @@ class _CrystalCardPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(line.inflate(1), const Radius.circular(3)),
       Paint()
-        ..color = const Color(0x9957D1C7)
+        ..color = const Color(0x993FD6A0)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.5),
     );
     canvas.drawRRect(
@@ -1331,9 +1783,9 @@ class _CrystalCardPainter extends CustomPainter {
         ..shader = const LinearGradient(
           colors: [
             Colors.transparent,
-            Color(0xFF8FFFF0),
+            Color(0xFF8FFFCF),
             Colors.white,
-            Color(0xFF57D1C7),
+            Color(0xFF3FD6A0),
             Colors.white,
             Colors.transparent,
           ],
@@ -1344,194 +1796,4 @@ class _CrystalCardPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CrystalCardPainter old) => old.radius != radius;
-}
-
-/// The thin, clear glass sheet behind the flip book: barely tinted, with
-/// hairline edges, a diagonal glare and coloured light caught in its edges
-/// as in cut glass.
-class _GlassSlatePainter extends CustomPainter {
-  const _GlassSlatePainter();
-
-  static const _radius = 34.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    final rect = Offset.zero & size;
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(_radius));
-
-    // Shadow and glow outside the sheet only.
-    canvas.save();
-    canvas.clipPath(
-      Path.combine(
-        PathOperation.difference,
-        Path()..addRect(rect.inflate(60)),
-        Path()..addRRect(rrect),
-      ),
-    );
-    canvas.drawRRect(
-      rrect.shift(const Offset(0, 6)),
-      Paint()
-        ..color = const Color(0xFF0F1B3D).withValues(alpha: 0.06)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
-    );
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..color = const Color(0xFF8FFFF0).withValues(alpha: 0.25)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
-    );
-    canvas.restore();
-    canvas.drawRRect(
-      rrect.inflate(0.25),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.5
-        ..color = const Color(0xFF6E8C98).withValues(alpha: 0.35),
-    );
-
-    canvas.save();
-    canvas.clipRRect(rrect);
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment(-0.17, -1),
-          end: Alignment(0.17, 1),
-          colors: [Color(0x0D284856), Color(0x06284856), Color(0x0F1E3C50)],
-        ).createShader(rect),
-    );
-    // Bright inner edges, lit from the top left.
-    final white = Colors.white;
-    paintInsetShadow(canvas, rrect, white, spread: 1);
-    paintInsetShadow(
-      canvas,
-      rrect,
-      white,
-      dx: 1.5,
-      dy: 2,
-      blur: 1,
-      spread: 0.5,
-    );
-    paintInsetShadow(
-      canvas,
-      rrect,
-      white.withValues(alpha: 0.9),
-      dx: -1.5,
-      dy: -2,
-      blur: 1,
-      spread: 0.5,
-    );
-
-    // Shine: a broad diagonal glare with a thin bright streak beside it.
-    for (final (left, width, colors, stops) in [
-      (
-        0.08,
-        0.22,
-        [
-          white.withValues(alpha: 0),
-          white.withValues(alpha: 0.38),
-          white.withValues(alpha: 0.12),
-          white.withValues(alpha: 0),
-        ],
-        const [0.0, 0.45, 0.7, 1.0],
-      ),
-      (
-        0.34,
-        0.03,
-        [
-          white.withValues(alpha: 0),
-          white.withValues(alpha: 0.5),
-          white.withValues(alpha: 0),
-        ],
-        const [0.0, 0.5, 1.0],
-      ),
-    ]) {
-      final strip = Rect.fromLTWH(w * left, -h * 0.1, w * width, h * 1.3);
-      canvas.save();
-      canvas.translate(strip.center.dx, strip.center.dy);
-      canvas.transform(
-        (Matrix4.identity()..setEntry(0, 1, math.tan(24 * math.pi / 180)))
-            .storage,
-      );
-      canvas.translate(-strip.center.dx, -strip.center.dy);
-      canvas.drawRect(
-        strip,
-        Paint()
-          ..shader = LinearGradient(
-            colors: colors,
-            stops: stops,
-          ).createShader(strip),
-      );
-      canvas.restore();
-    }
-
-    // Glossy sheen along the top.
-    final sheen = Rect.fromLTWH(24, 2, w - 48, 56);
-    canvas.drawRRect(
-      RRect.fromRectAndCorners(
-        sheen,
-        topLeft: const Radius.circular(32),
-        topRight: const Radius.circular(32),
-      ),
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [white.withValues(alpha: 0.6), white.withValues(alpha: 0)],
-        ).createShader(sheen),
-    );
-
-    // Hot spots where the light hits the rounded corners, a glare down
-    // the left edge, and coloured light caught in the edges.
-    paintGlow(canvas, Rect.fromLTWH(18, 3, w * 0.3, 6), white, blur: 1.5);
-    paintGlow(
-      canvas,
-      Rect.fromLTWH(w - 18 - w * 0.24, h - 8, w * 0.24, 5),
-      white.withValues(alpha: 0.95),
-      blur: 1.5,
-    );
-    paintGlow(
-      canvas,
-      Rect.fromLTWH(-4, h * 0.16, 16, h * 0.26),
-      white,
-      blur: 4,
-    );
-    paintGlow(
-      canvas,
-      Rect.fromLTWH(w - 6, h * 0.06, 10, h * 0.14),
-      const Color(0xD9BE96FF),
-      blur: 3,
-    );
-    paintGlow(
-      canvas,
-      Rect.fromLTWH(w - 6, h * 0.58, 10, h * 0.16),
-      const Color(0xCC6EF0D2),
-      blur: 3,
-    );
-    paintGlow(
-      canvas,
-      Rect.fromLTWH(-4, h * 0.7, 10, h * 0.1),
-      const Color(0xCCFFAA5A),
-      blur: 3,
-    );
-
-    // Polished top corners catching the light.
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect.deflate(1.5), const Radius.circular(33)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [white.withValues(alpha: 0.95), white.withValues(alpha: 0)],
-          stops: const [0, 0.18],
-        ).createShader(rect),
-    );
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_GlassSlatePainter oldDelegate) => false;
 }

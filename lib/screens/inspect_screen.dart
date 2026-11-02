@@ -37,8 +37,8 @@ class InspectScreen extends StatelessWidget {
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Color(0x00072A33),
-                                    Color(0xCC072A33),
+                                    Color(0x00063A2A),
+                                    Color(0xCC063A2A),
                                   ],
                                   stops: [0.35, 1],
                                 ),

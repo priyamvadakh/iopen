@@ -27,12 +27,14 @@ class Photo extends StatelessWidget {
       alignment: alignment,
       width: double.infinity,
       height: double.infinity,
+      // Smooth, crisp downscaling instead of the default low-quality filter.
+      filterQuality: FilterQuality.high,
       errorBuilder: (context, error, stack) => DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFFCFE6E7), Color(0xFF9CCBCD)],
+            colors: [Color(0xFFCFE9DC), Color(0xFF9CCDB8)],
           ),
         ),
         child: Center(child: Icon(icon, size: 32, color: AppColors.tealDark)),
@@ -98,7 +100,7 @@ class Glass extends StatelessWidget {
         ]
       : [
           Colors.white.withValues(alpha: 0.94),
-          const Color(0xFFEAF8F8).withValues(alpha: 0.9),
+          const Color(0xFFE5F8EF).withValues(alpha: 0.9),
         ];
 
   static Color get rim =>
@@ -122,14 +124,20 @@ class Glass extends StatelessWidget {
         boxShadow: glow == 0
             ? null
             : [
+                // A crisp green hairline just outside the white rim, so
+                // the edge reads sharp against the page.
                 BoxShadow(
-                  color: const Color(0xFF0F1B3D).withValues(alpha: 0.06 * glow),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
+                  color: const Color(0xFF14A37C).withValues(alpha: 0.35 * glow),
+                  spreadRadius: 0.8,
                 ),
                 BoxShadow(
-                  color: const Color(0xFF3CC7D0).withValues(alpha: 0.16 * glow),
-                  blurRadius: 22,
+                  color: const Color(0xFF06402F).withValues(alpha: 0.10 * glow),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: const Color(0xFF2FD39A).withValues(alpha: 0.26 * glow),
+                  blurRadius: 12,
                   spreadRadius: -2,
                 ),
               ],
@@ -147,7 +155,7 @@ class Glass extends StatelessWidget {
                   Colors.white.withValues(alpha: AppColors.dark ? 0.18 : 0.75),
                   Colors.white.withValues(alpha: 0),
                   Colors.white.withValues(alpha: 0),
-                  const Color(0xFF7FE0E4).withValues(alpha: 0.18),
+                  const Color(0xFF7FE8BC).withValues(alpha: 0.18),
                 ],
                 stops: const [0, 0.48, 0.75, 1],
               ),
@@ -235,7 +243,7 @@ class GlossyArrow extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF3FB3BB), AppColors.teal, Color(0xFF145A63)],
+          colors: [Color(0xFF22B985), AppColors.teal, Color(0xFF075C45)],
         ),
         boxShadow: [
           BoxShadow(
@@ -247,7 +255,7 @@ class GlossyArrow extends StatelessWidget {
       ),
       foregroundDecoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: const Color(0x99A6F4F7), width: 1),
+        border: Border.all(color: const Color(0x99A6F7D6), width: 1),
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -285,7 +293,7 @@ class ArrowChip extends StatelessWidget {
         child: Icon(
           Icons.chevron_right_rounded,
           size: size * 0.7,
-          color: AppColors.dark ? const Color(0xFF8EE3E8) : AppColors.tealDark,
+          color: AppColors.dark ? const Color(0xFF8EE8C4) : AppColors.tealDark,
         ),
       ),
     );
@@ -313,7 +321,7 @@ class GlassSearchField extends StatelessWidget {
         const SizedBox(width: 20),
         Icon(
           CupertinoIcons.search,
-          color: dark ? AppColors.ink : const Color(0xFF1F5E63),
+          color: dark ? AppColors.ink : const Color(0xFF0E5A45),
           size: 22,
         ),
         const SizedBox(width: 10),
@@ -483,7 +491,7 @@ class SectionHeader extends StatelessWidget {
     onPressed: onSeeAll,
     style: TextButton.styleFrom(
       foregroundColor: AppColors.dark
-          ? const Color(0xFF8EE3E8)
+          ? const Color(0xFF8EE8C4)
           : AppColors.tealDark,
       padding: const EdgeInsets.only(left: 8),
       textStyle: AppText.label.copyWith(fontSize: 13),
@@ -509,7 +517,12 @@ class SectionHeader extends StatelessWidget {
           Text(
             title,
             maxLines: 1,
-            style: AppText.title.copyWith(fontSize: 15.5, letterSpacing: 0),
+            style: AppText.title.copyWith(
+              fontSize: 19.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.1,
+              color: AppColors.dark ? null : const Color(0xFF07513D),
+            ),
           ),
           Expanded(
             child: Align(
@@ -740,7 +753,7 @@ class AquaBackground extends StatelessWidget {
     // Fills the page, so content laid out inside isn't shrink-wrapped.
     if (!AppColors.dark) {
       return SizedBox.expand(
-        child: ColoredBox(color: const Color(0xFFEEF8F8), child: child),
+        child: ColoredBox(color: const Color(0xFFEAF8F1), child: child),
       );
     }
     return SizedBox.expand(
@@ -784,7 +797,7 @@ class GlossyButton extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: _radius,
         border: Border.all(
-          color: enabled ? const Color(0x99A6F4F7) : AppColors.border,
+          color: enabled ? const Color(0x99A6F7D6) : AppColors.border,
         ),
         boxShadow: enabled
             ? [
@@ -808,9 +821,9 @@ class GlossyButton extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0xFF3FB3BB),
-                      Color(0xFF2E7F87),
-                      Color(0xFF145A63),
+                      Color(0xFF22B985),
+                      Color(0xFF0E8A6E),
+                      Color(0xFF075C45),
                     ],
                   )
                 : null,
@@ -870,22 +883,22 @@ class GlossyPill extends StatelessWidget {
       height: height,
       decoration: ShapeDecoration(
         shape: const StadiumBorder(
-          side: BorderSide(color: Color(0xCCA6F4F7), width: 1.2),
+          side: BorderSide(color: Color(0xCCA6F7D6), width: 1.2),
         ),
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF6FAEB4), Color(0xFF2E6E77), Color(0xFF1C4F57)],
+          colors: [Color(0xFF5FC29C), Color(0xFF137A5E), Color(0xFF0A4F3C)],
           stops: [0, 0.55, 1],
         ),
         shadows: [
           BoxShadow(
-            color: const Color(0xFF3CC7D0).withValues(alpha: 0.35),
+            color: const Color(0xFF2FD39A).withValues(alpha: 0.35),
             blurRadius: 16,
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: const Color(0xFF0B4F57).withValues(alpha: 0.3),
+            color: const Color(0xFF07513D).withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),

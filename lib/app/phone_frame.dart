@@ -18,7 +18,7 @@ class PhoneFrame extends StatelessWidget {
     final mq = MediaQuery.of(context);
     if (mq.size.width < 600) return child;
 
-    return ColoredBox(color: const Color(0xFFDCE8E8), child: _frame(mq));
+    return ColoredBox(color: const Color(0xFFD8EBE2), child: _frame(mq));
   }
 
   Widget _frame(MediaQueryData mq) {
