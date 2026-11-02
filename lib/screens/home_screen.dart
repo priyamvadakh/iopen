@@ -63,19 +63,25 @@ class _HomeScreenState extends State<HomeScreen>
           onTap: () => context.push('/explore'),
         ),
       ),
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      // The title is painted last, in front of the cards and their glow.
+      Stack(
+        clipBehavior: Clip.none,
         children: [
+          const Padding(
+            padding: EdgeInsets.only(top: _titleH + 8),
+            child: _DecideCarousel(),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: SectionHeader(
-              'See Before You Decide',
-              centered: true,
-              onSeeAll: () => context.push('/decide'),
+            child: SizedBox(
+              height: _titleH,
+              child: SectionHeader(
+                'See Before You Decide',
+                centered: true,
+                onSeeAll: () => context.push('/decide'),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          const _DecideCarousel(),
         ],
       ),
     ];
@@ -124,6 +130,9 @@ class _HomeScreenState extends State<HomeScreen>
                   _PinnedCountries.lift,
               child: ListView(
                 padding: EdgeInsets.zero,
+                // Let the cards' glow fade out past the bottom edge
+                // instead of being cut off in a hard line.
+                clipBehavior: Clip.none,
                 children: [
                   for (var i = 0; i < sections.length; i++)
                     _Reveal(animation: _entrance, index: i, child: sections[i]),
@@ -148,11 +157,15 @@ class _HomeScreenState extends State<HomeScreen>
   }
 }
 
+/// Height of a section title row.
+const _titleH = 34.0;
+
 /// Corner radius of the glass sheet over the photos.
 const _sheetRadius = 30.0;
 
-/// Frosted glass over the photos: a heavy blur, a light mint tint, a bright
-/// rim, a glossy reflection along the top edge and twinkling sparkles.
+/// Control Center–style glass over the photos: clear and lightly frosted,
+/// so the photos glow through, with a soft light-catching rim that blends
+/// into the page instead of a hard border.
 class _FrostedSheet extends StatelessWidget {
   const _FrostedSheet();
 
@@ -162,64 +175,59 @@ class _FrostedSheet extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(_sheetRadius),
-        boxShadow: [
-          // Crisp green keyline right outside the white rim.
-          BoxShadow(
-            color: const Color(0xFF14A37C).withValues(alpha: 0.55),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: const Color(0xFF2FD39A).withValues(alpha: 0.4),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
+        boxShadow: const [
+          // A soft mint glow spilling out from the edge.
+          BoxShadow(color: Color(0x8C3FD6A0), blurRadius: 22, spreadRadius: 1),
+          BoxShadow(color: Color(0x14000000), blurRadius: 14),
         ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(_sheetRadius),
         child: BackdropFilter(
-          // Brighter, more saturated colour through the frost, so it
-          // reads fresh rather than grey.
           filter: ImageFilter.compose(
-            outer: ColorFilter.matrix(_saturate(1.15, 1.12)),
-            inner: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            outer: ColorFilter.matrix(_saturate(1.3, 1.2)),
+            inner: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(_sheetRadius),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: dark
-                    ? const [Color(0x990B1A1F), Color(0x800B1A1F)]
-                    : const [
-                        Color(0xCCFFFFFF),
-                        Color(0xA6F4FFFA),
-                        Color(0x99EAFAF2),
-                      ],
-                stops: const [0, 0.35, 1],
-              ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: dark ? 0.2 : 1),
-                width: 1.6,
-              ),
+          child: CustomPaint(
+            foregroundPainter: const FrostRimPainter(
+              radius: _sheetRadius,
+              width: 1.8,
             ),
-            child: const Stack(
-              fit: StackFit.expand,
-              children: [
-                IgnorePointer(
-                  child: CustomPaint(painter: _SheetGlossPainter()),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: dark
+                      ? const [Color(0x990B1A1F), Color(0x800B1A1F)]
+                      : const [
+                          Color(0xB8FFFFFF),
+                          Color(0x8CF2FFF9),
+                          Color(0xA6ECFDF5),
+                        ],
                 ),
-                GlassSparkles(
-                  radius: _sheetRadius,
-                  spots: [
-                    SparkleSpot(0.14, 0, 0, 3, 14, 0),
-                    SparkleSpot(0.78, 0, 0, 2, 11, 1.1),
-                    SparkleSpot(0, -2, 0.12, 4, 10, 1.7),
-                    SparkleSpot(1, 2, 0.2, 4, 10, 0.6),
-                  ],
-                ),
-              ],
+              ),
+              child: const Stack(
+                fit: StackFit.expand,
+                children: [
+                  IgnorePointer(
+                    child: CustomPaint(painter: _SheetGlossPainter()),
+                  ),
+                  // Twinkling glints riding the top rim.
+                  IgnorePointer(
+                    child: GlassSparkles(
+                      radius: _sheetRadius,
+                      spots: [
+                        SparkleSpot(0.12, 0, 0, 3, 15, 0),
+                        SparkleSpot(0.5, 0, 0, 2.5, 11, 1.3),
+                        SparkleSpot(0.86, 0, 0, 3, 14, 0.7),
+                        SparkleSpot(0, 3, 0.06, 0, 10, 2.0),
+                        SparkleSpot(1, -3, 0.08, 0, 10, 1.6),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -239,15 +247,34 @@ List<double> _saturate(double s, double b) {
   ];
 }
 
-/// The sheet's gloss: a soft white sheen along the top and a bright green
-/// and white reflection right on the top edge.
+/// The sheet's gloss: a soft white sheen fading down from the top edge.
 class _SheetGlossPainter extends CustomPainter {
   const _SheetGlossPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final sheen = Rect.fromLTWH(0, 0, w, 70);
+    // A glowing edge just inside the rim: mint light that fades inward.
+    final edge = RRect.fromRectAndRadius(
+      (Offset.zero & size).deflate(2),
+      const Radius.circular(_sheetRadius - 2),
+    );
+    canvas.drawRRect(
+      edge,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8
+        ..color = const Color(0xFF5BE3B0).withValues(alpha: 0.45)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+    );
+    canvas.drawRRect(
+      edge,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = Colors.white.withValues(alpha: 0.9)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1),
+    );
+    final sheen = Rect.fromLTWH(0, 0, size.width, 80);
     canvas.drawRect(
       sheen,
       Paint()
@@ -255,17 +282,24 @@ class _SheetGlossPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.white.withValues(alpha: 0.75),
+            Colors.white.withValues(alpha: 0.5),
             Colors.white.withValues(alpha: 0),
           ],
         ).createShader(sheen),
     );
-    final line = Rect.fromLTRB(_sheetRadius, 3, w - _sheetRadius, 5.5);
+    // A shining reflection along the top edge: a soft mint bloom under a
+    // bright white-and-green line.
+    final line = Rect.fromLTRB(
+      _sheetRadius * 0.9,
+      3,
+      size.width - _sheetRadius * 0.9,
+      6,
+    );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(line.inflate(1), const Radius.circular(3)),
+      RRect.fromRectAndRadius(line.inflate(3), const Radius.circular(5)),
       Paint()
-        ..color = const Color(0x993FD6A0)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        ..color = const Color(0xB33FD6A0)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(line, const Radius.circular(2)),
@@ -277,9 +311,46 @@ class _SheetGlossPainter extends CustomPainter {
             Colors.white,
             Color(0xFF3FD6A0),
             Colors.white,
+            Color(0xFF8FFFCF),
             Colors.transparent,
           ],
         ).createShader(line),
+    );
+    // Liquid glass: a curved specular highlight bending round the top-left
+    // corner, and a fainter reflection along the right edge.
+    final w = size.width;
+    final spec = Path()
+      ..moveTo(_sheetRadius * 0.55, 46)
+      ..quadraticBezierTo(4, 10, _sheetRadius + 18, 6)
+      ..lineTo(w * 0.42, 6);
+    canvas.drawPath(
+      spec,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4
+        ..strokeCap = StrokeCap.round
+        ..shader = LinearGradient(
+          colors: [
+            Colors.white.withValues(alpha: 0.95),
+            Colors.white.withValues(alpha: 0),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, w * 0.42, 46))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
+    );
+    final side = Rect.fromLTWH(w - 10, 60, 4, 220);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(side, const Radius.circular(2)),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.white.withValues(alpha: 0),
+            Colors.white.withValues(alpha: 0.6),
+            Colors.white.withValues(alpha: 0),
+          ],
+        ).createShader(side)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
     );
   }
 
@@ -310,10 +381,17 @@ class _PinnedCountries extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // No backdrop of its own: it sits straight on the glass sheet.
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // The title is painted last, in front of the globe and its bubbles.
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 16 + _titleH),
+          child: SizedBox(
+            height: _CountryGlobe.height + lift + bottomInset,
+            child: _CountryGlobe(reveal: reveal),
+          ),
+        ),
         FadeTransition(
           opacity: CurvedAnimation(
             parent: reveal,
@@ -321,16 +399,15 @@ class _PinnedCountries extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
-            child: SectionHeader(
-              'Explore by Country',
-              centered: true,
-              onSeeAll: () => context.push('/explore'),
+            child: SizedBox(
+              height: _titleH,
+              child: SectionHeader(
+                'Explore by Country',
+                centered: true,
+                onSeeAll: () => context.push('/explore'),
+              ),
             ),
           ),
-        ),
-        SizedBox(
-          height: _CountryGlobe.height + lift + bottomInset,
-          child: _CountryGlobe(reveal: reveal),
         ),
       ],
     );
@@ -777,6 +854,45 @@ class _DecideCarouselState extends State<_DecideCarousel> {
     );
   }
 
+  /// A brand-green glow behind the deck, heavily blurred so it spreads
+  /// softly past the cards. Kept clear of the section title above.
+  Widget _ambient() => Positioned(
+    left: 0,
+    right: 0,
+    top: -4,
+    bottom: -36,
+    child: IgnorePointer(
+      child: ImageFiltered(
+        imageFilter: ImageFilter.blur(
+          sigmaX: 26,
+          sigmaY: 26,
+          tileMode: TileMode.decal,
+        ),
+        child: const Padding(
+          padding: EdgeInsets.fromLTRB(14, 24, 14, 24),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(28)),
+              // Deepest behind the front card, lightening to pale mint as
+              // it spreads out.
+              gradient: RadialGradient(
+                center: Alignment(-0.25, 0),
+                radius: 0.95,
+                colors: [
+                  Color(0xD914A37C),
+                  Color(0x8C2FD39A),
+                  Color(0x407BEBC2),
+                  Color(0x14B7FFE0),
+                ],
+                stops: [0, 0.4, 0.75, 1],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
   /// A page with a polished crystal finish: a clear-coat glare, luminous
   /// green rims, a glossy top reflection and twinkling sparkles.
   Widget _glassPage(int i) => DecoratedBox(
@@ -789,9 +905,8 @@ class _DecideCarouselState extends State<_DecideCarousel> {
           offset: const Offset(0, 6),
         ),
         BoxShadow(
-          color: const Color(0xFF1FC98E).withValues(alpha: 0.75),
-          blurRadius: 26,
-          spreadRadius: 2,
+          color: const Color(0xFF1FC98E).withValues(alpha: 0.35),
+          blurRadius: 16,
         ),
       ],
     ),
@@ -842,16 +957,6 @@ class _DecideCarouselState extends State<_DecideCarousel> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // A soft green glow behind the slides.
-            const Positioned(
-              left: -30,
-              right: -30,
-              top: -70,
-              bottom: -70,
-              child: IgnorePointer(
-                child: CustomPaint(painter: _DeckGlowPainter(shift: _shift)),
-              ),
-            ),
             LayoutBuilder(
               builder: (context, constraints) {
                 final w = constraints.maxWidth * _pageW;
@@ -875,6 +980,8 @@ class _DecideCarouselState extends State<_DecideCarousel> {
                     return Stack(
                       clipBehavior: Clip.none,
                       children: [
+                        // Brand-green glow spread out behind the deck.
+                        _ambient(),
                         for (final i in order) _bookCard(i, i - page, w),
                         // The glossy green spine down the book's left edge.
                         Positioned(
@@ -954,40 +1061,6 @@ class _DecideCarouselState extends State<_DecideCarousel> {
       ),
     );
   }
-}
-
-/// Soft mint-green light pooled behind the slides, brightest behind the
-/// front card and trailing off along the fan.
-class _DeckGlowPainter extends CustomPainter {
-  const _DeckGlowPainter({required this.shift});
-
-  /// How far the deck sits left of centre.
-  final double shift;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = Offset(size.width / 2 - shift * 0.4, size.height / 2);
-    final glow = Rect.fromCenter(
-      center: c,
-      width: size.width,
-      height: size.height,
-    );
-    canvas.drawOval(
-      glow,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [
-            const Color(0xFF1FC98E).withValues(alpha: 0.9),
-            const Color(0xFF3FD6A0).withValues(alpha: 0.6),
-            const Color(0xFF7BEBC2).withValues(alpha: 0),
-          ],
-          stops: const [0, 0.6, 1],
-        ).createShader(glow),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_DeckGlowPainter old) => old.shift != shift;
 }
 
 /// A flip-book page: a check type, or a country with its live Guides.

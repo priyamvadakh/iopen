@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -494,7 +497,10 @@ class SectionHeader extends StatelessWidget {
           ? const Color(0xFF8EE8C4)
           : AppColors.tealDark,
       padding: const EdgeInsets.only(left: 8),
-      textStyle: AppText.label.copyWith(fontSize: 13),
+      textStyle: AppText.label.copyWith(
+        fontSize: 13.5,
+        fontWeight: FontWeight.w700,
+      ),
       minimumSize: const Size(0, 32),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     ),
@@ -521,7 +527,7 @@ class SectionHeader extends StatelessWidget {
               fontSize: 19.5,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.1,
-              color: AppColors.dark ? null : const Color(0xFF07513D),
+              color: AppColors.dark ? null : const Color(0xFF04402F),
             ),
           ),
           Expanded(
@@ -1020,4 +1026,137 @@ class ZoomControls extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Control Center–style glass: a clear, blurred, lightly brightened body
+/// with a thin rim that catches the light top-left and bottom-right.
+class FrostGlass extends StatelessWidget {
+  const FrostGlass({
+    required this.child,
+    this.radius = 16,
+    this.padding = EdgeInsets.zero,
+    this.circle = false,
+    this.tint = const [Color(0x4DFFFFFF), Color(0x26FFFFFF), Color(0x33FFFFFF)],
+    super.key,
+  });
+
+  /// Milky tint over the blur, top-left to bottom-right.
+  final List<Color> tint;
+
+  final Widget child;
+  final double radius;
+  final EdgeInsets padding;
+  final bool circle;
+
+  @override
+  Widget build(BuildContext context) {
+    final corners = circle ? null : BorderRadius.circular(radius);
+    final body = BackdropFilter(
+      filter: ImageFilter.compose(
+        outer: ColorFilter.matrix(_saturate(1.35, 1.06)),
+        inner: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+      ),
+      child: CustomPaint(
+        foregroundPainter: FrostRimPainter(radius: radius, circle: circle),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: tint,
+            ),
+          ),
+          child: Padding(padding: padding, child: child),
+        ),
+      ),
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: circle ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: corners,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x24000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: circle
+          ? ClipOval(child: body)
+          : ClipRRect(borderRadius: corners!, child: body),
+    );
+  }
+}
+
+/// The thin glass rim: bright where light hits the top-left and
+/// bottom-right edges, nearly clear along the sides, with a soft inner
+/// glow just inside it.
+class FrostRimPainter extends CustomPainter {
+  const FrostRimPainter({
+    required this.radius,
+    this.circle = false,
+    this.width = 1.2,
+  });
+
+  final double radius;
+  final bool circle;
+  final double width;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    RRect shape(double inset) => circle
+        ? RRect.fromRectAndRadius(
+            rect.deflate(inset),
+            Radius.circular(size.shortestSide / 2 - inset),
+          )
+        : RRect.fromRectAndRadius(
+            rect.deflate(inset),
+            Radius.circular(math.max(radius - inset, 0)),
+          );
+    canvas.drawRRect(
+      shape(width / 2),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.8),
+            Colors.white.withValues(alpha: 0.22),
+            Colors.white.withValues(alpha: 0.06),
+            Colors.white.withValues(alpha: 0.5),
+          ],
+          stops: const [0, 0.3, 0.65, 1],
+        ).createShader(rect)
+        // Softened, so the rim melts into the glass rather than drawing
+        // a hard line.
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.8),
+    );
+    canvas.drawRRect(
+      shape(width + 1.2),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = Colors.white.withValues(alpha: 0.12)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+  }
+
+  @override
+  bool shouldRepaint(FrostRimPainter old) =>
+      old.radius != radius || old.circle != circle || old.width != width;
+}
+
+/// Saturation and brightness, like CSS `saturate() brightness()`.
+List<double> _saturate(double s, double b) {
+  const r = 0.2126, g = 0.7152, bl = 0.0722;
+  return [
+    (r + (1 - r) * s) * b, (g - g * s) * b, (bl - bl * s) * b, 0, 0, //
+    (r - r * s) * b, (g + (1 - g) * s) * b, (bl - bl * s) * b, 0, 0,
+    (r - r * s) * b, (g - g * s) * b, (bl + (1 - bl) * s) * b, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
 }
