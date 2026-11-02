@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final sections = <Widget>[
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        padding: const EdgeInsets.fromLTRB(34, 34, 34, 18),
         child: GlassSearchField(
           hint: 'Search for a location',
           onTap: () => context.push('/explore'),
@@ -177,7 +177,7 @@ class _FrostedSheet extends StatelessWidget {
         borderRadius: BorderRadius.circular(_sheetRadius),
         boxShadow: const [
           // A soft mint glow spilling out from the edge.
-          BoxShadow(color: Color(0x8C3FD6A0), blurRadius: 22, spreadRadius: 1),
+          BoxShadow(color: Color(0x8C5BC6C2), blurRadius: 22, spreadRadius: 1),
           BoxShadow(color: Color(0x14000000), blurRadius: 14),
         ],
       ),
@@ -195,17 +195,23 @@ class _FrostedSheet extends StatelessWidget {
             ),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: dark
-                      ? const [Color(0x990B1A1F), Color(0x800B1A1F)]
-                      : const [
-                          Color(0xB8FFFFFF),
-                          Color(0x8CF2FFF9),
-                          Color(0xA6ECFDF5),
+                // White in the middle, spreading out to green at the edges.
+                gradient: dark
+                    ? const LinearGradient(
+                        colors: [Color(0x990B1A1F), Color(0x800B1A1F)],
+                      )
+                    : const RadialGradient(
+                        center: Alignment(0, -0.6),
+                        radius: 1.7,
+                        // The aqua of cut glass, as in the app icon.
+                        colors: [
+                          Color(0xB3EFFBFA),
+                          Color(0x99D3F1EE),
+                          Color(0x8CB2E3DF),
+                          Color(0xA68ED2CD),
                         ],
-                ),
+                        stops: [0, 0.3, 0.68, 1],
+                      ),
               ),
               child: const Stack(
                 fit: StackFit.expand,
@@ -253,26 +259,236 @@ class _SheetGlossPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // A glowing edge just inside the rim: mint light that fades inward.
-    final edge = RRect.fromRectAndRadius(
-      (Offset.zero & size).deflate(2),
-      const Radius.circular(_sheetRadius - 2),
+    // A thick bevelled glass rim, like a cut glass slab: a bright outer
+    // edge, an aqua refraction band, a crisp inner bevel line and a
+    // darker teal edge just inside it.
+    RRect inset(double d) => RRect.fromRectAndRadius(
+      (Offset.zero & size).deflate(d),
+      Radius.circular(math.max(_sheetRadius - d, 4)),
     );
+    const band = 10.0;
     canvas.drawRRect(
-      edge,
+      inset(band / 2 + 1),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 8
-        ..color = const Color(0xFF5BE3B0).withValues(alpha: 0.45)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+        ..strokeWidth = band
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0x99C9F4F1), Color(0x8C5DBDBA), Color(0x997FD0CC)],
+        ).createShader(Offset.zero & size)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
     );
+    // Bright outer edge.
     canvas.drawRRect(
-      edge,
+      inset(1),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
+        ..strokeWidth = 2
+        ..color = Colors.white.withValues(alpha: 0.95),
+    );
+    // Inner bevel: a bright line with a darker teal edge just inside.
+    canvas.drawRRect(
+      inset(band + 1),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
         ..color = Colors.white.withValues(alpha: 0.9)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.6),
+    );
+    canvas.drawRRect(
+      inset(band + 3),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = const Color(0xFF2E8C8E).withValues(alpha: 0.45)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+    );
+    // Light streaks caught in the rim's glass.
+    void streak(Rect r, {bool vertical = false}) => canvas.drawRRect(
+      RRect.fromRectAndRadius(r, const Radius.circular(3)),
+      Paint()
+        ..shader = LinearGradient(
+          begin: vertical ? Alignment.topCenter : Alignment.centerLeft,
+          end: vertical ? Alignment.bottomCenter : Alignment.centerRight,
+          colors: [
+            Colors.white.withValues(alpha: 0),
+            Colors.white.withValues(alpha: 0.9),
+            Colors.white.withValues(alpha: 0),
+          ],
+        ).createShader(r)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2),
+    );
+    final w = size.width;
+    streak(Rect.fromLTWH(w * 0.18, 9, w * 0.3, 3.5));
+    streak(Rect.fromLTWH(w * 0.6, 10, w * 0.22, 2.5));
+    streak(Rect.fromLTWH(6, 70, 3.5, 160), vertical: true);
+    streak(Rect.fromLTWH(w - 10, 110, 3, 200), vertical: true);
+
+    // Layered strokes along the top of the rim, like thick cut glass:
+    // bright white lines with thin teal refraction lines between them,
+    // fading out as they run down the sides.
+    final h = size.height;
+    // Bright at the top, then catching the light in bands down the sides,
+    // like the streaky rim of thick glass.
+    final rimFade = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        Colors.white,
+        Color(0x8CFFFFFF),
+        Color(0xE6FFFFFF),
+        Color(0x66FFFFFF),
+        Color(0xCCFFFFFF),
+        Color(0x4DFFFFFF),
+      ],
+      stops: [0, 0.12, 0.28, 0.45, 0.62, 1],
+    ).createShader(Rect.fromLTWH(0, 0, w, h));
+    void rimLine(double d, double width, Color color, double blur) {
+      canvas.saveLayer(Offset.zero & size, Paint());
+      canvas.drawRRect(
+        inset(d),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width
+          ..color = color
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, blur),
+      );
+      canvas.drawRect(
+        Offset.zero & size,
+        Paint()
+          ..blendMode = BlendMode.dstIn
+          ..shader = rimFade,
+      );
+      canvas.restore();
+    }
+
+    rimLine(3, 1.6, Colors.white.withValues(alpha: 0.95), 0.4);
+    rimLine(5.2, 1.6, const Color(0xFF2E8C8E).withValues(alpha: 0.4), 0.8);
+    rimLine(7.4, 1.3, Colors.white.withValues(alpha: 0.85), 0.4);
+    rimLine(9.6, 1.4, const Color(0xFF2E8C8E).withValues(alpha: 0.3), 0.8);
+    rimLine(12, 1.1, Colors.white.withValues(alpha: 0.75), 0.4);
+
+    // Broken white highlights caught along the top edge.
+    for (final (x, len, y) in [
+      (0.10, 0.07, 4.5),
+      (0.21, 0.13, 3.5),
+      (0.40, 0.05, 6.5),
+      (0.55, 0.16, 4.0),
+      (0.78, 0.08, 7.0),
+      (0.88, 0.05, 4.5),
+    ]) {
+      final seg = Rect.fromLTWH(w * x, y, w * len, 2.6);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(seg, const Radius.circular(1.3)),
+        Paint()
+          ..shader = LinearGradient(
+            colors: [
+              Colors.white.withValues(alpha: 0),
+              Colors.white,
+              Colors.white.withValues(alpha: 0),
+            ],
+          ).createShader(seg)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.7),
+      );
+    }
+
+    // A pale reflection panel inside the top-right of the glass.
+    final panel = Path()
+      ..moveTo(w * 0.72, band + 4)
+      ..lineTo(w - band - 6, band + 4)
+      ..lineTo(w - band - 6, 96)
+      ..lineTo(w * 0.86, 96)
+      ..close();
+    canvas.drawPath(
+      panel,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: [
+            Colors.white.withValues(alpha: 0.4),
+            Colors.white.withValues(alpha: 0.04),
+          ],
+        ).createShader(Rect.fromLTWH(w * 0.72, band, w * 0.28, 96))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
+
+    // Long white streaks running down both sides of the rim.
+    for (final (x, y, len) in [
+      (4.0, 0.16, 0.14),
+      (8.0, 0.36, 0.2),
+      (4.5, 0.62, 0.12),
+      (w - 5.0, 0.2, 0.18),
+      (w - 9.0, 0.46, 0.14),
+      (w - 4.5, 0.7, 0.16),
+    ]) {
+      streak(Rect.fromLTWH(x - 1.5, h * y, 3, h * len), vertical: true);
+    }
+
+    // Curved white highlights inside both top corners.
+    for (final left in [true, false]) {
+      final c = inset(band + 4);
+      final rr = c.tlRadiusX;
+      final box = left
+          ? Rect.fromLTWH(c.left, c.top, rr * 2, rr * 2)
+          : Rect.fromLTWH(c.right - rr * 2, c.top, rr * 2, rr * 2);
+      canvas.drawArc(
+        box,
+        left ? math.pi * 1.05 : math.pi * 1.5,
+        math.pi * 0.45,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..strokeCap = StrokeCap.round
+          ..color = Colors.white.withValues(alpha: 0.9)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2),
+      );
+    }
+
+    // White reflections like polished glass: a bright glint wrapping each
+    // top corner, and a broad diagonal sheen across the upper glass.
+    final r = _sheetRadius;
+    void cornerGlint(bool left) {
+      final x0 = left ? 3.0 : w - 3.0;
+      final dir = left ? 1.0 : -1.0;
+      final arc = Path()
+        ..moveTo(x0, r + 46)
+        ..lineTo(x0, r)
+        ..quadraticBezierTo(x0, 3, x0 + dir * r, 3)
+        ..lineTo(x0 + dir * (r + 70), 3);
+      canvas.drawPath(
+        arc,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4
+          ..strokeCap = StrokeCap.round
+          ..color = Colors.white.withValues(alpha: 0.95)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6),
+      );
+    }
+
+    cornerGlint(true);
+    cornerGlint(false);
+    final sheenPath = Path()
+      ..moveTo(0, 150)
+      ..lineTo(w * 0.5, 0)
+      ..lineTo(w * 0.72, 0)
+      ..lineTo(0, 240)
+      ..close();
+    canvas.drawPath(
+      sheenPath,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.32),
+            Colors.white.withValues(alpha: 0.08),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, w * 0.72, 240))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
     );
     final sheen = Rect.fromLTWH(0, 0, size.width, 80);
     canvas.drawRect(
@@ -318,7 +534,6 @@ class _SheetGlossPainter extends CustomPainter {
     );
     // Liquid glass: a curved specular highlight bending round the top-left
     // corner, and a fainter reflection along the right edge.
-    final w = size.width;
     final spec = Path()
       ..moveTo(_sheetRadius * 0.55, 46)
       ..quadraticBezierTo(4, 10, _sheetRadius + 18, 6)
@@ -373,7 +588,7 @@ class _PinnedCountries extends StatelessWidget {
   const _PinnedCountries({required this.reveal, required this.bottomInset});
 
   /// Shifts the globe up (positive) or down (negative) against the tab bar.
-  static const lift = -26.0;
+  static const lift = -52.0;
 
   final Animation<double> reveal;
   final double bottomInset;
@@ -942,12 +1157,12 @@ class _DecideCarouselState extends State<_DecideCarousel> {
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     // Fills what's left between the section title and the pinned country
-    // globe: search 14 + 54 + 16, title 32 + 8; the fade above the globe
-    // overlaps the deck a little.
+    // globe: search 34 + 58 + 18, title 34 + 8, less 10 the deck may reach
+    // into the gap above the globe's title.
     final globe = _CountryGlobe.pinnedHeight + _PinnedCountries.lift;
     final room =
-        mq.size.height - _sheetTop(context) - mq.padding.bottom - 124 - globe;
-    _pageH = (room - _pad * 2).clamp(120.0, 196.0);
+        mq.size.height - _sheetTop(context) - mq.padding.bottom - 142 - globe;
+    _pageH = (room - _pad * 2).clamp(120.0, 262.0);
     // Any room left over goes evenly above and below the deck.
     final spare = math.max(0.0, room - _deckH);
     return Padding(
@@ -1038,25 +1253,60 @@ class _DecideCarouselState extends State<_DecideCarousel> {
             ),
             Positioned(
               left: 4,
-              top: _deckH / 2 - 18,
-              child: GlassIconButton(
+              top: _deckH / 2 - 19,
+              child: _GlassArrow(
                 icon: Icons.chevron_left_rounded,
                 label: 'Previous',
-                size: 36,
                 onPressed: () => _turn(-1),
               ),
             ),
             Positioned(
               right: 4,
-              top: _deckH / 2 - 18,
-              child: GlassIconButton(
+              top: _deckH / 2 - 19,
+              child: _GlassArrow(
                 icon: Icons.chevron_right_rounded,
                 label: 'Next',
-                size: 36,
                 onPressed: () => _turn(1),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A round liquid-glass arrow, in the same glass as the search and tab
+/// bars.
+class _GlassArrow extends StatelessWidget {
+  const _GlassArrow({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  static const _size = 38.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: LiquidGlass(
+          radius: _size / 2,
+          height: _size,
+          thin: true,
+          child: SizedBox(
+            width: _size,
+            height: _size,
+            child: Icon(icon, size: 22, color: const Color(0xFF1F6B70)),
+          ),
         ),
       ),
     );
@@ -1587,6 +1837,70 @@ class _ArcPainter extends CustomPainter {
           stops: const [0, 0.82, 1],
         ).createShader(band),
     );
+    // A thick glass rim along the curve, like the background card's: a
+    // bright outer line, an aqua glass band, a thin teal refraction line,
+    // a white inner bevel, and a glint near the top.
+    if (!AppColors.dark) {
+      void ring(double r, double width, Color color, double blur) =>
+          canvas.drawCircle(
+            globeCenter,
+            r,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = width
+              ..color = color.withValues(alpha: color.a * t)
+              ..maskFilter = blur > 0
+                  ? MaskFilter.blur(BlurStyle.normal, blur)
+                  : null,
+          );
+      // A soft aqua glow hugging the edge, then a thin glass rim.
+      ring(arcRadius - 1, 6, const Color(0x737FE3DD), 5);
+      ring(arcRadius - 2.5, 4, const Color(0x80B5E8E4), 1);
+      ring(arcRadius - 0.6, 1.2, const Color(0xF2FFFFFF), 0.3);
+      ring(arcRadius - 4.6, 0.9, const Color(0xB3FFFFFF), 0.4);
+      canvas.drawArc(
+        band.deflate(1.5),
+        -math.pi * 0.62,
+        math.pi * 0.14,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round
+          ..color = Colors.white.withValues(alpha: 0.95 * t)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1),
+      );
+      // Sparkles: four-point star glints with a soft halo along the edge.
+      for (final (angle, size) in [
+        (-0.78, 9.0),
+        (-0.64, 6.0),
+        (-0.5, 11.0),
+        (-0.37, 7.0),
+        (-0.24, 9.0),
+      ]) {
+        final a = math.pi * angle;
+        final c =
+            globeCenter + Offset(math.cos(a), math.sin(a)) * (arcRadius - 1);
+        canvas.drawCircle(
+          c,
+          size * 0.55,
+          Paint()
+            ..color = const Color(0xFFB5F5EF).withValues(alpha: 0.7 * t)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        );
+        final star = Path()
+          ..moveTo(c.dx, c.dy - size)
+          ..quadraticBezierTo(c.dx, c.dy, c.dx + size, c.dy)
+          ..quadraticBezierTo(c.dx, c.dy, c.dx, c.dy + size)
+          ..quadraticBezierTo(c.dx, c.dy, c.dx - size, c.dy)
+          ..quadraticBezierTo(c.dx, c.dy, c.dx, c.dy - size)
+          ..close();
+        canvas.drawPath(
+          star,
+          Paint()..color = Colors.white.withValues(alpha: 0.95 * t),
+        );
+      }
+    }
     final line = Paint()
       ..color = AppColors.teal.withValues(alpha: 0.28 * t)
       ..strokeWidth = 1.2

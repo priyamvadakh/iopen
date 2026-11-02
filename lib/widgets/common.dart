@@ -246,36 +246,95 @@ class GlossyArrow extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF22B985), AppColors.teal, Color(0xFF075C45)],
+          colors: [Color(0xFF3FC79B), AppColors.teal, Color(0xFF064F3D)],
+          stops: [0, 0.55, 1],
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.teal.withValues(alpha: 0.35),
-            blurRadius: 8,
+            color: AppColors.teal.withValues(alpha: 0.45),
+            blurRadius: 10,
             offset: const Offset(0, 3),
           ),
         ],
       ),
-      foregroundDecoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: const Color(0x99A6F7D6), width: 1),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.white.withValues(alpha: 0.5),
-            Colors.white.withValues(alpha: 0),
-          ],
-          stops: const [0, 0.5],
-        ),
-      ),
-      child: Icon(
-        Icons.chevron_right_rounded,
-        color: Colors.white,
-        size: size * 0.66,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Glossy bead: a white highlight across the top, a mint glow
+          // pooled at the bottom and a bright glass rim.
+          Positioned.fill(child: CustomPaint(painter: _BeadGlossPainter())),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: Colors.white,
+            size: size * 0.66,
+            shadows: const [Shadow(color: Color(0x4D000000), blurRadius: 3)],
+          ),
+        ],
       ),
     );
   }
+}
+
+class _BeadGlossPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.width / 2;
+    final c = Offset(r, r);
+    final circle = Rect.fromCircle(center: c, radius: r);
+    canvas.save();
+    canvas.clipPath(Path()..addOval(circle));
+    // Mint glow pooled in the bottom of the bead.
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(r, size.height * 0.95),
+        width: size.width * 0.9,
+        height: size.height * 0.5,
+      ),
+      Paint()
+        ..color = const Color(0xFF7BF0C8).withValues(alpha: 0.55)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
+    // White highlight across the top.
+    final gloss = Rect.fromLTWH(
+      size.width * 0.14,
+      size.height * 0.05,
+      size.width * 0.72,
+      size.height * 0.46,
+    );
+    canvas.drawOval(
+      gloss,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.white.withValues(alpha: 0.85),
+            Colors.white.withValues(alpha: 0.08),
+          ],
+        ).createShader(gloss),
+    );
+    canvas.restore();
+    // Bright glass rim.
+    canvas.drawCircle(
+      c,
+      r - 0.6,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.white.withValues(alpha: 0.9),
+            const Color(0xFFA6F7D6).withValues(alpha: 0.5),
+            Colors.white.withValues(alpha: 0.7),
+          ],
+        ).createShader(circle),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_BeadGlossPainter old) => false;
 }
 
 /// Small glass circle with a teal chevron, at the end of a card.
@@ -324,7 +383,7 @@ class GlassSearchField extends StatelessWidget {
         const SizedBox(width: 20),
         Icon(
           CupertinoIcons.search,
-          color: dark ? AppColors.ink : const Color(0xFF0E5A45),
+          color: dark ? AppColors.ink : const Color(0xFF1F6B70),
           size: 22,
         ),
         const SizedBox(width: 10),
@@ -348,9 +407,9 @@ class GlassSearchField extends StatelessWidget {
       ],
     );
     if (dark) {
-      return Glass(radius: 30, child: SizedBox(height: 54, child: field));
+      return Glass(radius: 30, child: SizedBox(height: 58, child: field));
     }
-    return LiquidGlass(radius: 30, height: 54, child: field);
+    return LiquidGlass(radius: 30, height: 58, thin: true, child: field);
   }
 }
 
@@ -517,19 +576,39 @@ class SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (centered) {
+      final titleStyle = AppText.title.copyWith(
+        fontSize: 16.5,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.1,
+      );
       return Row(
         children: [
           const Expanded(child: SizedBox()),
-          Text(
-            title,
-            maxLines: 1,
-            style: AppText.title.copyWith(
-              fontSize: 19.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.1,
-              color: AppColors.dark ? null : const Color(0xFF04402F),
+          if (AppColors.dark)
+            Text(title, maxLines: 1, style: titleStyle)
+          else
+            // Glossy: a lighter sheen on the upper half of the letters and
+            // a deeper green below.
+            ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF5CC4A6),
+                  Color(0xFF1C7560),
+                  Color(0xFF0A5243),
+                  Color(0xFF033326),
+                  Color(0xFF064434),
+                ],
+                stops: [0.12, 0.32, 0.47, 0.53, 0.92],
+              ).createShader(bounds),
+              child: Text(
+                title,
+                maxLines: 1,
+                style: titleStyle.copyWith(color: Colors.white),
+              ),
             ),
-          ),
           Expanded(
             child: Align(
               alignment: Alignment.centerRight,
