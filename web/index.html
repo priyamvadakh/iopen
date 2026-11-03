@@ -17,12 +17,16 @@
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
+  <meta name="theme-color" content="#D9F1EE">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Anytime. Anywhere. See any place live with a local Guide before you go.">
 
   <!-- iOS meta tags & icons -->
+  <!-- Opened from the Home Screen, the app runs full screen with no
+       browser bars. -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="iOpen">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
@@ -42,5 +46,27 @@
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // In a phone's browser tab, go full screen on the first tap (Android
+    // Chrome and others that support it). Skipped when already running
+    // from the Home Screen, and on desktop where the phone frame is shown.
+    (function () {
+      var standalone = window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches ||
+        window.navigator.standalone === true;
+      var phone = window.matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) < 600;
+      var root = document.documentElement;
+      var request = root.requestFullscreen || root.webkitRequestFullscreen;
+      if (standalone || !phone || !request) return;
+      function goFullscreen() {
+        if (document.fullscreenElement || document.webkitFullscreenElement) return;
+        try {
+          var result = request.call(root, { navigationUI: 'hide' });
+          if (result && result.catch) result.catch(function () {});
+        } catch (e) {}
+      }
+      window.addEventListener('pointerup', goFullscreen, { capture: true });
+      window.addEventListener('touchend', goFullscreen, { capture: true });
+    })();
+  </script>
 </body>
 </html>

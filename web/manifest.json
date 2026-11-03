@@ -2,9 +2,13 @@
     "name": "iOpen",
     "short_name": "iOpen",
     "start_url": ".",
-    "display": "standalone",
-    "background_color": "#1C2B3F",
-    "theme_color": "#2E7F87",
+    "display": "fullscreen",
+    "display_override": [
+        "fullscreen",
+        "standalone"
+    ],
+    "background_color": "#D9F1EE",
+    "theme_color": "#D9F1EE",
     "description": "Anytime. Anywhere. See any place live with a local Guide before you go.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
