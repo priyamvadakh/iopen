@@ -31,7 +31,7 @@ class TabShell extends StatelessWidget {
               16,
               0,
               16,
-              bottom > 0 ? bottom - 10 : 10,
+              bottom > 0 ? bottom + 2 : 22,
             ),
             child: LiquidGlassNav(
               selectedIndex: shell.currentIndex,

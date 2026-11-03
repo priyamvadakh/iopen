@@ -68,7 +68,11 @@ class LiquidGlass extends StatelessWidget {
     return SizedBox(
       height: height,
       child: CustomPaint(
-        painter: _OuterShadowPainter(radius: radius, crystal: crystal),
+        painter: _OuterShadowPainter(
+          radius: radius,
+          crystal: crystal,
+          thin: thin,
+        ),
         child: ClipRRect(
           borderRadius: shape,
           child: BackdropFilter(
@@ -147,7 +151,14 @@ class LiquidGlass extends StatelessWidget {
 /// Shadow and teal glow outside the glass only, so they don't show
 /// through the clear body as a grey wash.
 class _OuterShadowPainter extends CustomPainter {
-  const _OuterShadowPainter({required this.radius, required this.crystal});
+  const _OuterShadowPainter({
+    required this.radius,
+    required this.crystal,
+    this.thin = false,
+  });
+
+  /// A tighter, fainter glow for thin-edged glass.
+  final bool thin;
 
   final double radius;
   final bool crystal;
@@ -174,17 +185,17 @@ class _OuterShadowPainter extends CustomPainter {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, crystal ? 12 : 15),
     );
     canvas.drawRRect(
-      rrect.inflate(2),
+      rrect.inflate(thin ? 0.5 : 2),
       Paint()
-        ..color = const Color(0xFF5BC6C2).withValues(alpha: 0.28)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 13),
+        ..color = const Color(0xFF5BC6C2).withValues(alpha: thin ? 0.14 : 0.28)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, thin ? 7 : 13),
     );
     canvas.restore();
   }
 
   @override
   bool shouldRepaint(_OuterShadowPainter old) =>
-      old.radius != radius || old.crystal != crystal;
+      old.radius != radius || old.crystal != crystal || old.thin != thin;
 }
 
 /// Everything static on the glass: inner depth, rims, highlights,
@@ -214,17 +225,17 @@ class _GlassBodyPainter extends CustomPainter {
     _insetShadow(
       canvas,
       rrect,
-      Colors.white.withValues(alpha: 0.95),
+      Colors.white.withValues(alpha: thin ? 0.7 : 0.95),
       0,
-      0.75,
+      thin ? 0.5 : 0.75,
       0,
     );
     _insetShadow(
       canvas,
       rrect,
-      Colors.white.withValues(alpha: 0.55),
+      Colors.white.withValues(alpha: thin ? 0.35 : 0.55),
       0,
-      -0.75,
+      thin ? -0.5 : -0.75,
       0,
     );
     _insetShadow(
@@ -238,7 +249,8 @@ class _GlassBodyPainter extends CustomPainter {
     _insetShadow(
       canvas,
       rrect,
-      const Color(0xFF5BC6C2).withValues(alpha: crystal ? 0.22 : 0.28),
+      const Color(0xFF5BC6C2)
+          .withValues(alpha: crystal ? 0.22 : (thin ? 0.12 : 0.28)),
       0,
       crystal ? -10 : -12,
       crystal ? 18 : 22,
@@ -248,8 +260,8 @@ class _GlassBodyPainter extends CustomPainter {
     // Directional rim: bright where the light hits, teal where it bends.
     _ring(
       canvas,
-      rrect.deflate(0.5),
-      1,
+      rrect.deflate(thin ? 0.35 : 0.5),
+      thin ? 0.7 : 1,
       _conic(210, const [
         (0, Colors.white),
         (70, Color(0xFFC9F4F1)),
@@ -313,7 +325,7 @@ class _GlassBodyPainter extends CustomPainter {
     // Glossy teal reflections along the top and bottom edges.
     _reflection(
       canvas,
-      Rect.fromLTRB(r * 0.8, thin ? 2.5 : 3, w - r * 0.8, thin ? 3.8 : 5.5),
+      Rect.fromLTRB(r * 0.8, thin ? 1.8 : 3, w - r * 0.8, thin ? 2.6 : 5.5),
       const [
         Colors.transparent,
         Color(0xFFA8F0EC),
@@ -322,13 +334,13 @@ class _GlassBodyPainter extends CustomPainter {
         Colors.white,
         Colors.transparent,
       ],
-      thin ? const Color(0x665BC6C2) : const Color(0x995BC6C2),
-      thin ? 2 : 4,
+      thin ? const Color(0x405BC6C2) : const Color(0x995BC6C2),
+      thin ? 1.2 : 4,
     );
     _reflection(
       canvas,
       thin
-          ? Rect.fromLTRB(r * 0.6, h - 3.8, w - r * 0.6, h - 2.5)
+          ? Rect.fromLTRB(r * 0.6, h - 2.6, w - r * 0.6, h - 1.8)
           : Rect.fromLTRB(r * 0.6, h - 6, w - r * 0.6, h - 3),
       const [
         Colors.transparent,
@@ -338,8 +350,8 @@ class _GlassBodyPainter extends CustomPainter {
         Colors.white,
         Colors.transparent,
       ],
-      thin ? const Color(0x735BC6C2) : const Color(0xB35BC6C2),
-      thin ? 2 : 5,
+      thin ? const Color(0x405BC6C2) : const Color(0xB35BC6C2),
+      thin ? 1.2 : 5,
     );
 
     if (crystal) _crystal(canvas, size);

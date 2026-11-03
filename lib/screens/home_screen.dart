@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
+import 'dart:ui' show ImageFilter, PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen>
         clipBehavior: Clip.none,
         children: [
           const Padding(
-            padding: EdgeInsets.only(top: _titleH + 8),
+            padding: EdgeInsets.only(top: _titleH - 8),
             child: _DecideCarousel(),
           ),
           Padding(
@@ -266,7 +266,7 @@ class _SheetGlossPainter extends CustomPainter {
       (Offset.zero & size).deflate(d),
       Radius.circular(math.max(_sheetRadius - d, 4)),
     );
-    const band = 10.0;
+    const band = 6.0;
     canvas.drawRRect(
       inset(band / 2 + 1),
       Paint()
@@ -275,34 +275,34 @@ class _SheetGlossPainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0x99C9F4F1), Color(0x8C5DBDBA), Color(0x997FD0CC)],
+          colors: [Color(0x66C9F4F1), Color(0x595DBDBA), Color(0x667FD0CC)],
         ).createShader(Offset.zero & size)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
     );
     // Bright outer edge.
     canvas.drawRRect(
       inset(1),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = Colors.white.withValues(alpha: 0.95),
+        ..strokeWidth = 1.2
+        ..color = Colors.white.withValues(alpha: 0.9),
     );
     // Inner bevel: a bright line with a darker teal edge just inside.
     canvas.drawRRect(
       inset(band + 1),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6
-        ..color = Colors.white.withValues(alpha: 0.9)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.6),
+        ..strokeWidth = 1
+        ..color = Colors.white.withValues(alpha: 0.7)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.5),
     );
     canvas.drawRRect(
       inset(band + 3),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..color = const Color(0xFF2E8C8E).withValues(alpha: 0.45)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+        ..strokeWidth = 1.6
+        ..color = const Color(0xFF2E8C8E).withValues(alpha: 0.22)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
     );
     // Light streaks caught in the rim's glass.
     void streak(Rect r, {bool vertical = false}) => canvas.drawRRect(
@@ -320,10 +320,7 @@ class _SheetGlossPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2),
     );
     final w = size.width;
-    streak(Rect.fromLTWH(w * 0.18, 9, w * 0.3, 3.5));
-    streak(Rect.fromLTWH(w * 0.6, 10, w * 0.22, 2.5));
-    streak(Rect.fromLTWH(6, 70, 3.5, 160), vertical: true);
-    streak(Rect.fromLTWH(w - 10, 110, 3, 200), vertical: true);
+    streak(Rect.fromLTWH(w * 0.18, 5, w * 0.3, 2));
 
     // Layered strokes along the top of the rim, like thick cut glass:
     // bright white lines with thin teal refraction lines between them,
@@ -363,11 +360,9 @@ class _SheetGlossPainter extends CustomPainter {
       canvas.restore();
     }
 
-    rimLine(3, 1.6, Colors.white.withValues(alpha: 0.95), 0.4);
-    rimLine(5.2, 1.6, const Color(0xFF2E8C8E).withValues(alpha: 0.4), 0.8);
-    rimLine(7.4, 1.3, Colors.white.withValues(alpha: 0.85), 0.4);
-    rimLine(9.6, 1.4, const Color(0xFF2E8C8E).withValues(alpha: 0.3), 0.8);
-    rimLine(12, 1.1, Colors.white.withValues(alpha: 0.75), 0.4);
+    rimLine(2.6, 1, Colors.white.withValues(alpha: 0.85), 0.3);
+    rimLine(4.4, 1, const Color(0xFF2E8C8E).withValues(alpha: 0.25), 0.6);
+    rimLine(6.2, 0.8, Colors.white.withValues(alpha: 0.6), 0.3);
 
     // Broken white highlights caught along the top edge.
     for (final (x, len, y) in [
@@ -378,14 +373,14 @@ class _SheetGlossPainter extends CustomPainter {
       (0.78, 0.08, 7.0),
       (0.88, 0.05, 4.5),
     ]) {
-      final seg = Rect.fromLTWH(w * x, y, w * len, 2.6);
+      final seg = Rect.fromLTWH(w * x, y * 0.6, w * len, 1.6);
       canvas.drawRRect(
         RRect.fromRectAndRadius(seg, const Radius.circular(1.3)),
         Paint()
           ..shader = LinearGradient(
             colors: [
               Colors.white.withValues(alpha: 0),
-              Colors.white,
+              Colors.white.withValues(alpha: 0.75),
               Colors.white.withValues(alpha: 0),
             ],
           ).createShader(seg)
@@ -407,23 +402,16 @@ class _SheetGlossPainter extends CustomPainter {
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
           colors: [
-            Colors.white.withValues(alpha: 0.4),
-            Colors.white.withValues(alpha: 0.04),
+            Colors.white.withValues(alpha: 0.2),
+            Colors.white.withValues(alpha: 0.02),
           ],
         ).createShader(Rect.fromLTWH(w * 0.72, band, w * 0.28, 96))
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
     );
 
     // Long white streaks running down both sides of the rim.
-    for (final (x, y, len) in [
-      (4.0, 0.16, 0.14),
-      (8.0, 0.36, 0.2),
-      (4.5, 0.62, 0.12),
-      (w - 5.0, 0.2, 0.18),
-      (w - 9.0, 0.46, 0.14),
-      (w - 4.5, 0.7, 0.16),
-    ]) {
-      streak(Rect.fromLTWH(x - 1.5, h * y, 3, h * len), vertical: true);
+    for (final (x, y, len) in [(3.5, 0.2, 0.16), (w - 3.5, 0.42, 0.18)]) {
+      streak(Rect.fromLTWH(x - 1, h * y, 2, h * len), vertical: true);
     }
 
     // Curved white highlights inside both top corners.
@@ -588,7 +576,7 @@ class _PinnedCountries extends StatelessWidget {
   const _PinnedCountries({required this.reveal, required this.bottomInset});
 
   /// Shifts the globe up (positive) or down (negative) against the tab bar.
-  static const lift = -52.0;
+  static const lift = -50.0;
 
   final Animation<double> reveal;
   final double bottomInset;
@@ -601,7 +589,7 @@ class _PinnedCountries extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 16 + _titleH),
+          padding: const EdgeInsets.only(top: 16 + _titleH - 6),
           child: SizedBox(
             height: _CountryGlobe.height + lift + bottomInset,
             child: _CountryGlobe(reveal: reveal),
@@ -696,11 +684,13 @@ class _PhotoHero extends StatefulWidget {
 }
 
 class _PhotoHeroState extends State<_PhotoHero> {
+  /// Each slide's check, the sharpest photo there is for it, and where
+  /// to crop it.
   static const _slides = [
-    (InspectKind.car, Alignment(0.3, -0.2)),
-    (InspectKind.property, Alignment.center),
-    (InspectKind.hotel, Alignment.center),
-    (InspectKind.place, Alignment.center),
+    (InspectKind.car, 'hero_car', Alignment(0.2, 0.1)),
+    (InspectKind.property, 'hero_property', Alignment.center),
+    (InspectKind.hotel, 'hero_hotel', Alignment.center),
+    (InspectKind.place, 'area_downtown', Alignment.center),
   ];
 
   final _controller = PageController();
@@ -737,7 +727,7 @@ class _PhotoHeroState extends State<_PhotoHero> {
       children: [
         // One still photo behind the glass card, so the card stays steady
         // while the header photos rotate above it.
-        Photo(_slides.first.$1.hero, icon: _slides.first.$1.icon),
+        Photo(_slides.first.$2, icon: _slides.first.$1.icon),
         PageView.builder(
           controller: _controller,
           itemCount: _slides.length,
@@ -755,9 +745,9 @@ class _PhotoHeroState extends State<_PhotoHero> {
                   top: 0,
                   height: top + HomeHeroLayout.height,
                   child: Photo(
-                    _slides[i].$1.hero,
+                    _slides[i].$2,
                     icon: _slides[i].$1.icon,
-                    alignment: _slides[i].$2,
+                    alignment: _slides[i].$3,
                   ),
                 ),
               ],
@@ -1144,25 +1134,16 @@ class _DecideCarouselState extends State<_DecideCarousel> {
     ),
   );
 
-  void _turn(int by) {
-    final page = (_controller.page ?? 0).round() + by;
-    _controller.animateToPage(
-      page.clamp(0, _pages.length - 1),
-      duration: const Duration(milliseconds: 380),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     // Fills what's left between the section title and the pinned country
-    // globe: search 34 + 58 + 18, title 34 + 8, less 10 the deck may reach
+    // globe: search 34 + 58 + 18, title 34, less 10 the deck may reach
     // into the gap above the globe's title.
     final globe = _CountryGlobe.pinnedHeight + _PinnedCountries.lift;
     final room =
-        mq.size.height - _sheetTop(context) - mq.padding.bottom - 142 - globe;
-    _pageH = (room - _pad * 2).clamp(120.0, 262.0);
+        mq.size.height - _sheetTop(context) - mq.padding.bottom - 136 - globe;
+    _pageH = (room - _pad * 2).clamp(120.0, 280.0);
     // Any room left over goes evenly above and below the deck.
     final spare = math.max(0.0, room - _deckH);
     return Padding(
@@ -1239,74 +1220,25 @@ class _DecideCarouselState extends State<_DecideCarousel> {
               },
             ),
             // Invisible pages on top take the left and right swipes and taps.
-            PageView.builder(
-              controller: _controller,
-              itemCount: _pages.length,
-              itemBuilder: (context, i) => Semantics(
-                button: true,
-                label: _pages[i].label,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => context.push(_pages[i].route),
+            // Swipe to turn: touch, and mouse or trackpad drags too, for
+            // demos on a laptop.
+            ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context)
+                  .copyWith(dragDevices: PointerDeviceKind.values.toSet()),
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: _pages.length,
+                itemBuilder: (context, i) => Semantics(
+                  button: true,
+                  label: _pages[i].label,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => context.push(_pages[i].route),
+                  ),
                 ),
               ),
             ),
-            Positioned(
-              left: 4,
-              top: _deckH / 2 - 19,
-              child: _GlassArrow(
-                icon: Icons.chevron_left_rounded,
-                label: 'Previous',
-                onPressed: () => _turn(-1),
-              ),
-            ),
-            Positioned(
-              right: 4,
-              top: _deckH / 2 - 19,
-              child: _GlassArrow(
-                icon: Icons.chevron_right_rounded,
-                label: 'Next',
-                onPressed: () => _turn(1),
-              ),
-            ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A round liquid-glass arrow, in the same glass as the search and tab
-/// bars.
-class _GlassArrow extends StatelessWidget {
-  const _GlassArrow({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  static const _size = 38.0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: GestureDetector(
-        onTap: onPressed,
-        child: LiquidGlass(
-          radius: _size / 2,
-          height: _size,
-          thin: true,
-          child: SizedBox(
-            width: _size,
-            height: _size,
-            child: Icon(icon, size: 22, color: const Color(0xFF1F6B70)),
-          ),
         ),
       ),
     );
@@ -1688,7 +1620,14 @@ class _CountryGlobe extends StatefulWidget {
   State<_CountryGlobe> createState() => _CountryGlobeState();
 }
 
-class _CountryGlobeState extends State<_CountryGlobe> {
+class _CountryGlobeState extends State<_CountryGlobe>
+    with SingleTickerProviderStateMixin {
+  /// Drives the slow twinkle of the sparkles on the glass curve.
+  late final _twinkle = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 4200),
+  );
+
   /// Bubble centres as (fraction of width, offset from the top), with
   /// their diameters, matching the arc in the design.
   static const _spots = [
@@ -1710,6 +1649,23 @@ class _CountryGlobeState extends State<_CountryGlobe> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _publishRect());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Still sparkles for people who turn motion off.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _twinkle.stop();
+    } else if (!_twinkle.isAnimating) {
+      _twinkle.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _twinkle.dispose();
+    super.dispose();
   }
 
   /// Tells the onboarding where to land its globe.
@@ -1767,6 +1723,7 @@ class _CountryGlobeState extends State<_CountryGlobe> {
                       // The glass arc peaks just above the Dubai bubble.
                       arcRadius: globeCenter.dy - 8,
                       progress: arcIn,
+                      twinkle: _twinkle,
                     ),
                   ),
                 ),
@@ -1809,7 +1766,11 @@ class _ArcPainter extends CustomPainter {
     required this.globeCenter,
     required this.arcRadius,
     required this.progress,
-  }) : super(repaint: progress);
+    required this.twinkle,
+  }) : super(repaint: Listenable.merge([progress, twinkle]));
+
+  /// 0 → 1, repeating: each sparkle swells and fades on its own beat.
+  final Animation<double> twinkle;
 
   final List<Offset> points;
   final Offset globeCenter;
@@ -1871,13 +1832,20 @@ class _ArcPainter extends CustomPainter {
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1),
       );
       // Sparkles: four-point star glints with a soft halo along the edge.
-      for (final (angle, size) in [
-        (-0.78, 9.0),
-        (-0.64, 6.0),
-        (-0.5, 11.0),
-        (-0.37, 7.0),
-        (-0.24, 9.0),
+      for (final (angle, peak, phase) in [
+        (-0.78, 9.0, 0.0),
+        (-0.64, 6.0, 0.55),
+        (-0.5, 11.0, 0.25),
+        (-0.37, 7.0, 0.8),
+        (-0.24, 9.0, 0.4),
       ]) {
+        // A soft, slow twinkle: each star swells and glows, then dims to
+        // a small glint, out of step with its neighbours.
+        final beat =
+            0.5 + 0.5 * math.sin((twinkle.value + phase) * 2 * math.pi);
+        final glint = Curves.easeInOut.transform(beat);
+        final size = peak * (0.35 + 0.65 * glint);
+        final light = 0.35 + 0.65 * glint;
         final a = math.pi * angle;
         final c =
             globeCenter + Offset(math.cos(a), math.sin(a)) * (arcRadius - 1);
@@ -1885,7 +1853,7 @@ class _ArcPainter extends CustomPainter {
           c,
           size * 0.55,
           Paint()
-            ..color = const Color(0xFFB5F5EF).withValues(alpha: 0.7 * t)
+            ..color = const Color(0xFFB5F5EF).withValues(alpha: 0.7 * t * light)
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
         );
         final star = Path()
@@ -1897,7 +1865,7 @@ class _ArcPainter extends CustomPainter {
           ..close();
         canvas.drawPath(
           star,
-          Paint()..color = Colors.white.withValues(alpha: 0.95 * t),
+          Paint()..color = Colors.white.withValues(alpha: 0.95 * t * light),
         );
       }
     }
@@ -1922,7 +1890,8 @@ class _ArcPainter extends CustomPainter {
   bool shouldRepaint(_ArcPainter old) =>
       old.points != points ||
       old.arcRadius != arcRadius ||
-      old.progress != progress;
+      old.progress != progress ||
+      old.twinkle != twinkle;
 }
 
 /// Fades a bubble in while it rises and swells softly into place.

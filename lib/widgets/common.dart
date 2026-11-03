@@ -549,27 +549,48 @@ class SectionHeader extends StatelessWidget {
   /// the title off centre.
   final bool centered;
 
-  Widget _seeAll() => TextButton(
-    onPressed: onSeeAll,
-    style: TextButton.styleFrom(
-      foregroundColor: AppColors.dark
-          ? const Color(0xFF8EE8C4)
-          : AppColors.tealDark,
-      padding: const EdgeInsets.only(left: 8),
-      textStyle: AppText.label.copyWith(
-        fontSize: 13.5,
-        fontWeight: FontWeight.w700,
+  /// A small round liquid-glass "›" button that opens the full list.
+  Widget _seeAll() => Semantics(
+    button: true,
+    label: 'See all $title',
+    child: GestureDetector(
+      onTap: onSeeAll,
+      behavior: HitTestBehavior.opaque,
+      // Extra tap room either side of the 32 button.
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: AppColors.dark
+            ? Glass(
+                shape: BoxShape.circle,
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 22,
+                    color: const Color(0xFF8EE8C4),
+                  ),
+                ),
+              )
+            : const SizedBox(
+                width: 32,
+                height: 32,
+                child: LiquidGlass(
+                  radius: 16,
+                  height: 32,
+                  thin: true,
+                  child: SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 22,
+                      color: Color(0xFF1F6B70),
+                    ),
+                  ),
+                ),
+              ),
       ),
-      minimumSize: const Size(0, 32),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    ),
-    child: const Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('See all'),
-        SizedBox(width: 1),
-        Icon(Icons.chevron_right_rounded, size: 18),
-      ],
     ),
   );
 
