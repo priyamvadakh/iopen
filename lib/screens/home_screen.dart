@@ -735,20 +735,20 @@ class _PhotoHeroState extends State<_PhotoHero> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        // The photos fill the whole screen, so the frosted sheet below
-        // the header has them to blur.
+        // One still photo behind the glass card, so the card stays steady
+        // while the header photos rotate above it.
+        Photo(_slides.first.$1.hero, icon: _slides.first.$1.icon),
         PageView.builder(
           controller: _controller,
           itemCount: _slides.length,
           onPageChanged: (i) => setState(() => _page = i),
           itemBuilder: (context, i) => GestureDetector(
             onTap: () => context.push('/inspect/${_slides[i].$1.name}'),
+            behavior: HitTestBehavior.translucent,
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Full screen behind the frosted sheet, which blurs it.
-                Photo(_slides[i].$1.hero, icon: _slides[i].$1.icon),
-                // The header keeps its own crop, so it stays crisp.
+                // Only the header rotates; its own crop keeps it crisp.
                 Positioned(
                   left: 0,
                   right: 0,
@@ -968,7 +968,7 @@ class _DecideCarouselState extends State<_DecideCarousel> {
   ];
 
   // One swipe of this width turns one page.
-  final _controller = PageController(viewportFraction: 0.6);
+  final _controller = PageController(viewportFraction: 0.72);
 
   @override
   void initState() {
@@ -1002,12 +1002,12 @@ class _DecideCarouselState extends State<_DecideCarousel> {
 
   /// Page width, as a share of the row: small enough that the pages
   /// waiting underneath show plenty of themselves.
-  static const _pageW = 0.6;
+  static const _pageW = 0.72;
 
   /// How many pages wait underneath, and how far each steps out to the
   /// right of the one above it.
-  static const _under = 4;
-  static const _step = 26.0;
+  static const _under = 2;
+  static const _step = 18.0;
 
   /// The whole stack is nudged left by half the fan, so it sits centred.
   static const _shift = _under * _step / 2;
